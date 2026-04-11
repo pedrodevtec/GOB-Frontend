@@ -133,3 +133,4 @@ Adicionar a especificação OpenAPI no repositório para ligar:
 - gameplay e rewards
 - shop, orders e transactions
 - endpoints administrativos
+"# GOB-Frontend" 
