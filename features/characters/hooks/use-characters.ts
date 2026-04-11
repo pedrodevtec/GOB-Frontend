@@ -13,6 +13,13 @@ export function useCharacters() {
   });
 }
 
+export function useCharacterClasses() {
+  return useQuery({
+    queryKey: ["characters", "classes"],
+    queryFn: charactersService.classes
+  });
+}
+
 export function useCharacter(id: string) {
   return useQuery({
     queryKey: ["characters", id],
@@ -25,6 +32,21 @@ export function useCharacterSummary(id: string) {
   return useQuery({
     queryKey: ["characters", id, "summary"],
     queryFn: () => charactersService.summary(id),
+    enabled: Boolean(id)
+  });
+}
+
+export function useCharacterRankings(limit = 10) {
+  return useQuery({
+    queryKey: ["characters", "rankings", limit],
+    queryFn: () => charactersService.rankings(limit)
+  });
+}
+
+export function useCharacterPublicProfile(id: string) {
+  return useQuery({
+    queryKey: ["characters", id, "public-profile"],
+    queryFn: () => charactersService.publicProfile(id),
     enabled: Boolean(id)
   });
 }

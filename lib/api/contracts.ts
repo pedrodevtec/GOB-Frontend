@@ -9,8 +9,12 @@ import type {
   AdminEntity,
   AuthSession,
   AuthUser,
+  CharacterClass,
   CharacterActionLog,
   CharacterDetailSummary,
+  CharacterPublicProfile,
+  CharacterRankingEntry,
+  CharacterRankings,
   CharacterSummary,
   GameplayActionResult,
   GameplayCombat,
@@ -19,6 +23,11 @@ import type {
   GameplayProgression,
   InventoryItem,
   MarketActionType,
+  MarketCatalogEntry,
+  MarketOverview,
+  MarketSellableEquipment,
+  MarketSellableItem,
+  PublicProfileEquipment,
   Reward,
   TransactionRecord,
   WalletSummary
@@ -172,16 +181,99 @@ function mapCharacterSummaryDetail(input: unknown): CharacterDetailSummary {
     name: toStringValue(record.name),
     level: toNumberValue(record.level),
     xp: toNumberValue(record.xp),
-    currentHealth: toNumberValue(record.currentHealth),
+    currentHealth: toNumberValue(record.currentHealth ?? record.hp ?? record.health),
     status: toStringValue(record.status, "READY") as CharacterDetailSummary["status"],
-    className: mapClassName(record.class),
+    className: mapClassName(record.className ?? record.classId ?? record.class),
     inventory: {
       id: toStringValue(inventory.id) || null,
-      coins: toNumberValue(inventory.coins),
+      coins: toNumberValue(inventory.coins ?? record.gold ?? record.coins),
       totalItems: toNumberValue(inventory.totalItems),
       totalEquipments: toNumberValue(inventory.totalEquipments)
     },
     recentGameplayActions: asArray(record.recentGameplayActions, mapCharacterActionLog)
+  };
+}
+
+function mapCharacterClass(input: unknown): CharacterClass {
+  const record = unwrapEntity(input);
+  return {
+    id: toStringValue(record.id),
+    name: toStringValue(record.name),
+    modifier: toStringValue(record.modifier) || undefined,
+    description: toStringValue(record.description) || undefined,
+    passive: toStringValue(record.passive) || undefined
+  };
+}
+
+function mapPublicProfileEquipment(input: unknown): PublicProfileEquipment {
+  const record = unwrapEntity(input);
+  return {
+    id: toStringValue(record.id),
+    name: toStringValue(record.name),
+    category: toStringValue(record.category) || undefined,
+    type: toStringValue(record.type) || undefined,
+    img: toStringValue(record.img) || undefined,
+    effect: toStringValue(record.effect) || undefined
+  };
+}
+
+function mapRankingEntry(input: unknown): CharacterRankingEntry {
+  const record = asRecord(input);
+  const characterSource =
+    pickRecord(record, ["character", "player", "profile"]) ?? asRecord(record.character);
+  return {
+    position: toNumberValue(record.position),
+    score: toNumberValue(record.score),
+    metric: toStringValue(record.metric),
+    character: mapCharacter(characterSource)
+  };
+}
+
+function mapCharacterRankings(input: unknown): CharacterRankings {
+  const record = unwrapEntity(input);
+  const rankingsContainer = asRecord(
+    record.rankings ?? record.leaderboard ?? record.result ?? record
+  );
+  const rankings = asRecord(rankingsContainer.rankings ?? rankingsContainer);
+
+  return {
+    highestLevel: asArray(rankings.highestLevel, mapRankingEntry),
+    mostMissions: asArray(rankings.mostMissions, mapRankingEntry),
+    mostBounties: asArray(rankings.mostBounties, mapRankingEntry)
+  };
+}
+
+function mapCharacterPublicProfile(input: unknown): CharacterPublicProfile {
+  const record = unwrapEntity(input);
+  const progression = asRecord(record.progression);
+  const equipment = asRecord(record.equipment);
+  const statsSource = asRecord(record.stats);
+  const stats: Record<string, number> = {};
+
+  for (const [key, value] of Object.entries(statsSource)) {
+    if (typeof value === "number") {
+      stats[key] = value;
+    }
+  }
+
+  return {
+    id: toStringValue(record.id),
+    name: toStringValue(record.name),
+    level: toNumberValue(record.level),
+    xp: toNumberValue(record.xp),
+    currentHealth: toNumberValue(record.currentHealth ?? record.hp ?? record.health),
+    status: toStringValue(record.status, "READY") as CharacterPublicProfile["status"],
+    coins: toNumberValue(record.coins ?? record.gold),
+    className: mapClassName(record.className ?? record.classId ?? record.class),
+    stats,
+    progression: {
+      missionsCompleted: toNumberValue(progression.missionsCompleted),
+      bountiesCompleted: toNumberValue(progression.bountiesCompleted)
+    },
+    equipment: {
+      totalEquipped: toNumberValue(equipment.totalEquipped),
+      equipped: asArray(equipment.equipped, mapPublicProfileEquipment)
+    }
   };
 }
 
@@ -218,12 +310,116 @@ function mapInventoryItem(input: unknown): InventoryItem {
   };
 }
 
+function mapInventoryCollection(input: unknown): InventoryItem[] {
+  if (Array.isArray(input)) {
+    return input.map(mapInventoryItem);
+  }
+
+  const record = unwrapEntity(input);
+  const inventoryRecord = asRecord(record.inventory);
+  const rootItems = Array.isArray(record.items) ? record.items.map(mapInventoryItem) : [];
+  const rootEquipments = Array.isArray(record.equipments)
+    ? record.equipments.map((entry) =>
+        mapInventoryItem({
+          ...asRecord(entry),
+          type: asRecord(entry).type ?? asRecord(entry).category ?? "EQUIPMENT"
+        })
+      )
+    : [];
+  const nestedItems = Array.isArray(inventoryRecord.items)
+    ? inventoryRecord.items.map(mapInventoryItem)
+    : [];
+  const nestedEquipments = Array.isArray(inventoryRecord.equipments)
+    ? inventoryRecord.equipments.map((entry) =>
+        mapInventoryItem({
+          ...asRecord(entry),
+          type: asRecord(entry).type ?? asRecord(entry).category ?? "EQUIPMENT"
+        })
+      )
+    : [];
+
+  const merged = [...rootItems, ...rootEquipments, ...nestedItems, ...nestedEquipments];
+  if (merged.length) {
+    return merged;
+  }
+
+  return asArray(input, mapInventoryItem);
+}
+
 function mapWallet(input: unknown): WalletSummary {
   const record = unwrapEntity(input);
   return {
     gold: toNumberValue(record.gold ?? record.coins ?? record.balance),
     gems: toNumberValue(record.gems),
     dust: toNumberValue(record.dust)
+  };
+}
+
+function mapMarketCatalogEntry(input: unknown): MarketCatalogEntry {
+  const record = unwrapEntity(input);
+  return {
+    id: toStringValue(record.id),
+    slug: toStringValue(record.slug) || undefined,
+    name: toStringValue(record.name ?? record.title),
+    description:
+      toStringValue(record.description) ||
+      toStringValue(record.effect) ||
+      "Sem descricao detalhada.",
+    category: toStringValue(record.category) || undefined,
+    type: toStringValue(record.type) || undefined,
+    img: toStringValue(record.img) || undefined,
+    effect: toStringValue(record.effect) || undefined,
+    assetKind: toStringValue(record.assetKind) || undefined,
+    buyPrice: toNumberValue(record.buyPrice),
+    currency: toStringValue(record.currency) || undefined,
+    rewardQuantity: toNumberValue(record.rewardQuantity) || undefined,
+    suggestedSellPrice: toNumberValue(record.suggestedSellPrice) || undefined,
+    canAfford: toBooleanValue(record.canAfford, false)
+  };
+}
+
+function mapMarketSellableItem(input: unknown): MarketSellableItem {
+  const record = unwrapEntity(input);
+  return {
+    id: toStringValue(record.id),
+    name: toStringValue(record.name),
+    category: toStringValue(record.category) || undefined,
+    type: toStringValue(record.type) || undefined,
+    img: toStringValue(record.img) || undefined,
+    effect: toStringValue(record.effect) || undefined,
+    quantity: toNumberValue(record.quantity),
+    unitSellPrice: toNumberValue(record.unitSellPrice),
+    totalSellPrice: toNumberValue(record.totalSellPrice)
+  };
+}
+
+function mapMarketSellableEquipment(input: unknown): MarketSellableEquipment {
+  const record = unwrapEntity(input);
+  return {
+    id: toStringValue(record.id),
+    name: toStringValue(record.name),
+    category: toStringValue(record.category) || undefined,
+    type: toStringValue(record.type) || undefined,
+    img: toStringValue(record.img) || undefined,
+    effect: toStringValue(record.effect) || undefined,
+    isEquipped: toBooleanValue(record.isEquipped),
+    unitSellPrice: toNumberValue(record.unitSellPrice)
+  };
+}
+
+function mapMarketOverview(input: unknown): MarketOverview {
+  const record = unwrapEntity(input);
+  const market = asRecord(record.market ?? record);
+  const wallet = asRecord(market.wallet);
+
+  return {
+    wallet: {
+      inventoryId: toStringValue(wallet.inventoryId) || null,
+      coins: toNumberValue(wallet.coins)
+    },
+    buyCatalog: asArray(market.buyCatalog, mapMarketCatalogEntry),
+    sellableItems: asArray(market.sellableItems, mapMarketSellableItem),
+    sellableEquipments: asArray(market.sellableEquipments, mapMarketSellableEquipment)
   };
 }
 
@@ -252,6 +448,10 @@ function mapGameplayEntity(input: unknown): GameplayEntity {
     cooldownSeconds: toNumberValue(record.cooldownSeconds) || undefined,
     interactionType,
     recommendedLevel: toNumberValue(record.recommendedLevel) || undefined,
+    nextAvailableAt:
+      toStringValue(record.nextAvailableAt) ||
+      toStringValue(record.availableAt) ||
+      undefined,
     activeUntil: toStringValue(record.timeLimit) || undefined
   };
 }
@@ -272,16 +472,19 @@ function mapTransaction(input: unknown): TransactionRecord {
 
 function mapAdminEntity(input: unknown): AdminEntity {
   const record = unwrapEntity(input);
+  const monster = asRecord(record.monster);
   return {
     id: toStringValue(record.id),
-    name: toStringValue(record.name ?? record.title),
+    name: toStringValue(record.name ?? record.title ?? monster.name),
     description:
       toStringValue(record.description) ||
+      toStringValue(monster.name) ||
       toStringValue(record.dialogue) ||
       toStringValue(record.enemyName) ||
       "Sem descricao detalhada.",
     difficulty: toStringValue(record.difficulty) as AdminEntity["difficulty"],
-    active: toBooleanValue(record.isActive, true)
+    active: toBooleanValue(record.isActive, true),
+    relatedId: toStringValue(record.monsterId) || undefined
   };
 }
 
@@ -340,6 +543,14 @@ function mapGameplayActionResult(input: unknown): GameplayActionResult {
   const characterState = asRecord(record.characterState);
   const availability = asRecord(record.availability);
   const inventory = asRecord(record.inventory);
+  const nextAvailableAt =
+    toStringValue(availability.nextAvailableAt) ||
+    toStringValue(record.nextAvailableAt) ||
+    undefined;
+  const availabilityActionType =
+    toStringValue(availability.actionType) ||
+    toStringValue(record.actionType) ||
+    undefined;
 
   const items =
     rewardItem && Object.keys(rewardItem).length > 0
@@ -373,10 +584,10 @@ function mapGameplayActionResult(input: unknown): GameplayActionResult {
         : undefined,
     combat: mapGameplayCombat(record.combat),
     availability:
-      Object.keys(availability).length > 0
+      nextAvailableAt || availabilityActionType
         ? {
-            actionType: toStringValue(availability.actionType) || undefined,
-            nextAvailableAt: toStringValue(availability.nextAvailableAt) || undefined
+            actionType: availabilityActionType,
+            nextAvailableAt
           }
         : undefined,
     interactionType: toStringValue(record.interactionType) || undefined
@@ -421,10 +632,13 @@ export interface AuthApiContract {
 }
 
 export interface CharactersApiContract {
+  classes(): Promise<CharacterClass[]>;
   list(): Promise<CharacterSummary[]>;
   create(input: { name: string; classId?: string }): Promise<CharacterSummary>;
   byId(id: string): Promise<CharacterSummary>;
   summary(id: string): Promise<CharacterDetailSummary>;
+  rankings(limit?: number): Promise<CharacterRankings>;
+  publicProfile(id: string): Promise<CharacterPublicProfile>;
   updateName(id: string, input: { name: string }): Promise<CharacterSummary>;
   remove(id: string): Promise<void>;
   updateProgress(
@@ -470,8 +684,14 @@ export interface RewardsApiContract {
 }
 
 export interface ShopApiContract {
-  catalog(): Promise<GameplayEntity[]>;
+  marketOverview(characterId: string): Promise<MarketOverview>;
   buy(input: { characterId: string; productId: string; quantity: number }): Promise<void>;
+  sell(input: {
+    characterId: string;
+    assetType: "ITEM" | "EQUIPMENT";
+    assetId: string;
+    quantity: number;
+  }): Promise<void>;
   orders(): Promise<TransactionRecord[]>;
   paymentOrder(input: {
     characterId: string;
@@ -535,11 +755,24 @@ export const apiContracts = {
     me: () => request(apiClient.get("/api/v1/auth/me"), mapUser)
   } satisfies AuthApiContract,
   characters: {
+    classes: () =>
+      request(apiClient.get("/api/v1/characters/classes"), (data) =>
+        asArray(data, mapCharacterClass)
+      ),
     list: () => request(apiClient.get("/api/v1/characters"), (data) => asArray(data, mapCharacter)),
     create: (input) => request(apiClient.post("/api/v1/characters", input), mapCharacter),
     byId: (id) => request(apiClient.get(`/api/v1/characters/${id}`), mapCharacter),
     summary: (id) =>
       request(apiClient.get(`/api/v1/characters/${id}/summary`), mapCharacterSummaryDetail),
+    rankings: (limit) =>
+      request(
+        apiClient.get("/api/v1/characters/rankings", {
+          params: typeof limit === "number" ? { limit } : undefined
+        }),
+        mapCharacterRankings
+      ),
+    publicProfile: (id) =>
+      request(apiClient.get(`/api/v1/characters/${id}/public-profile`), mapCharacterPublicProfile),
     updateName: (id, input) =>
       request(apiClient.put(`/api/v1/characters/${id}`, input), mapCharacter),
     remove: async (id) => {
@@ -554,9 +787,7 @@ export const apiContracts = {
   } satisfies CharactersApiContract,
   inventory: {
     inventory: (characterId) =>
-      request(apiClient.get(`/api/v1/inventory/characters/${characterId}`), (data) =>
-        asArray(data, mapInventoryItem)
-      ),
+      request(apiClient.get(`/api/v1/inventory/characters/${characterId}`), mapInventoryCollection),
     wallet: (characterId) =>
       request(apiClient.get(`/api/v1/inventory/characters/${characterId}/wallet`), mapWallet),
     useItem: async (characterId, itemId) => {
@@ -647,10 +878,16 @@ export const apiContracts = {
     }
   } satisfies RewardsApiContract,
   shop: {
-    catalog: () =>
-      request(apiClient.get("/api/v1/shop/catalog"), (data) => asArray(data, mapGameplayEntity)),
+    marketOverview: (characterId) =>
+      request(
+        apiClient.get(`/api/v1/shop/market/characters/${characterId}`),
+        mapMarketOverview
+      ),
     buy: async (input) => {
-      await apiClient.post("/api/v1/shop/purchases", input);
+      await apiClient.post("/api/v1/shop/market/purchases", input);
+    },
+    sell: async (input) => {
+      await apiClient.post("/api/v1/shop/market/sales", input);
     },
     orders: () =>
       request(apiClient.get("/api/v1/shop/payment-orders"), (data) =>

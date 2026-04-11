@@ -8,6 +8,7 @@ import { ApiRequestError } from "@/lib/api/errors";
 import { useCharacterStore } from "@/stores/character-store";
 import { useGameplayCooldownStore } from "@/stores/gameplay-cooldown-store";
 import type {
+  CharacterActionLog,
   CharacterDetailSummary,
   CharacterSummary,
   MarketActionType
@@ -55,8 +56,30 @@ export function useGameplayAction() {
         variables.payload.trainingId ??
         variables.payload.npcId ??
         variables.payload.action;
+      const nextActionLog: CharacterActionLog | null =
+        actionType && referenceId
+          ? {
+              id: `${result.action}:${referenceId}:${Date.now()}`,
+              actionType: result.action,
+              referenceId: String(referenceId),
+              outcome: result.combat ? (result.combat.victory ? "WIN" : "LOSS") : "SUCCESS",
+              availableAt: result.availability?.nextAvailableAt,
+              createdAt: new Date().toISOString()
+            }
+          : null;
 
       if (characterId) {
+        const gameplayListType =
+          variables.action === "bounty"
+            ? "bounties"
+            : variables.action === "mission"
+              ? "missions"
+              : variables.action === "training"
+                ? "trainings"
+                : variables.action === "npc"
+                  ? "npcs"
+                  : null;
+
         if (actionType && referenceId && result.availability?.nextAvailableAt) {
           setCooldown(characterId, actionType, referenceId, {
             nextAvailableAt: result.availability.nextAvailableAt,
@@ -80,7 +103,10 @@ export function useGameplayAction() {
                   inventory: {
                     ...previous.inventory,
                     coins: nextCoins ?? previous.inventory.coins
-                  }
+                  },
+                  recentGameplayActions: nextActionLog
+                    ? [nextActionLog, ...previous.recentGameplayActions].slice(0, 10)
+                    : previous.recentGameplayActions
                 }
               : previous
         );
@@ -130,7 +156,12 @@ export function useGameplayAction() {
           });
         }
 
+        queryClient.invalidateQueries({ queryKey: ["characters"] });
+        queryClient.invalidateQueries({ queryKey: ["characters", characterId] });
         queryClient.invalidateQueries({ queryKey: ["characters", characterId, "summary"] });
+        if (gameplayListType) {
+          queryClient.invalidateQueries({ queryKey: ["gameplay", gameplayListType] });
+        }
         queryClient.invalidateQueries({ queryKey: ["inventory", characterId] });
         queryClient.invalidateQueries({ queryKey: ["wallet", characterId] });
         queryClient.invalidateQueries({ queryKey: ["rewards", characterId] });

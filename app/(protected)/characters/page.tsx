@@ -10,11 +10,16 @@ export default function CharactersPage() {
       <PageHeader
         eyebrow="Characters"
         title="Personagens"
-        description="Liste, ative e gerencie os heróis disponíveis na sua conta."
+        description="Liste, ative e gerencie os herois disponiveis na sua conta."
         actions={
-          <Button asChild>
-            <Link href="/characters/create">Novo personagem</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/characters/rankings">Rankings</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/characters/create">Novo personagem</Link>
+            </Button>
+          </div>
         }
       />
       <CharacterGrid />

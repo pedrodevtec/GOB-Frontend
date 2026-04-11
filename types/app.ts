@@ -24,6 +24,14 @@ export type GameplayActionType =
 
 export type MarketActionType = "barter" | "scavenge";
 
+export interface CharacterClass {
+  id: string;
+  name: string;
+  modifier?: string;
+  description?: string;
+  passive?: string;
+}
+
 export interface CharacterSummary {
   id: string;
   name: string;
@@ -66,6 +74,48 @@ export interface CharacterDetailSummary {
   recentGameplayActions: CharacterActionLog[];
 }
 
+export interface CharacterRankingEntry {
+  position: number;
+  score: number;
+  metric: string;
+  character: CharacterSummary;
+}
+
+export interface CharacterRankings {
+  highestLevel: CharacterRankingEntry[];
+  mostMissions: CharacterRankingEntry[];
+  mostBounties: CharacterRankingEntry[];
+}
+
+export interface PublicProfileEquipment {
+  id: string;
+  name: string;
+  category?: string;
+  type?: string;
+  img?: string;
+  effect?: string;
+}
+
+export interface CharacterPublicProfile {
+  id: string;
+  name: string;
+  level: number;
+  xp: number;
+  currentHealth: number;
+  status: CharacterStatus;
+  coins: number;
+  className?: string;
+  stats: Record<string, number>;
+  progression: {
+    missionsCompleted: number;
+    bountiesCompleted: number;
+  };
+  equipment: {
+    totalEquipped: number;
+    equipped: PublicProfileEquipment[];
+  };
+}
+
 export interface Reward {
   id: string;
   title: string;
@@ -89,6 +139,58 @@ export interface WalletSummary {
   gold: number;
   gems?: number;
   dust?: number;
+}
+
+export interface MarketWallet {
+  inventoryId?: string | null;
+  coins: number;
+}
+
+export interface MarketCatalogEntry {
+  id: string;
+  slug?: string;
+  name: string;
+  description: string;
+  category?: string;
+  type?: string;
+  img?: string;
+  effect?: string;
+  assetKind?: string;
+  buyPrice: number;
+  currency?: string;
+  rewardQuantity?: number;
+  suggestedSellPrice?: number;
+  canAfford: boolean;
+}
+
+export interface MarketSellableItem {
+  id: string;
+  name: string;
+  category?: string;
+  type?: string;
+  img?: string;
+  effect?: string;
+  quantity: number;
+  unitSellPrice: number;
+  totalSellPrice: number;
+}
+
+export interface MarketSellableEquipment {
+  id: string;
+  name: string;
+  category?: string;
+  type?: string;
+  img?: string;
+  effect?: string;
+  isEquipped: boolean;
+  unitSellPrice: number;
+}
+
+export interface MarketOverview {
+  wallet: MarketWallet;
+  buyCatalog: MarketCatalogEntry[];
+  sellableItems: MarketSellableItem[];
+  sellableEquipments: MarketSellableEquipment[];
 }
 
 export interface GameplayEntity {
@@ -182,4 +284,5 @@ export interface AdminEntity {
   description: string;
   difficulty?: Difficulty;
   active?: boolean;
+  relatedId?: string;
 }

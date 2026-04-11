@@ -25,6 +25,7 @@ export const sidebarItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Perfil", href: "/profile", icon: UserRound },
   { label: "Personagens", href: "/characters", icon: Users },
+  { label: "Rankings", href: "/characters/rankings", icon: Trophy },
   { label: "Jornada", href: "/gameplay/journey", icon: Sword },
   { label: "Treinamentos", href: "/gameplay/trainings", icon: Target },
   { label: "Market", href: "/gameplay/market", icon: ShoppingBag },

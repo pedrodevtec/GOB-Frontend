@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { useAdminUpsert } from "@/features/admin/hooks/use-admin";
+import { useAdminEntities, useAdminUpsert } from "@/features/admin/hooks/use-admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -97,6 +97,7 @@ export function AdminEntityForm({
 }) {
   const schema = adminSchemas[entityType as AdminType];
   const upsert = useAdminUpsert(entityType, entityId);
+  const monstersQuery = useAdminEntities("monsters");
 
   const defaultValues = useMemo<Record<string, unknown>>(() => {
     switch (entityType) {
@@ -165,7 +166,7 @@ export function AdminEntityForm({
     return <p className="text-sm text-muted-foreground">Tipo administrativo não suportado.</p>;
   }
 
-  const { register, formState } = form;
+  const { register, formState, watch } = form;
 
   return (
     <form
@@ -204,8 +205,26 @@ export function AdminEntityForm({
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Monster ID</label>
-              <Input {...register("monsterId")} />
+              <label className="text-sm font-medium">Inimigo</label>
+              <select
+                className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                {...register("monsterId")}
+                defaultValue=""
+                disabled={monstersQuery.isLoading || monstersQuery.isError}
+              >
+                <option value="" disabled>
+                  {monstersQuery.isLoading
+                    ? "Carregando inimigos..."
+                    : monstersQuery.isError
+                      ? "Falha ao carregar inimigos"
+                      : "Selecione um inimigo"}
+                </option>
+                {monstersQuery.data?.map((monster) => (
+                  <option key={monster.id} value={monster.id}>
+                    {monster.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <NumberField label="Nível recomendado" register={register} name="recommendedLevel" />
             <div className="space-y-2">
@@ -223,6 +242,10 @@ export function AdminEntityForm({
               <Input {...register("status")} />
             </div>
           </div>
+          <p className="text-xs text-muted-foreground">
+            {monstersQuery.data?.find((monster) => monster.id === watch("monsterId"))?.description ??
+              "Selecione o inimigo que sera vinculado a bounty."}
+          </p>
         </>
       ) : null}
 

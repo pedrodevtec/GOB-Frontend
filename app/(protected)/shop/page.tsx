@@ -8,9 +8,9 @@ export default function ShopPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Shop"
-        title="Loja"
-        description="Catálogo de itens, ações de compra e acesso aos pedidos registrados."
+        eyebrow="Market"
+        title="Mercado"
+        description="Compra e venda com coins usando o personagem ativo, sem substituir o market de gameplay."
         actions={
           <Button variant="outline" asChild>
             <Link href="/shop/orders">Ver pedidos</Link>

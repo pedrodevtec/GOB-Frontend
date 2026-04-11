@@ -24,7 +24,13 @@ import type {
 } from "@/types/app";
 
 function findActionLog(logs: CharacterActionLog[], entity: GameplayEntity, actionType: string) {
-  return logs.find((log) => log.actionType === actionType && log.referenceId === entity.id);
+  return logs
+    .filter((log) => log.actionType === actionType && log.referenceId === entity.id)
+    .sort((left, right) => {
+      const leftTime = new Date(left.createdAt).getTime();
+      const rightTime = new Date(right.createdAt).getTime();
+      return rightTime - leftTime;
+    })[0];
 }
 
 function toCooldown(actionType: string | undefined, nextAvailableAt: string | undefined) {
@@ -92,11 +98,15 @@ function getActionState(
         : actionKind === "npc"
           ? toCooldown("NPC_INTERACTION", findActionLog(logs, entity, "NPC_INTERACTION")?.availableAt)
           : null;
+  const entityCooldown =
+    actionKind === "mission" || actionKind === "training" || actionKind === "npc"
+      ? toCooldown(resolveActionType(actionKind), entity.nextAvailableAt)
+      : null;
 
   const activeCooldown =
     persistedCooldown && new Date(persistedCooldown.nextAvailableAt).getTime() > Date.now()
       ? persistedCooldown
-      : loggedCooldown;
+      : loggedCooldown ?? entityCooldown;
 
   if (activeCooldown) {
     const disabledReason =
