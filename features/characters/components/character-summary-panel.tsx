@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles, Star } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -17,19 +17,68 @@ import { LoadingState } from "@/components/states/loading-state";
 import {
   useAwakenCharacter,
   useCharacterClasses,
-  useCharacterSummary
+  useCharacterSummary,
+  useUpdateCharacterCustomization
 } from "@/features/characters/hooks/use-characters";
 import {
   classModifierAccent,
   classModifierLabel
 } from "@/features/characters/lib/class-presentation";
+import {
+  avatarOptions,
+  bannerOptions,
+  resolveAvatarGlyph,
+  resolveBannerClass,
+  resolveTitleLabel,
+  titleOptions
+} from "@/lib/personalization";
 import { cn } from "@/lib/utils";
+import {
+  getCharacterCustomization,
+  useProfileCustomizationStore
+} from "@/stores/profile-customization-store";
 
 export function CharacterSummaryPanel({ characterId }: { characterId: string }) {
   const [awakenOpen, setAwakenOpen] = useState(false);
   const { data, isLoading, isError, error, refetch } = useCharacterSummary(characterId);
   const classesQuery = useCharacterClasses();
   const awakenMutation = useAwakenCharacter(characterId);
+  const updateCustomizationMutation = useUpdateCharacterCustomization(characterId);
+  const characters = useProfileCustomizationStore((state) => state.characters);
+  const setCharacterCustomization = useProfileCustomizationStore(
+    (state) => state.setCharacterCustomization
+  );
+  const hydrateCharacterCustomization = useProfileCustomizationStore(
+    (state) => state.hydrateCharacterCustomization
+  );
+  const fallbackCustomization = getCharacterCustomization(characters, characterId);
+  const [customization, setCustomization] = useState({
+    avatarId: fallbackCustomization.avatarId,
+    titleId: fallbackCustomization.titleId,
+    bannerId: fallbackCustomization.bannerId
+  });
+  const serverCustomization = {
+    avatarId:
+      (data?.customization?.avatarId as (typeof avatarOptions)[number]["id"] | null | undefined) ??
+      fallbackCustomization.avatarId,
+    titleId:
+      (data?.customization?.titleId as (typeof titleOptions)[number]["id"] | null | undefined) ??
+      fallbackCustomization.titleId,
+    bannerId:
+      (data?.customization?.bannerId as (typeof bannerOptions)[number]["id"] | null | undefined) ??
+      fallbackCustomization.bannerId
+  };
+
+  useEffect(() => {
+    setCustomization(serverCustomization);
+    hydrateCharacterCustomization(characterId, serverCustomization);
+  }, [
+    characterId,
+    hydrateCharacterCustomization,
+    serverCustomization.avatarId,
+    serverCustomization.bannerId,
+    serverCustomization.titleId
+  ]);
 
   if (isLoading) {
     return <LoadingState label="Carregando resumo do personagem..." />;
@@ -50,19 +99,157 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
 
   const characterClass =
     data.classDetail ?? classesQuery.data?.find((entry) => entry.name === data.className);
-  const xpProgress = useMemo(() => {
-    if (!data.progression) return 0;
-    if (data.progression.xpForNextLevel <= 0) return 100;
-    return Math.max(
-      0,
-      Math.min(100, Math.round((data.progression.xpIntoLevel / data.progression.xpForNextLevel) * 100))
-    );
-  }, [data.progression]);
+  const xpProgress = !data.progression
+    ? 0
+    : data.progression.xpForNextLevel <= 0
+      ? 100
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round((data.progression.xpIntoLevel / data.progression.xpForNextLevel) * 100)
+          )
+        );
+  const customizationChanged =
+    customization.avatarId !== serverCustomization.avatarId ||
+    customization.titleId !== serverCustomization.titleId ||
+    customization.bannerId !== serverCustomization.bannerId;
+
+  function updateLocalCustomization(
+    next: Partial<{
+      avatarId: (typeof avatarOptions)[number]["id"];
+      titleId: (typeof titleOptions)[number]["id"];
+      bannerId: (typeof bannerOptions)[number]["id"];
+    }>
+  ) {
+    const merged = { ...customization, ...next };
+    setCustomization(merged);
+    setCharacterCustomization(characterId, merged);
+  }
 
   return (
     <>
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <Card className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4 md:col-span-2">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Character customization</p>
+                <p className="mt-1 text-xl font-semibold">Avatar, titulo e banner</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Preview instantaneo com persistencia via PATCH no perfil do personagem.
+                </p>
+              </div>
+              <div
+                className={cn(
+                  "min-w-0 rounded-2xl border border-white/10 p-4 lg:w-[20rem]",
+                  resolveBannerClass(customization.bannerId)
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-slate-950/60 text-2xl">
+                    {resolveAvatarGlyph(customization.avatarId)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{data.name}</p>
+                    <p className="mt-1 text-sm text-primary">
+                      {resolveTitleLabel(customization.titleId)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Avatar</label>
+                <select
+                  className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                  value={customization.avatarId}
+                  onChange={(event) =>
+                    updateLocalCustomization({
+                      avatarId: event.target.value as (typeof avatarOptions)[number]["id"]
+                    })
+                  }
+                >
+                  {avatarOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Titulo</label>
+                <select
+                  className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                  value={customization.titleId}
+                  onChange={(event) =>
+                    updateLocalCustomization({
+                      titleId: event.target.value as (typeof titleOptions)[number]["id"]
+                    })
+                  }
+                >
+                  {titleOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Banner</label>
+                <select
+                  className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                  value={customization.bannerId}
+                  onChange={(event) =>
+                    updateLocalCustomization({
+                      bannerId: event.target.value as (typeof bannerOptions)[number]["id"]
+                    })
+                  }
+                >
+                  {bannerOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Button
+                disabled={!customizationChanged || updateCustomizationMutation.isPending}
+                onClick={() => {
+                  void updateCustomizationMutation.mutateAsync({
+                    avatarId: customization.avatarId,
+                    titleId: customization.titleId,
+                    bannerId: customization.bannerId
+                  });
+                }}
+              >
+                {updateCustomizationMutation.isPending ? "Salvando..." : "Salvar personalizacao"}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={!customizationChanged || updateCustomizationMutation.isPending}
+                onClick={() => {
+                  setCustomization(serverCustomization);
+                  setCharacterCustomization(characterId, serverCustomization);
+                }}
+              >
+                Descartar alteracoes
+              </Button>
+              {!customizationChanged ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma alteracao pendente para envio.
+                </p>
+              ) : null}
+            </div>
+          </div>
+
           {characterClass ? (
             <div className="rounded-xl bg-white/5 p-4 md:col-span-2">
               <div className="flex items-start justify-between gap-3">
@@ -155,6 +342,19 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
                 </div>
               </div>
 
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl bg-black/20 p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Classe atual</p>
+                  <p className="mt-1 font-semibold">{data.awakening.currentClass}</p>
+                </div>
+                <div className="rounded-xl bg-black/20 p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Item requerido</p>
+                  <p className="mt-1 font-semibold">
+                    {data.awakening.requiredItemName || data.awakening.requiredItemType || "Awaken token"}
+                  </p>
+                </div>
+              </div>
+
               {data.awakening.targetClasses.length ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {data.awakening.targetClasses.map((targetClass) => (
@@ -209,6 +409,7 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
         available={Boolean(data.awakening?.available)}
         hasRequiredItem={Boolean(data.awakening?.hasRequiredItem)}
         requiredLevel={data.awakening?.requiredLevel ?? 30}
+        requiredItemName={data.awakening?.requiredItemName ?? "item de awaken"}
         targetClasses={data.awakening?.targetClasses ?? []}
         isPending={awakenMutation.isPending}
         onSelect={async (targetClassId) => {
@@ -226,6 +427,7 @@ function AwakenDialog({
   available,
   hasRequiredItem,
   requiredLevel,
+  requiredItemName,
   targetClasses,
   isPending,
   onSelect
@@ -235,6 +437,7 @@ function AwakenDialog({
   available: boolean;
   hasRequiredItem: boolean;
   requiredLevel: number;
+  requiredItemName: string;
   targetClasses: Array<{
     id: string;
     name: string;
@@ -254,7 +457,8 @@ function AwakenDialog({
             Awaken de classe
           </DialogTitle>
           <DialogDescription>
-            Escolha a evolucao final. O personagem precisa estar no nivel {requiredLevel} e consumir o item de awaken.
+            Escolha a classe alvo. O personagem precisa estar no nivel {requiredLevel} e consumir{" "}
+            {requiredItemName}.
           </DialogDescription>
         </DialogHeader>
 

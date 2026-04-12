@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { charactersService } from "@/features/characters/services/characters.service";
+import { ApiRequestError } from "@/lib/api/errors";
 import { useCharacterStore } from "@/stores/character-store";
 
 export function useCharacters() {
@@ -83,18 +84,27 @@ export function useRenameCharacter(id: string) {
 
 export function useUpdateCharacterCustomization(id: string) {
   const queryClient = useQueryClient();
+  const setActiveCharacter = useCharacterStore((state) => state.setActiveCharacter);
 
   return useMutation({
     mutationFn: (input: { avatarId?: string; titleId?: string; bannerId?: string }) =>
       charactersService.updateCustomization(id, input),
-    onSuccess: () => {
+    onSuccess: (character) => {
       queryClient.invalidateQueries({ queryKey: ["characters"] });
       queryClient.invalidateQueries({ queryKey: ["characters", id] });
       queryClient.invalidateQueries({ queryKey: ["characters", id, "summary"] });
       queryClient.invalidateQueries({ queryKey: ["characters", id, "public-profile"] });
+      setActiveCharacter(character);
       toast.success("Personalizacao salva.");
     },
-    onError: (error: Error) => toast.error(error.message)
+    onError: (error: Error) => {
+      if (error instanceof ApiRequestError && error.statusCode === 400) {
+        toast.error("Opcao de personalizacao invalida.");
+        return;
+      }
+
+      toast.error(error.message);
+    }
   });
 }
 
@@ -108,6 +118,8 @@ export function useAwakenCharacter(id: string) {
       queryClient.invalidateQueries({ queryKey: ["characters", id] });
       queryClient.invalidateQueries({ queryKey: ["characters", id, "summary"] });
       queryClient.invalidateQueries({ queryKey: ["characters", id, "public-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory", id] });
+      queryClient.invalidateQueries({ queryKey: ["wallet", id] });
       toast.success("Awaken realizado.");
     },
     onError: (error: Error) => toast.error(error.message)
