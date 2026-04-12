@@ -21,6 +21,7 @@ export interface NavItem {
   adminOnly?: boolean;
 }
 
+
 export const sidebarItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Perfil", href: "/profile", icon: UserRound },
