@@ -24,7 +24,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <DashboardStats />
       </div>
-
+<div>flag: {String(process.env.NEXT_PUBLIC_ENABLE_X)}</div>
       <div className="grid gap-6">
         <Card className="space-y-5">
           <PageHeader
