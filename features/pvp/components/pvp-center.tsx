@@ -10,11 +10,11 @@ import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { usePvpOverview, usePvpRankings, useCreatePvpMatch } from "@/features/pvp/hooks/use-pvp";
 import { classTierLabel } from "@/features/characters/lib/class-presentation";
+import { usePvpOverview, usePvpRankings, useCreatePvpMatch } from "@/features/pvp/hooks/use-pvp";
 import { useActiveCharacter } from "@/hooks/use-active-character";
-import { formatCooldownDate, formatCountdown } from "@/lib/utils";
 import { MAX_CHARACTER_LEVEL, PVP_UNLOCK_LEVEL } from "@/lib/game-constants";
+import { formatCooldownDate, formatCountdown } from "@/lib/utils";
 
 function maxLevelLabel(level: number, maxLevel: number) {
   return level >= maxLevel ? `MAX (${maxLevel})` : `Lv ${level}`;
@@ -65,8 +65,8 @@ export function PvpCenter() {
   if (!overviewQuery.data || !rankingsQuery.data) {
     return (
       <EmptyState
-        title="Arena indisponível"
-        description="Os dados de PvP aparecerão aqui quando a API estiver respondendo."
+        title="Arena indisponivel"
+        description="Os dados de PvP aparecerao aqui quando a API estiver respondendo."
       />
     );
   }
@@ -84,18 +84,23 @@ export function PvpCenter() {
           <div>
             <CardTitle>Overview PvP</CardTitle>
             <CardDescription className="mt-2">
-              Desbloqueio no nível {overview.requiredLevel}, cooldown de {Math.round(overview.cooldownSeconds / 60)} minutos e rating fixo.
+              Desbloqueio no nivel {overview.requiredLevel}, cooldown de{" "}
+              {Math.round(overview.cooldownSeconds / 60)} minutos e rating fixo.
             </CardDescription>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded-xl bg-white/5 p-3">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Nível</p>
-              <p className="mt-1 text-lg font-semibold">{maxLevelLabel(overview.level, overview.maxLevel)}</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Nivel</p>
+              <p className="mt-1 text-lg font-semibold">
+                {maxLevelLabel(overview.level, overview.maxLevel)}
+              </p>
             </div>
             <div className="rounded-xl bg-white/5 p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Status PvP</p>
-              <p className="mt-1 text-lg font-semibold">{overview.pvpUnlocked ? "Liberado" : `Bloqueado até ${PVP_UNLOCK_LEVEL}`}</p>
+              <p className="mt-1 text-lg font-semibold">
+                {overview.pvpUnlocked ? "Liberado" : `Bloqueado ate ${PVP_UNLOCK_LEVEL}`}
+              </p>
             </div>
             <div className="rounded-xl bg-white/5 p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Rating</p>
@@ -111,7 +116,7 @@ export function PvpCenter() {
 
           {!overview.pvpUnlocked ? (
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-100">
-              PvP libera apenas no nível {overview.requiredLevel}.
+              PvP libera apenas no nivel {overview.requiredLevel}.
             </div>
           ) : null}
 
@@ -127,7 +132,8 @@ export function PvpCenter() {
           <div>
             <CardTitle>Desafiar oponente</CardTitle>
             <CardDescription className="mt-2">
-              Oponente também precisa estar sem cooldown. Vitória: +20 rating. Derrota: -10, com piso em 1000.
+              Oponente tambem precisa estar sem cooldown. Vitoria: +20 rating. Derrota: -10,
+              com piso em 1000.
             </CardDescription>
           </div>
 
@@ -141,7 +147,8 @@ export function PvpCenter() {
               .filter((entry) => entry.character.id !== characterId)
               .map((entry) => (
                 <option key={entry.character.id} value={entry.character.id}>
-                  #{entry.position} {entry.character.name} • Rating {entry.rating} • {maxLevelLabel(entry.character.level, MAX_CHARACTER_LEVEL)}
+                  #{entry.position} {entry.character.name} • Rating {entry.rating} •{" "}
+                  {maxLevelLabel(entry.character.level, MAX_CHARACTER_LEVEL)}
                 </option>
               ))}
           </select>
@@ -150,10 +157,14 @@ export function PvpCenter() {
             <div className="rounded-xl bg-white/5 p-4">
               <p className="font-semibold">{selectedOpponent.character.name}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Rating {selectedOpponent.rating} • {selectedOpponent.wins}W / {selectedOpponent.losses}L
+                Rating {selectedOpponent.rating} • {selectedOpponent.wins}W /{" "}
+                {selectedOpponent.losses}L
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {selectedOpponent.character.class?.name ?? "Classe"} {selectedOpponent.character.class?.tier ? `• ${classTierLabel(selectedOpponent.character.class.tier)}` : ""}
+                {selectedOpponent.character.class?.name ?? "Classe"}
+                {selectedOpponent.character.class?.tier
+                  ? ` • ${classTierLabel(selectedOpponent.character.class.tier)}`
+                  : ""}
               </p>
             </div>
           ) : null}
@@ -176,9 +187,9 @@ export function PvpCenter() {
       {createMatch.data ? (
         <Card className="space-y-4">
           <div>
-            <CardTitle>Último resultado</CardTitle>
+            <CardTitle>Ultimo resultado</CardTitle>
             <CardDescription className="mt-2">
-              Rating antes/depois e rounds detalhados com crítico por turno.
+              Rating antes/depois e rounds detalhados com critico por turno.
             </CardDescription>
           </div>
 
@@ -186,46 +197,71 @@ export function PvpCenter() {
             <div className="rounded-xl bg-white/5 p-4">
               <p className="font-semibold">{createMatch.data.challenger.name}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Rating {createMatch.data.challenger.ratingBefore} → {createMatch.data.challenger.ratingAfter}
+                Rating {createMatch.data.challenger.ratingBefore} {"->"}{" "}
+                {createMatch.data.challenger.ratingAfter}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                HP {createMatch.data.challenger.state.currentHealth}/{createMatch.data.challenger.state.maxHealth}
+                HP {createMatch.data.challenger.state.currentHealth}/
+                {createMatch.data.challenger.state.maxHealth}
               </p>
               <div className="mt-3">
-                <DerivedStatsGrid stats={createMatch.data.challenger.stats} className="grid gap-2 md:grid-cols-2" />
+                <DerivedStatsGrid
+                  stats={createMatch.data.challenger.stats}
+                  className="grid gap-2 md:grid-cols-2"
+                />
               </div>
             </div>
 
             <div className="rounded-xl bg-white/5 p-4">
               <p className="font-semibold">{createMatch.data.opponent.name}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Rating {createMatch.data.opponent.ratingBefore} → {createMatch.data.opponent.ratingAfter}
+                Rating {createMatch.data.opponent.ratingBefore} {"->"}{" "}
+                {createMatch.data.opponent.ratingAfter}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                HP {createMatch.data.opponent.state.currentHealth}/{createMatch.data.opponent.state.maxHealth}
+                HP {createMatch.data.opponent.state.currentHealth}/
+                {createMatch.data.opponent.state.maxHealth}
               </p>
               <div className="mt-3">
-                <DerivedStatsGrid stats={createMatch.data.opponent.stats} className="grid gap-2 md:grid-cols-2" />
+                <DerivedStatsGrid
+                  stats={createMatch.data.opponent.stats}
+                  className="grid gap-2 md:grid-cols-2"
+                />
               </div>
             </div>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
             <p className="font-medium">
-              Vencedor: {createMatch.data.combat.winner === "challenger" ? createMatch.data.challenger.name : createMatch.data.opponent.name}
+              Vencedor:{" "}
+              {createMatch.data.combat.winner === "challenger"
+                ? createMatch.data.challenger.name
+                : createMatch.data.opponent.name}
             </p>
-            <div className="mt-4 grid gap-2">
+            <div className="mt-4 grid max-h-80 gap-2 overflow-y-auto pr-1">
               {createMatch.data.combat.rounds.map((round) => (
-                <div key={`${createMatch.data.match.id}-${round.round}-${round.actor}`} className="rounded-lg border border-white/10 px-3 py-2 text-sm">
-                  <p className="font-medium">
-                    Turno {round.round}: {round.actor === "challenger" ? createMatch.data.challenger.name : createMatch.data.opponent.name}
-                  </p>
-                  <p className="text-muted-foreground">
-                    Dano {round.damage}
-                    {round.critical ? " • CRIT 1.5x" : ""}
-                    {" • "}HP challenger {round.remainingChallengerHealth}
-                    {" • "}HP opponent {round.remainingOpponentHealth}
-                  </p>
+                <div
+                  key={`${createMatch.data.match.id}-${round.round}-${round.actor}`}
+                  className="rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">
+                        Turno {round.round}:{" "}
+                        {round.actor === "challenger"
+                          ? createMatch.data.challenger.name
+                          : createMatch.data.opponent.name}
+                      </p>
+                      <p className="mt-1 text-muted-foreground">
+                        HP challenger {round.remainingChallengerHealth}
+                        {" • "}HP opponent {round.remainingOpponentHealth}
+                        {round.critical ? " • CRIT 1.5x" : ""}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-100">
+                      -{round.damage} HP
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -239,7 +275,7 @@ export function PvpCenter() {
           <div>
             <CardTitle>Ranking PvP</CardTitle>
             <CardDescription className="mt-2">
-              Ordenado por rating e desempate por vitórias.
+              Ordenado por rating e desempate por vitorias.
             </CardDescription>
           </div>
         </div>
@@ -258,8 +294,11 @@ export function PvpCenter() {
                       #{entry.position} {entry.character.name}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {entry.character.class?.name ?? "Classe"} • {maxLevelLabel(entry.character.level, MAX_CHARACTER_LEVEL)}
-                      {entry.character.class?.tier ? ` • ${classTierLabel(entry.character.class.tier)}` : ""}
+                      {entry.character.class?.name ?? "Classe"} •{" "}
+                      {maxLevelLabel(entry.character.level, MAX_CHARACTER_LEVEL)}
+                      {entry.character.class?.tier
+                        ? ` • ${classTierLabel(entry.character.class.tier)}`
+                        : ""}
                     </p>
                   </div>
                   <div className="text-right text-sm">
@@ -275,13 +314,13 @@ export function PvpCenter() {
         ) : (
           <EmptyState
             title="Ranking PvP vazio"
-            description="Nenhum personagem elegível apareceu no ranking."
+            description="Nenhum personagem elegivel apareceu no ranking."
           />
         )}
 
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-100">
           <ShieldAlert className="mr-2 inline h-4 w-4" />
-          O rating atual é fixo: vitória +20, derrota -10, com piso em 1000.
+          O rating atual e fixo: vitoria +20, derrota -10, com piso em 1000.
         </div>
       </Card>
     </div>

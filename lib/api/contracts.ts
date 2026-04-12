@@ -516,6 +516,7 @@ function mapMarketSellableEquipment(input: unknown): MarketSellableEquipment {
     type: toStringValue(record.type) || undefined,
     img: toStringValue(record.img) || undefined,
     effect: toStringValue(record.effect) || undefined,
+    levelRequirement: toOptionalNumberValue(record.levelRequirement),
     isEquipped: toBooleanValue(record.isEquipped),
     unitSellPrice: toNumberValue(record.unitSellPrice)
   };

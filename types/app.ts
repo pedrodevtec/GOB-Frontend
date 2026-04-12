@@ -251,6 +251,7 @@ export interface MarketSellableEquipment {
   type?: string;
   img?: string;
   effect?: string;
+  levelRequirement?: number;
   isEquipped: boolean;
   unitSellPrice: number;
 }

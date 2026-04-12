@@ -141,7 +141,17 @@ export function ShopCatalog() {
                     <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                       {entry.category ? <span>{entry.category}</span> : null}
                       {entry.effect ? <span>{entry.effect}</span> : null}
-                      {entry.levelRequirement ? <span>Requer nivel {entry.levelRequirement}</span> : null}
+                      {entry.levelRequirement ? (
+                        <span
+                          className={
+                            entry.levelRequirement > characterLevel
+                              ? "rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-amber-100"
+                              : "rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-emerald-100"
+                          }
+                        >
+                          Requer nivel {entry.levelRequirement}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="mt-auto space-y-3">
@@ -297,6 +307,17 @@ export function ShopCatalog() {
                       {equipment.isEquipped ? "Equipado" : "Livre"}
                     </span>
                   </div>
+                  {equipment.levelRequirement ? (
+                    <p
+                      className={
+                        equipment.levelRequirement > characterLevel
+                          ? "mt-2 text-xs text-amber-200"
+                          : "mt-2 text-xs text-muted-foreground"
+                      }
+                    >
+                      Requer nivel {equipment.levelRequirement}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="rounded-xl bg-white/5 p-3 text-sm">
                   <p className="text-muted-foreground">Retorno</p>

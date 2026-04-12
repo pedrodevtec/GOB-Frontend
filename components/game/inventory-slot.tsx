@@ -20,18 +20,29 @@ export function InventorySlot({
   const requiresLevel = typeof item.levelRequirement === "number" && item.levelRequirement > 0;
   const meetsLevelRequirement = !requiresLevel || characterLevel >= (item.levelRequirement ?? 0);
   const isEquipment = item.assetKind === "EQUIPMENT";
+  const requirementLabel = requiresLevel ? `Nivel ${item.levelRequirement}` : null;
 
   return (
     <Card className="space-y-4 p-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="font-semibold">{item.name}</p>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            {item.type} - qty {item.quantity}
+            {item.type} • qty {item.quantity}
           </p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
             {item.category ? <span>{item.category}</span> : null}
-            {requiresLevel ? <span>Requer nivel {item.levelRequirement}</span> : null}
+            {requirementLabel ? (
+              <span
+                className={
+                  meetsLevelRequirement
+                    ? "rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-emerald-100"
+                    : "rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-amber-100"
+                }
+              >
+                Requer {requirementLabel}
+              </span>
+            ) : null}
           </div>
           {item.effect ? <p className="mt-2 text-sm text-muted-foreground">{item.effect}</p> : null}
         </div>
@@ -39,7 +50,11 @@ export function InventorySlot({
       </div>
       <div className="flex gap-2">
         {isEquipment ? (
-          <Button size="sm" onClick={() => onPrimaryAction?.(item)}>
+          <Button
+            size="sm"
+            disabled={!item.equipped && !meetsLevelRequirement}
+            onClick={() => onPrimaryAction?.(item)}
+          >
             {item.equipped ? "Desequipar" : "Equipar"}
           </Button>
         ) : (

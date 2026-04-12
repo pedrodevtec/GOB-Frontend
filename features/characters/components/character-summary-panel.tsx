@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { Sparkles, Star } from "lucide-react";
 
-import { Card } from "@/components/ui/card";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingState } from "@/components/states/loading-state";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -12,8 +14,6 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
-import { ErrorState } from "@/components/states/error-state";
-import { LoadingState } from "@/components/states/loading-state";
 import {
   useAwakenCharacter,
   useCharacterClasses,
@@ -25,6 +25,8 @@ import {
   classModifierLabel,
   classTierLabel
 } from "@/features/characters/lib/class-presentation";
+import { MAX_CHARACTER_LEVEL } from "@/lib/game-constants";
+import { formatCooldownDate, cn } from "@/lib/utils";
 import {
   avatarOptions,
   bannerOptions,
@@ -33,12 +35,26 @@ import {
   resolveTitleLabel,
   titleOptions
 } from "@/lib/personalization";
-import { cn } from "@/lib/utils";
 import {
   getCharacterCustomization,
   useProfileCustomizationStore
 } from "@/stores/profile-customization-store";
-import { MAX_CHARACTER_LEVEL } from "@/lib/game-constants";
+
+function summaryStatusTone(status: "READY" | "WOUNDED" | "DEFEATED") {
+  if (status === "READY") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-100";
+  if (status === "WOUNDED") return "border-amber-500/20 bg-amber-500/10 text-amber-100";
+  return "border-rose-500/20 bg-rose-500/10 text-rose-100";
+}
+
+function actionTypeLabel(actionType: string) {
+  if (actionType === "BOUNTY_HUNT") return "Bounty";
+  if (actionType === "MISSION") return "Missao";
+  if (actionType === "TRAINING") return "Treino";
+  if (actionType === "NPC_INTERACTION") return "NPC";
+  if (actionType === "MARKET") return "Mercado";
+  if (actionType === "PVP") return "PvP";
+  return actionType;
+}
 
 export function CharacterSummaryPanel({ characterId }: { characterId: string }) {
   const [awakenOpen, setAwakenOpen] = useState(false);
@@ -263,7 +279,9 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                     <span>{classTierLabel(characterClass.tier)}</span>
-                    {characterClass.evolvesFrom ? <span>Evoluiu de {characterClass.evolvesFrom}</span> : null}
+                    {characterClass.evolvesFrom ? (
+                      <span>Evoluiu de {characterClass.evolvesFrom}</span>
+                    ) : null}
                     {(characterClass.awakensTo ?? []).length ? (
                       <span>Desperta para {(characterClass.awakensTo ?? []).join(", ")}</span>
                     ) : null}
@@ -290,7 +308,13 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
           </div>
           <div className="rounded-xl bg-white/5 p-4">
             <p className="text-sm text-muted-foreground">Status</p>
-            <p className="mt-2 text-2xl font-semibold">{data.status}</p>
+            <div className="mt-2 flex items-center gap-3">
+              <span
+                className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-wide ${summaryStatusTone(data.status)}`}
+              >
+                {data.status}
+              </span>
+            </div>
           </div>
           <div className="rounded-xl bg-white/5 p-4">
             <p className="text-sm text-muted-foreground">Coins</p>
@@ -307,7 +331,8 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
                 <div>
                   <p className="text-sm text-muted-foreground">Progressao</p>
                   <p className="mt-1 text-xl font-semibold">
-                    Nivel {data.progression.currentLevel} • {data.progression.xpRemainingToNextLevel} XP restantes
+                    Nivel {data.progression.currentLevel} •{" "}
+                    {data.progression.xpRemainingToNextLevel} XP restantes
                   </p>
                 </div>
                 <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
@@ -315,10 +340,14 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
                 </span>
               </div>
               <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${xpProgress}%` }} />
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${xpProgress}%` }}
+                />
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                {data.progression.xpIntoLevel} / {data.progression.xpForNextLevel} XP no nivel atual.
+                {data.progression.xpIntoLevel} / {data.progression.xpForNextLevel} XP no nivel
+                atual.
               </p>
             </div>
           ) : null}
@@ -330,7 +359,8 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
                   <p className="text-sm text-muted-foreground">Awaken</p>
                   <p className="mt-1 text-xl font-semibold">{data.awakening.currentClass}</p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Nivel minimo {data.awakening.requiredLevel}. Item exigido: {data.awakening.requiredItemName}.
+                    Nivel minimo {data.awakening.requiredLevel}. Item exigido:{" "}
+                    {data.awakening.requiredItemName}.
                   </p>
                 </div>
                 <Sparkles className="h-5 w-5 text-primary" />
@@ -342,12 +372,18 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
                   <p className="mt-1 font-semibold">{data.awakening.available ? "Sim" : "Nao"}</p>
                 </div>
                 <div className="rounded-xl bg-black/20 p-3">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Tier atual</p>
-                  <p className="mt-1 font-semibold">{classTierLabel(data.awakening.currentTier)}</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Tier atual
+                  </p>
+                  <p className="mt-1 font-semibold">
+                    {classTierLabel(data.awakening.currentTier)}
+                  </p>
                 </div>
                 <div className="rounded-xl bg-black/20 p-3">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Item</p>
-                  <p className="mt-1 font-semibold">{data.awakening.hasRequiredItem ? "Disponivel" : "Ausente"}</p>
+                  <p className="mt-1 font-semibold">
+                    {data.awakening.hasRequiredItem ? "Disponivel" : "Ausente"}
+                  </p>
                 </div>
                 <div className="rounded-xl bg-black/20 p-3">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Rotas</p>
@@ -357,17 +393,25 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
 
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <div className="rounded-xl bg-black/20 p-3">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Classe atual</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Classe atual
+                  </p>
                   <p className="mt-1 font-semibold">{data.awakening.currentClass}</p>
                 </div>
                 <div className="rounded-xl bg-black/20 p-3">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Origem</p>
-                  <p className="mt-1 font-semibold">{data.awakening.evolvesFrom ?? "Classe base"}</p>
+                  <p className="mt-1 font-semibold">
+                    {data.awakening.evolvesFrom ?? "Classe base"}
+                  </p>
                 </div>
                 <div className="rounded-xl bg-black/20 p-3">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Item requerido</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Item requerido
+                  </p>
                   <p className="mt-1 font-semibold">
-                    {data.awakening.requiredItemName || data.awakening.requiredItemType || "Awaken token"}
+                    {data.awakening.requiredItemName ||
+                      data.awakening.requiredItemType ||
+                      "Awaken token"}
                   </p>
                 </div>
               </div>
@@ -403,17 +447,39 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
         </Card>
 
         <Card className="space-y-3">
-          <p className="text-sm font-medium">Recent gameplay actions</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">Resumo recente</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Estado atual do personagem e historico resumido das ultimas acoes.
+              </p>
+            </div>
+            <span
+              className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-wide ${summaryStatusTone(data.status)}`}
+            >
+              {data.status}
+            </span>
+          </div>
           {data.recentGameplayActions.length ? (
-            data.recentGameplayActions.slice(0, 6).map((action) => (
-              <div key={action.id} className="rounded-xl bg-white/5 p-3 text-sm">
-                <p className="font-medium">{action.actionType}</p>
-                <p className="text-muted-foreground">
-                  {action.outcome}
-                  {action.availableAt ? ` • ate ${action.availableAt}` : ""}
-                </p>
-              </div>
-            ))
+            <div className="grid max-h-[32rem] gap-3 overflow-y-auto pr-1">
+              {data.recentGameplayActions.map((action) => (
+                <div key={action.id} className="rounded-xl bg-white/5 p-3 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-medium">{actionTypeLabel(action.actionType)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatCooldownDate(action.createdAt) ?? action.createdAt}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-muted-foreground">{action.outcome}</p>
+                  {action.availableAt ? (
+                    <p className="mt-2 text-xs text-sky-200">
+                      Disponivel novamente em{" "}
+                      {formatCooldownDate(action.availableAt) ?? action.availableAt}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">Nenhuma acao recente registrada.</p>
           )}
@@ -512,7 +578,9 @@ function AwakenDialog({
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                     <span>{classTierLabel(targetClass.tier)}</span>
-                    {targetClass.evolvesFrom ? <span>Evolui de {targetClass.evolvesFrom}</span> : null}
+                    {targetClass.evolvesFrom ? (
+                      <span>Evolui de {targetClass.evolvesFrom}</span>
+                    ) : null}
                   </div>
                 </div>
                 <span

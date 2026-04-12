@@ -33,6 +33,12 @@ function combatRoundLabel(result: GameplayActionResult, roundIndex: number) {
   return `Turno ${round.round ?? roundIndex + 1}: ${actor} causou ${round.damage ?? 0} em ${target}. HP ${characterHealth ?? "-"} / Inimigo ${enemyHealth ?? "-"}`;
 }
 
+function statusTone(status: GameplayActionResult["characterState"]["status"]) {
+  if (status === "READY") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-100";
+  if (status === "WOUNDED") return "border-amber-500/20 bg-amber-500/10 text-amber-100";
+  return "border-rose-500/20 bg-rose-500/10 text-rose-100";
+}
+
 export function RewardModal({
   open,
   onOpenChange,
@@ -44,7 +50,7 @@ export function RewardModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gift className="h-5 w-5 text-primary" />
@@ -55,7 +61,7 @@ export function RewardModal({
           </DialogDescription>
         </DialogHeader>
         {result ? (
-          <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
+          <div className="grid max-h-[72vh] gap-3 overflow-y-auto rounded-2xl border border-white/10 bg-white/5 p-4 pr-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">XP</span>
               <span>{result.rewards.xp}</span>
@@ -86,15 +92,23 @@ export function RewardModal({
                 </div>
               </>
             ) : null}
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">HP atual</span>
-              <span>
-                {result.characterState.currentHealth}/{result.characterState.maxHealth}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Status</span>
-              <span>{result.characterState.status}</span>
+            <div className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-3 md:grid-cols-2">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Resumo do personagem
+                </p>
+                <p className="mt-2 text-lg font-semibold">
+                  HP {result.characterState.currentHealth}/{result.characterState.maxHealth}
+                </p>
+              </div>
+              <div className="md:text-right">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Status atual</p>
+                <span
+                  className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-wide ${statusTone(result.characterState.status)}`}
+                >
+                  {result.characterState.status}
+                </span>
+              </div>
             </div>
             {result.progression ? (
               <div className="flex items-center justify-between">
@@ -125,16 +139,30 @@ export function RewardModal({
                     emptyLabel="Sem stats apresentados para este combate."
                   />
                 ) : null}
-                <div className="grid gap-2 text-xs text-muted-foreground">
+                <div className="grid max-h-72 gap-2 overflow-y-auto pr-1 text-xs text-muted-foreground">
                   {result.combat.rounds.length ? (
-                    result.combat.rounds.map((_, index) => {
+                    result.combat.rounds.map((round, index) => {
                       const label = combatRoundLabel(result, index);
+                      const actor =
+                        round.actor === "character"
+                          ? "Voce"
+                          : result.enemy ?? round.attacker ?? "Inimigo";
                       return label ? (
                         <div
                           key={`${result.action}-${index}`}
-                          className="rounded-lg border border-white/10 px-3 py-2"
+                          className="rounded-xl border border-white/10 bg-black/20 px-3 py-3"
                         >
-                          {label}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground">
+                                Turno {round.round ?? index + 1} • {actor}
+                              </p>
+                              <p className="mt-1 leading-relaxed">{label}</p>
+                            </div>
+                            <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-100">
+                              -{round.damage ?? 0} HP
+                            </span>
+                          </div>
                         </div>
                       ) : null;
                     })
