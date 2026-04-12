@@ -49,6 +49,12 @@ export function EntityCard({
                 Healer
               </span>
             ) : null}
+            {entity.interactionType === "buffer" ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-1 text-sky-200">
+                <Sword className="h-3.5 w-3.5" />
+                Buffer
+              </span>
+            ) : null}
             {entity.cooldownSeconds ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
                 <Clock3 className="h-3.5 w-3.5" />

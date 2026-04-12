@@ -207,6 +207,8 @@ export interface GameplayEntity {
   nextAvailableAt?: string;
   activeUntil?: string;
   marketAction?: MarketActionType;
+  role?: string;
+  dialogue?: string;
 }
 
 export interface GameplayCharacterState {
@@ -255,9 +257,16 @@ export interface GameplayActionResult {
   enemy?: string;
   note?: string;
   marketAction?: MarketActionType;
+  npcId?: string;
+  npcName?: string;
   rewards: GameplayRewards;
   progression?: GameplayProgression;
   characterState: GameplayCharacterState;
+  buff?: {
+    percent: number;
+    cost: number;
+    expiresAt: string;
+  };
   inventory?: {
     id?: string;
     coins: number;
@@ -268,6 +277,11 @@ export interface GameplayActionResult {
     nextAvailableAt?: string;
   };
   interactionType?: string;
+  transaction?: {
+    id?: string;
+    type?: string;
+    value?: number;
+  };
 }
 
 export interface TransactionRecord {
@@ -285,4 +299,39 @@ export interface AdminEntity {
   difficulty?: Difficulty;
   active?: boolean;
   relatedId?: string;
+  title?: string;
+  level?: number;
+  health?: number;
+  attack?: number;
+  defense?: number;
+  experience?: number;
+  monsterId?: string;
+  recommendedLevel?: number;
+  reward?: number;
+  rewardXp?: number;
+  timeLimit?: string;
+  status?: string;
+  enemyName?: string;
+  enemyLevel?: number;
+  enemyHealth?: number;
+  enemyAttack?: number;
+  enemyDefense?: number;
+  rewardCoins?: number;
+  trainingType?: string;
+  xpReward?: number;
+  coinsReward?: number;
+  cooldownSeconds?: number;
+  role?: string;
+  interactionType?: string;
+  dialogue?: string;
+  slug?: string;
+  category?: string;
+  type?: string;
+  img?: string;
+  effect?: string;
+  assetKind?: string;
+  buyPrice?: number;
+  currency?: string;
+  rewardQuantity?: number;
+  suggestedSellPrice?: number;
 }

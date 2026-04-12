@@ -40,6 +40,9 @@ const ARRAY_KEYS = [
   "items",
   "results",
   "rows",
+  "products",
+  "shopCatalog",
+  "buyCatalog",
   "claims",
   "catalog",
   "characters",
@@ -49,6 +52,8 @@ const ARRAY_KEYS = [
   "missions",
   "trainings",
   "npcs",
+  "shopProducts",
+  "shop-products",
   "inventory",
   "transactions",
   "orders",
@@ -106,7 +111,9 @@ function unwrapEntity(value: unknown): Dict {
       "profile",
       "wallet",
       "summary",
-      "order"
+      "order",
+      "product",
+      "shopProduct"
     ]) ?? asRecord(value)
   );
 }
@@ -117,6 +124,10 @@ function toStringValue(value: unknown, fallback = "") {
 
 function toNumberValue(value: unknown, fallback = 0) {
   return typeof value === "number" ? value : fallback;
+}
+
+function toOptionalNumberValue(value: unknown) {
+  return typeof value === "number" ? value : undefined;
 }
 
 function toBooleanValue(value: unknown, fallback = false) {
@@ -452,7 +463,9 @@ function mapGameplayEntity(input: unknown): GameplayEntity {
       toStringValue(record.nextAvailableAt) ||
       toStringValue(record.availableAt) ||
       undefined,
-    activeUntil: toStringValue(record.timeLimit) || undefined
+    activeUntil: toStringValue(record.timeLimit) || undefined,
+    role: toStringValue(record.role) || undefined,
+    dialogue: toStringValue(record.dialogue) || undefined
   };
 }
 
@@ -472,19 +485,62 @@ function mapTransaction(input: unknown): TransactionRecord {
 
 function mapAdminEntity(input: unknown): AdminEntity {
   const record = unwrapEntity(input);
+  const product = asRecord(record.product ?? record.shopProduct);
   const monster = asRecord(record.monster);
   return {
-    id: toStringValue(record.id),
-    name: toStringValue(record.name ?? record.title ?? monster.name),
+    id: toStringValue(record.id ?? product.id ?? record.productId),
+    name: toStringValue(
+      record.name ?? record.title ?? product.name ?? product.title ?? record.slug ?? monster.name
+    ),
+    title: toStringValue(record.title ?? product.title) || undefined,
     description:
       toStringValue(record.description) ||
+      toStringValue(product.description) ||
+      toStringValue(record.effect) ||
+      toStringValue(product.effect) ||
       toStringValue(monster.name) ||
       toStringValue(record.dialogue) ||
       toStringValue(record.enemyName) ||
       "Sem descricao detalhada.",
     difficulty: toStringValue(record.difficulty) as AdminEntity["difficulty"],
-    active: toBooleanValue(record.isActive, true),
-    relatedId: toStringValue(record.monsterId) || undefined
+    active: toBooleanValue(record.isActive ?? product.isActive, true),
+    relatedId: toStringValue(record.monsterId) || undefined,
+    level: toOptionalNumberValue(record.level),
+    health: toOptionalNumberValue(record.health),
+    attack: toOptionalNumberValue(record.attack),
+    defense: toOptionalNumberValue(record.defense),
+    experience: toOptionalNumberValue(record.experience),
+    monsterId: toStringValue(record.monsterId) || undefined,
+    recommendedLevel: toOptionalNumberValue(record.recommendedLevel),
+    reward: toOptionalNumberValue(record.reward),
+    rewardXp: toOptionalNumberValue(record.rewardXp),
+    timeLimit: toStringValue(record.timeLimit) || undefined,
+    status: toStringValue(record.status) || undefined,
+    enemyName: toStringValue(record.enemyName) || undefined,
+    enemyLevel: toOptionalNumberValue(record.enemyLevel),
+    enemyHealth: toOptionalNumberValue(record.enemyHealth),
+    enemyAttack: toOptionalNumberValue(record.enemyAttack),
+    enemyDefense: toOptionalNumberValue(record.enemyDefense),
+    rewardCoins: toOptionalNumberValue(record.rewardCoins),
+    trainingType: toStringValue(record.trainingType) || undefined,
+    xpReward: toOptionalNumberValue(record.xpReward),
+    coinsReward: toOptionalNumberValue(record.coinsReward),
+    cooldownSeconds: toOptionalNumberValue(record.cooldownSeconds),
+    role: toStringValue(record.role) || undefined,
+    interactionType: toStringValue(record.interactionType) || undefined,
+    dialogue: toStringValue(record.dialogue) || undefined,
+    slug: toStringValue(record.slug ?? product.slug) || undefined,
+    category: toStringValue(record.category ?? product.category) || undefined,
+    type: toStringValue(record.type ?? product.type) || undefined,
+    img: toStringValue(record.img ?? product.img) || undefined,
+    effect: toStringValue(record.effect ?? product.effect) || undefined,
+    assetKind: toStringValue(record.assetKind ?? product.assetKind) || undefined,
+    buyPrice: toOptionalNumberValue(record.buyPrice ?? product.buyPrice),
+    currency: toStringValue(record.currency ?? product.currency) || undefined,
+    rewardQuantity: toOptionalNumberValue(record.rewardQuantity ?? product.rewardQuantity),
+    suggestedSellPrice: toOptionalNumberValue(
+      record.suggestedSellPrice ?? product.suggestedSellPrice
+    )
   };
 }
 
@@ -543,6 +599,8 @@ function mapGameplayActionResult(input: unknown): GameplayActionResult {
   const characterState = asRecord(record.characterState);
   const availability = asRecord(record.availability);
   const inventory = asRecord(record.inventory);
+  const buff = asRecord(record.buff);
+  const transaction = asRecord(record.transaction);
   const nextAvailableAt =
     toStringValue(availability.nextAvailableAt) ||
     toStringValue(record.nextAvailableAt) ||
@@ -562,6 +620,8 @@ function mapGameplayActionResult(input: unknown): GameplayActionResult {
     enemy: toStringValue(record.enemy) || undefined,
     note: toStringValue(record.note) || undefined,
     marketAction: (toStringValue(record.marketAction) || undefined) as MarketActionType | undefined,
+    npcId: toStringValue(record.npcId) || undefined,
+    npcName: toStringValue(record.npcName) || undefined,
     rewards: {
       xp: toNumberValue(rewards.xp),
       coins: toNumberValue(rewards.coins),
@@ -582,6 +642,14 @@ function mapGameplayActionResult(input: unknown): GameplayActionResult {
             coins: toNumberValue(inventory.coins)
           }
         : undefined,
+    buff:
+      Object.keys(buff).length > 0
+        ? {
+            percent: toNumberValue(buff.percent),
+            cost: toNumberValue(buff.cost),
+            expiresAt: toStringValue(buff.expiresAt)
+          }
+        : undefined,
     combat: mapGameplayCombat(record.combat),
     availability:
       nextAvailableAt || availabilityActionType
@@ -590,7 +658,15 @@ function mapGameplayActionResult(input: unknown): GameplayActionResult {
             nextAvailableAt
           }
         : undefined,
-    interactionType: toStringValue(record.interactionType) || undefined
+    interactionType: toStringValue(record.interactionType) || undefined,
+    transaction:
+      Object.keys(transaction).length > 0
+        ? {
+            id: toStringValue(transaction.id) || undefined,
+            type: toStringValue(transaction.type) || undefined,
+            value: typeof transaction.value === "number" ? transaction.value : undefined
+          }
+        : undefined
   };
 }
 
@@ -709,10 +785,11 @@ export interface AdminApiContract {
   list(type: string): Promise<AdminEntity[]>;
   create(type: string, input: Record<string, unknown>): Promise<AdminEntity>;
   update(type: string, id: string, input: Record<string, unknown>): Promise<AdminEntity>;
+  remove(type: string, id: string): Promise<void>;
 }
 
 function adminBasePath(type: string) {
-  const allowed = ["monsters", "bounties", "missions", "trainings", "npcs"];
+  const allowed = ["monsters", "bounties", "missions", "trainings", "npcs", "shop-products"];
   if (!allowed.includes(type)) {
     throw new ApiContractNotConfiguredError(`admin.${type}`);
   }
@@ -854,7 +931,8 @@ export const apiContracts = {
       if (action === "npc") {
         return request(
           apiClient.post(`/api/v1/gameplay/characters/${characterId}/actions/npc-interaction`, {
-            npcId: payload.npcId
+            npcId: payload.npcId,
+            ...(typeof payload.buffPercent === "number" ? { buffPercent: payload.buffPercent } : {})
           }),
           mapGameplayActionResult
         );
@@ -908,6 +986,9 @@ export const apiContracts = {
       request(apiClient.get(adminBasePath(type)), (data) => asArray(data, mapAdminEntity)),
     create: (type, input) => request(apiClient.post(adminBasePath(type), input), mapAdminEntity),
     update: (type, id, input) =>
-      request(apiClient.patch(`${adminBasePath(type)}/${id}`, input), mapAdminEntity)
+      request(apiClient.patch(`${adminBasePath(type)}/${id}`, input), mapAdminEntity),
+    remove: async (type, id) => {
+      await apiClient.delete(`${adminBasePath(type)}/${id}`);
+    }
   } satisfies AdminApiContract
 };

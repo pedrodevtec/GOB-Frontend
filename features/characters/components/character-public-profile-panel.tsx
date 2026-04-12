@@ -1,10 +1,25 @@
 "use client";
 
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useCharacterPublicProfile } from "@/features/characters/hooks/use-characters";
+import { useCharacterClasses } from "@/features/characters/hooks/use-characters";
+import {
+  classModifierAccent,
+  classModifierLabel
+} from "@/features/characters/lib/class-presentation";
+import {
+  resolveAvatarGlyph,
+  resolveBannerClass,
+  resolveTitleLabel
+} from "@/lib/personalization";
+import { cn } from "@/lib/utils";
+import {
+  getCharacterCustomization,
+  useProfileCustomizationStore
+} from "@/stores/profile-customization-store";
 
 function labelize(value: string) {
   return value
@@ -15,6 +30,8 @@ function labelize(value: string) {
 
 export function CharacterPublicProfilePanel({ characterId }: { characterId: string }) {
   const query = useCharacterPublicProfile(characterId);
+  const classesQuery = useCharacterClasses();
+  const characters = useProfileCustomizationStore((state) => state.characters);
 
   if (query.isLoading) {
     return <LoadingState label="Carregando perfil publico..." />;
@@ -42,14 +59,46 @@ export function CharacterPublicProfilePanel({ characterId }: { characterId: stri
 
   const profile = query.data;
   const stats = Object.entries(profile.stats);
+  const customization = getCharacterCustomization(characters, characterId);
+  const characterClass = classesQuery.data?.find((entry) => entry.name === profile.className);
 
   return (
     <div className="space-y-6">
+      <Card className={resolveBannerClass(customization.bannerId)}>
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/15 bg-slate-950/60 text-3xl">
+            {resolveAvatarGlyph(customization.avatarId)}
+          </div>
+          <div>
+            <CardTitle>{profile.name}</CardTitle>
+            <CardDescription className="mt-2">{resolveTitleLabel(customization.titleId)}</CardDescription>
+          </div>
+        </div>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card className="space-y-2">
           <p className="text-sm text-muted-foreground">Classe</p>
           <CardTitle>{profile.className ?? "Nao informada"}</CardTitle>
         </Card>
+        {characterClass ? (
+          <Card className="space-y-2 md:col-span-2">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Passiva</p>
+                <CardTitle className="mt-1 text-lg">{characterClass.passive ?? "Sem passiva visível"}</CardTitle>
+              </div>
+              <span
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs uppercase tracking-wide",
+                  classModifierAccent(characterClass.modifier)
+                )}
+              >
+                {classModifierLabel(characterClass.modifier)}
+              </span>
+            </div>
+          </Card>
+        ) : null}
         <Card className="space-y-2">
           <p className="text-sm text-muted-foreground">Status</p>
           <CardTitle>{profile.status}</CardTitle>

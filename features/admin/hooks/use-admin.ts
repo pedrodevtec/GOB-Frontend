@@ -25,3 +25,16 @@ export function useAdminUpsert(type: string, id?: string) {
     onError: (error: Error) => toast.error(error.message)
   });
 }
+
+export function useAdminDelete(type: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => adminService.remove(type, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", type] });
+      toast.success("Registro removido.");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}

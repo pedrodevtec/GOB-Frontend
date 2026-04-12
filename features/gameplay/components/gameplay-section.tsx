@@ -1,17 +1,27 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Sparkles } from "lucide-react";
 
 import { EntityCard } from "@/components/game/entity-card";
 import { RewardModal } from "@/components/game/reward-modal";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { useCharacterSummary } from "@/features/characters/hooks/use-characters";
 import { useGameplayAction, useGameplayList } from "@/features/gameplay/hooks/use-gameplay";
 import { useCountdown } from "@/hooks/use-countdown";
 import { useActiveCharacter } from "@/hooks/use-active-character";
-import { formatCooldownDate } from "@/lib/utils";
+import { formatCooldownDate, formatCurrency } from "@/lib/utils";
+import { useGameplayBuffStore } from "@/stores/gameplay-buff-store";
 import {
   gameplayCooldownKey,
   useGameplayCooldownStore
@@ -22,6 +32,12 @@ import type {
   GameplayEntity,
   MarketActionType
 } from "@/types/app";
+
+const BUFF_OPTIONS = [
+  { percent: 2 as const, cost: 200 },
+  { percent: 4 as const, cost: 400 },
+  { percent: 6 as const, cost: 600 }
+];
 
 function findActionLog(logs: CharacterActionLog[], entity: GameplayEntity, actionType: string) {
   return logs
@@ -69,6 +85,10 @@ function getActionState(
     nextAvailableAt: string;
     source: "success" | "conflict";
     message?: string;
+  },
+  activeBuff?: {
+    percent: number;
+    expiresAt: string;
   }
 ) {
   if ((actionKind === "bounty" || actionKind === "mission") && status === "DEFEATED") {
@@ -88,6 +108,20 @@ function getActionState(
         disabledReason: "Bounty ja concluida por este personagem enquanto estiver ativa."
       };
     }
+  }
+
+  if (
+    actionKind === "npc" &&
+    entity.interactionType === "buffer" &&
+    activeBuff &&
+    new Date(activeBuff.expiresAt).getTime() > Date.now()
+  ) {
+    return {
+      disabled: true,
+      disabledReason: `Buff ativo de ${activeBuff.percent}% ate ${formatCooldownDate(activeBuff.expiresAt)}.`,
+      nextAvailableAt: activeBuff.expiresAt,
+      cooldownSource: "success" as const
+    };
   }
 
   const loggedCooldown =
@@ -146,14 +180,28 @@ function getActionState(
 function ActionFooter({
   nextAvailableAt,
   rewardHint,
-  cooldownSource
+  cooldownSource,
+  activeBuff,
+  isBuffer
 }: {
   nextAvailableAt?: string;
   rewardHint?: string;
   cooldownSource?: "success" | "conflict";
+  activeBuff?: { percent: number; expiresAt: string };
+  isBuffer?: boolean;
 }) {
   const countdown = useCountdown(nextAvailableAt);
   const availability = formatCooldownDate(nextAvailableAt);
+  const buffCountdown = useCountdown(activeBuff?.expiresAt);
+
+  if (isBuffer && activeBuff && buffCountdown) {
+    return (
+      <div className="space-y-1">
+        <p className="text-emerald-300">Buff ativo: +{activeBuff.percent}% por mais {buffCountdown}</p>
+        {availability ? <p className="text-[11px] text-muted-foreground">Expira em {availability}</p> : null}
+      </div>
+    );
+  }
 
   if (!countdown) {
     return rewardHint ?? "Verifique recompensas possiveis";
@@ -169,6 +217,80 @@ function ActionFooter({
   );
 }
 
+function BufferOptionDialog({
+  open,
+  onOpenChange,
+  npc,
+  walletCoins,
+  activeBuff,
+  pending,
+  onSelect
+}: {
+  open: boolean;
+  onOpenChange: (value: boolean) => void;
+  npc: GameplayEntity | null;
+  walletCoins: number;
+  activeBuff?: { percent: number; expiresAt: string };
+  pending: boolean;
+  onSelect: (percent: 2 | 4 | 6) => void;
+}) {
+  const buffCountdown = useCountdown(activeBuff?.expiresAt);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Encantamento de Buff
+          </DialogTitle>
+          <DialogDescription>
+            {npc?.dialogue ?? npc?.description ?? "Escolha a intensidade do encantamento."}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-muted-foreground">
+            Saldo atual: <span className="font-semibold text-foreground">{formatCurrency(walletCoins)}</span>
+          </div>
+          {activeBuff && buffCountdown ? (
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+              Buff ativo de +{activeBuff.percent}% por mais {buffCountdown}.
+            </div>
+          ) : null}
+          <div className="grid gap-3">
+            {BUFF_OPTIONS.map((option) => {
+              const disabled = pending || walletCoins < option.cost || Boolean(activeBuff && buffCountdown);
+
+              return (
+                <button
+                  key={option.percent}
+                  type="button"
+                  className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition hover:border-primary/40 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={disabled}
+                  onClick={() => onSelect(option.percent)}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-semibold">Buff de {option.percent}%</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Aumenta attack, defense e maxHealth por 60 minutos.
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Custo</p>
+                      <p className="mt-1 font-semibold">{formatCurrency(option.cost)}</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function GameplaySection({
   type,
   actionKind,
@@ -181,17 +303,32 @@ export function GameplaySection({
   entities?: GameplayEntity[];
 }) {
   const [result, setResult] = useState<GameplayActionResult | null>(null);
+  const [selectedBufferNpc, setSelectedBufferNpc] = useState<GameplayEntity | null>(null);
   const activeCharacter = useActiveCharacter();
   const query = useGameplayList(type);
   const summaryQuery = useCharacterSummary(activeCharacter?.id ?? "");
   const action = useGameplayAction();
   const cooldowns = useGameplayCooldownStore((state) => state.cooldowns);
+  const storedBuff = useGameplayBuffStore((state) =>
+    activeCharacter?.id ? state.buffs[activeCharacter.id] : undefined
+  );
+  const clearBuff = useGameplayBuffStore((state) => state.clearBuff);
+
+  const activeBuff =
+    storedBuff && new Date(storedBuff.expiresAt).getTime() > Date.now() ? storedBuff : undefined;
+
+  useEffect(() => {
+    if (activeCharacter?.id && storedBuff && new Date(storedBuff.expiresAt).getTime() <= Date.now()) {
+      clearBuff(activeCharacter.id);
+    }
+  }, [activeCharacter?.id, clearBuff, storedBuff]);
 
   const logs = useMemo(
     () => summaryQuery.data?.recentGameplayActions ?? [],
     [summaryQuery.data?.recentGameplayActions]
   );
   const data = entities ?? query.data;
+  const walletCoins = summaryQuery.data?.inventory.coins ?? activeCharacter?.gold ?? 0;
 
   if (!activeCharacter?.id) {
     return (
@@ -246,7 +383,8 @@ export function GameplaySection({
             actionKind,
             summaryQuery.data?.status,
             logs,
-            persistedCooldown
+            persistedCooldown,
+            entity.interactionType === "buffer" ? activeBuff : undefined
           );
 
           return (
@@ -254,7 +392,11 @@ export function GameplaySection({
               key={entity.id}
               entity={entity}
               actionLabel={
-                entity.interactionType === "healer" ? "Curar" : actionLabel
+                entity.interactionType === "healer"
+                  ? "Curar"
+                  : entity.interactionType === "buffer"
+                    ? "Encantar"
+                    : actionLabel
               }
               disabled={action.isPending || actionState.disabled}
               disabledReason={actionState.disabledReason}
@@ -263,9 +405,16 @@ export function GameplaySection({
                   nextAvailableAt={actionState.nextAvailableAt}
                   rewardHint={entity.rewardHint}
                   cooldownSource={actionState.cooldownSource}
+                  activeBuff={entity.interactionType === "buffer" ? activeBuff : undefined}
+                  isBuffer={entity.interactionType === "buffer"}
                 />
               }
-              onAction={(selected) =>
+              onAction={(selected) => {
+                if (actionKind === "npc" && selected.interactionType === "buffer") {
+                  setSelectedBufferNpc(selected);
+                  return;
+                }
+
                 action.mutate(
                   {
                     action: actionKind,
@@ -303,12 +452,41 @@ export function GameplaySection({
                   {
                     onSuccess: (payload) => setResult(payload)
                   }
-                )
-              }
+                );
+              }}
             />
           );
         })}
       </div>
+      <BufferOptionDialog
+        open={Boolean(selectedBufferNpc)}
+        onOpenChange={(open) => !open && setSelectedBufferNpc(null)}
+        npc={selectedBufferNpc}
+        walletCoins={walletCoins}
+        activeBuff={activeBuff}
+        pending={action.isPending}
+        onSelect={(percent) => {
+          if (!selectedBufferNpc) return;
+
+          action.mutate(
+            {
+              action: "npc",
+              payload: {
+                characterId: activeCharacter.id,
+                npcId: selectedBufferNpc.id,
+                buffPercent: percent,
+                actionType: "NPC_INTERACTION"
+              }
+            },
+            {
+              onSuccess: (payload) => {
+                setSelectedBufferNpc(null);
+                setResult(payload);
+              }
+            }
+          );
+        }}
+      />
       <RewardModal open={Boolean(result)} onOpenChange={(open) => !open && setResult(null)} result={result} />
     </>
   );

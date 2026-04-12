@@ -26,6 +26,24 @@
   --warning: 32 89% 57%;
 }
 
+html[data-theme="ocean"] {
+  --primary: 195 86% 58%;
+  --accent: 188 82% 46%;
+  --ring: 195 86% 58%;
+}
+
+html[data-theme="ember"] {
+  --primary: 17 86% 58%;
+  --accent: 40 92% 58%;
+  --ring: 17 86% 58%;
+}
+
+html[data-theme="verdant"] {
+  --primary: 145 58% 46%;
+  --accent: 162 72% 42%;
+  --ring: 145 58% 46%;
+}
+
 * {
   @apply border-border;
 }

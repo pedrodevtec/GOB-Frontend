@@ -6,7 +6,8 @@ const adminLinks = [
   { title: "Bounties", description: "Cadastre e revise caçadas.", href: "/admin/bounties" },
   { title: "Missões", description: "Edite missões do jogo.", href: "/admin/missions" },
   { title: "Treinamentos", description: "Controle sessões de treino.", href: "/admin/trainings" },
-  { title: "NPCs", description: "Administre interações e NPCs.", href: "/admin/npcs" }
+  { title: "NPCs", description: "Administre interações e NPCs.", href: "/admin/npcs" },
+  { title: "Shop Products", description: "Cadastre e mantenha produtos da loja.", href: "/admin/shop-products" }
 ];
 
 export default function AdminPage() {

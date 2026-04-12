@@ -69,6 +69,22 @@ export function RewardModal({
                 <span className="uppercase">{result.marketAction}</span>
               </div>
             ) : null}
+            {result.buff ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Buff</span>
+                  <span>+{result.buff.percent}%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Custo</span>
+                  <span>{result.buff.cost}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Expira em</span>
+                  <span>{formatCooldownDate(result.buff.expiresAt)}</span>
+                </div>
+              </>
+            ) : null}
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">HP atual</span>
               <span>

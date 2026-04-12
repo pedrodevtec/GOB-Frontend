@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { gameplayService } from "@/features/gameplay/services/gameplay.service";
 import { ApiRequestError } from "@/lib/api/errors";
 import { useCharacterStore } from "@/stores/character-store";
+import { useGameplayBuffStore } from "@/stores/gameplay-buff-store";
 import { useGameplayCooldownStore } from "@/stores/gameplay-cooldown-store";
 import type {
   CharacterActionLog,
@@ -22,6 +23,7 @@ type GameplayMutationVariables = {
     missionId?: string;
     trainingId?: string;
     npcId?: string;
+    buffPercent?: 2 | 4 | 6;
     actionType?: string;
     action?: MarketActionType;
   };
@@ -41,6 +43,7 @@ export function useGameplayAction() {
   const setActiveCharacter = useCharacterStore((state) => state.setActiveCharacter);
   const setCooldown = useGameplayCooldownStore((state) => state.setCooldown);
   const clearCooldown = useGameplayCooldownStore((state) => state.clearCooldown);
+  const setBuff = useGameplayBuffStore((state) => state.setBuff);
 
   return useMutation({
     mutationFn: ({ action, payload }: GameplayMutationVariables) =>
@@ -69,6 +72,16 @@ export function useGameplayAction() {
           : null;
 
       if (characterId) {
+        if (result.buff?.expiresAt && new Date(result.buff.expiresAt).getTime() > Date.now()) {
+          setBuff(characterId, {
+            percent: result.buff.percent,
+            cost: result.buff.cost,
+            expiresAt: result.buff.expiresAt,
+            npcId: result.npcId,
+            npcName: result.npcName
+          });
+        }
+
         const gameplayListType =
           variables.action === "bounty"
             ? "bounties"
@@ -194,6 +207,48 @@ export function useGameplayAction() {
         toast.error(
           nextAvailableAt ? `${error.message} Disponivel em ${nextAvailableAt}.` : error.message
         );
+        return;
+      }
+
+      if (error instanceof ApiRequestError && error.code === "BUFF_ALREADY_ACTIVE") {
+        const details = error.details ?? {};
+        const buffSource =
+          (typeof details.buff === "object" && details.buff !== null
+            ? (details.buff as Record<string, unknown>)
+            : null) ??
+          (typeof details.currentBuff === "object" && details.currentBuff !== null
+            ? (details.currentBuff as Record<string, unknown>)
+            : null);
+
+        const percent =
+          typeof buffSource?.percent === "number"
+            ? buffSource.percent
+            : typeof details.percent === "number"
+              ? details.percent
+              : null;
+        const expiresAt =
+          typeof buffSource?.expiresAt === "string"
+            ? buffSource.expiresAt
+            : typeof details.expiresAt === "string"
+              ? details.expiresAt
+              : null;
+        const cost =
+          typeof buffSource?.cost === "number"
+            ? buffSource.cost
+            : typeof details.cost === "number"
+              ? details.cost
+              : undefined;
+
+        if (variables.payload.characterId && percent && expiresAt) {
+          useGameplayBuffStore.getState().setBuff(variables.payload.characterId, {
+            percent,
+            expiresAt,
+            cost,
+            npcId: variables.payload.npcId
+          });
+        }
+
+        toast.error(error.message);
         return;
       }
 
