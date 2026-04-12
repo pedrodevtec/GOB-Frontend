@@ -50,10 +50,19 @@ export function CharacterForm({
   });
 
   const mutation = isEditMode ? renameCharacter : createCharacter;
-  const selectedClass = classesQuery.data?.find(
+  const visibleClasses = useMemo(
+    () =>
+      isEditMode
+        ? classesQuery.data ?? []
+        : (classesQuery.data ?? []).filter(
+            (characterClass) => characterClass.isBaseClass || !characterClass.isAwakenedClass
+          ),
+    [classesQuery.data, isEditMode]
+  );
+  const selectedClass = visibleClasses.find(
     (characterClass) => characterClass.id === form.watch("classId")
   );
-  const classGroups = groupClassesByModifier(classesQuery.data ?? []);
+  const classGroups = groupClassesByModifier(visibleClasses);
 
   return (
     <form
@@ -82,7 +91,7 @@ export function CharacterForm({
                     ? "Falha ao carregar classes"
                     : "Selecione uma classe"}
               </option>
-              {classesQuery.data?.map((characterClass) => (
+              {visibleClasses.map((characterClass) => (
                 <option key={characterClass.id} value={characterClass.id}>
                   {characterClass.name}
                 </option>
@@ -90,6 +99,9 @@ export function CharacterForm({
             </select>
             <p className="text-xs text-muted-foreground">
               {selectedClass?.description ?? "A classe define o perfil inicial do personagem."}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Classes awakened sao liberadas depois, no resumo do personagem.
             </p>
             <p className="text-xs text-rose-300">
               {"classId" in form.formState.errors ? form.formState.errors.classId?.message : ""}
