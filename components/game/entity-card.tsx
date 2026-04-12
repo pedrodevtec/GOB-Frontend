@@ -61,6 +61,12 @@ export function EntityCard({
                 Cooldown {entity.cooldownSeconds}s
               </span>
             ) : null}
+            {typeof entity.recommendedLevel === "number" && entity.recommendedLevel > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-primary">
+                <Sword className="h-3.5 w-3.5" />
+                Lv. recomendado {entity.recommendedLevel}
+              </span>
+            ) : null}
           </div>
         </div>
         <DifficultyBadge value={entity.difficulty} />

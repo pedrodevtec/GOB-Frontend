@@ -76,6 +76,33 @@ function resolveActionType(actionKind: "bounty" | "mission" | "training" | "npc"
   return "MARKET";
 }
 
+function difficultyRank(value?: GameplayEntity["difficulty"]) {
+  if (value === "EASY") return 0;
+  if (value === "MEDIUM") return 1;
+  if (value === "HARD") return 2;
+  if (value === "ELITE") return 3;
+  return 99;
+}
+
+function sortEntitiesByProgression(
+  entries: GameplayEntity[],
+  type: "monsters" | "bounties" | "missions" | "trainings" | "npcs"
+) {
+  if (type !== "bounties" && type !== "missions") {
+    return entries;
+  }
+
+  return [...entries].sort((left, right) => {
+    const levelDelta = (left.recommendedLevel ?? 0) - (right.recommendedLevel ?? 0);
+    if (levelDelta !== 0) return levelDelta;
+
+    const difficultyDelta = difficultyRank(left.difficulty) - difficultyRank(right.difficulty);
+    if (difficultyDelta !== 0) return difficultyDelta;
+
+    return left.name.localeCompare(right.name, "pt-BR");
+  });
+}
+
 function getActionState(
   entity: GameplayEntity,
   actionKind: "bounty" | "mission" | "training" | "npc" | "market",
@@ -327,7 +354,10 @@ export function GameplaySection({
     () => summaryQuery.data?.recentGameplayActions ?? [],
     [summaryQuery.data?.recentGameplayActions]
   );
-  const data = entities ?? query.data;
+  const data = useMemo(
+    () => sortEntitiesByProgression(entities ?? query.data ?? [], type),
+    [entities, query.data, type]
+  );
   const walletCoins = summaryQuery.data?.inventory.coins ?? activeCharacter?.gold ?? 0;
 
   if (!activeCharacter?.id) {
