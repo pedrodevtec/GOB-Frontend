@@ -12,15 +12,16 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 
-const UPDATE_VERSION = "2026-04-11-classes-customization-buffer";
+const UPDATE_VERSION = "2026-04-11-awaken-classes-crit-and-t8";
 const STORAGE_KEY = "gob-last-seen-update";
 
 const updateNotes = [
-  "9 classes jogáveis com passivas reais no backend, agora destacadas melhor no frontend.",
-  "Seleção de classe agrupada por Força, Inteligência e Destreza, com descrição e passiva visíveis.",
-  "NPC buffer integrado: encantamento de 2%, 4% e 6% com custo em coins e countdown de buff.",
-  "Personalização local inicial liberada: tema da interface, avatar, título e banner por personagem.",
-  "Atalhos mais rápidos para Inventário e Carteira do personagem ativo no topo."
+  "9 classes jogaveis com passivas reais: Warrior, Berserker, Paladin, Mage, Sorcerer, Cleric, Rogue, Ranger e Assassin.",
+  "Sistema de Awaken liberado no nivel 30 para classes base, usando o item Emblema do Despertar obtido na bounty Awaken.",
+  "Progressao de XP agora usa curva crescente por nivel, em vez de custo fixo para todos os ups.",
+  "NPC buffer integrado com escolhas de 2%, 4% e 6%, custo em coins e tempo limitado.",
+  "Loja expandida com itens de critico e equipamentos Tier 8 de risco e recompensa com buff e debuff no mesmo item.",
+  "Novas quests, bounties e monstros de nivel alto adicionados para as faixas 15, 20, 30, 40 e 50."
 ];
 
 export function UpdateAnnouncementModal() {
@@ -47,17 +48,17 @@ export function UpdateAnnouncementModal() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Megaphone className="h-5 w-5 text-primary" />
-            Notas da Atualização
+            Notas da Atualizacao
           </DialogTitle>
           <DialogDescription>
-            Esta janela aparece uma vez por versão para destacar o que entrou no jogo.
+            Esta janela aparece uma vez por versao para destacar o que entrou no jogo.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
             <p className="text-sm font-medium text-primary">Build {UPDATE_VERSION}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Conteúdo novo já disponível nesta subida.
+              Conteudo novo ja disponivel nesta subida.
             </p>
           </div>
           <div className="space-y-3">
