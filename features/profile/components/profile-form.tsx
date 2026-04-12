@@ -4,11 +4,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
+import { useUpdateCharacterCustomization } from "@/features/characters/hooks/use-characters";
 import { useProfile, useUpdateProfile } from "@/features/profile/hooks/use-profile";
 import {
   avatarOptions,
@@ -37,11 +39,16 @@ export function ProfileForm() {
   const { data, isLoading, isError, error, refetch } = useProfile();
   const updateProfile = useUpdateProfile();
   const activeCharacter = useCharacterStore((state) => state.activeCharacter);
+  const updateCustomization = useUpdateCharacterCustomization(activeCharacter?.id ?? "");
   const theme = useProfileCustomizationStore((state) => state.theme);
   const characters = useProfileCustomizationStore((state) => state.characters);
   const setTheme = useProfileCustomizationStore((state) => state.setTheme);
+  const hydrateTheme = useProfileCustomizationStore((state) => state.hydrateTheme);
   const setCharacterCustomization = useProfileCustomizationStore(
     (state) => state.setCharacterCustomization
+  );
+  const hydrateCharacterCustomization = useProfileCustomizationStore(
+    (state) => state.hydrateCharacterCustomization
   );
   const customization = getCharacterCustomization(characters, activeCharacter?.id);
   const form = useForm<ProfileInput>({
@@ -52,8 +59,24 @@ export function ProfileForm() {
   useEffect(() => {
     if (data) {
       form.reset({ username: data.username, email: data.email });
+      hydrateTheme(data.theme as (typeof themeOptions)[number]["id"] | null | undefined);
     }
-  }, [data, form]);
+  }, [data, form, hydrateTheme]);
+
+  useEffect(() => {
+    if (!activeCharacter?.id || !activeCharacter.customization) {
+      return;
+    }
+
+    hydrateCharacterCustomization(activeCharacter.id, {
+      avatarId: (activeCharacter.customization.avatarId ??
+        undefined) as (typeof avatarOptions)[number]["id"] | undefined,
+      titleId: (activeCharacter.customization.titleId ??
+        undefined) as (typeof titleOptions)[number]["id"] | undefined,
+      bannerId: (activeCharacter.customization.bannerId ??
+        undefined) as (typeof bannerOptions)[number]["id"] | undefined
+    });
+  }, [activeCharacter, hydrateCharacterCustomization]);
 
   if (isLoading) {
     return <LoadingState label="Carregando perfil..." />;
@@ -74,7 +97,24 @@ export function ProfileForm() {
     <div className="space-y-6">
       <form
         className="grid gap-4 md:grid-cols-2"
-        onSubmit={form.handleSubmit((values) => updateProfile.mutate(values))}
+        onSubmit={form.handleSubmit(async (values) => {
+          try {
+            await updateProfile.mutateAsync({
+              ...values,
+              theme
+            });
+
+            if (activeCharacter?.id) {
+              await updateCustomization.mutateAsync({
+                avatarId: customization.avatarId,
+                titleId: customization.titleId,
+                bannerId: customization.bannerId
+              });
+            }
+
+            toast.success("Perfil e personalizacao sincronizados.");
+          } catch {}
+        })}
       >
         <div className="space-y-2">
           <label className="text-sm font-medium">Nome de usuário</label>
@@ -85,7 +125,7 @@ export function ProfileForm() {
           <Input {...form.register("email")} />
         </div>
         <div className="md:col-span-2">
-          <Button type="submit" disabled={updateProfile.isPending}>
+          <Button type="submit" disabled={updateProfile.isPending || updateCustomization.isPending}>
             Salvar alterações
           </Button>
         </div>

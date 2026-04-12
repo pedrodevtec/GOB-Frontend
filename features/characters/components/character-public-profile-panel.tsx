@@ -59,19 +59,23 @@ export function CharacterPublicProfilePanel({ characterId }: { characterId: stri
 
   const profile = query.data;
   const stats = Object.entries(profile.stats);
-  const customization = getCharacterCustomization(characters, characterId);
-  const characterClass = classesQuery.data?.find((entry) => entry.name === profile.className);
+  const customization = {
+    ...getCharacterCustomization(characters, characterId),
+    ...profile.customization
+  };
+  const characterClass =
+    profile.classDetail ?? classesQuery.data?.find((entry) => entry.name === profile.className);
 
   return (
     <div className="space-y-6">
-      <Card className={resolveBannerClass(customization.bannerId)}>
+      <Card className={resolveBannerClass(customization.bannerId ?? undefined)}>
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/15 bg-slate-950/60 text-3xl">
-            {resolveAvatarGlyph(customization.avatarId)}
+            {resolveAvatarGlyph(customization.avatarId ?? undefined)}
           </div>
           <div>
             <CardTitle>{profile.name}</CardTitle>
-            <CardDescription className="mt-2">{resolveTitleLabel(customization.titleId)}</CardDescription>
+            <CardDescription className="mt-2">{resolveTitleLabel(customization.titleId ?? undefined)}</CardDescription>
           </div>
         </div>
       </Card>

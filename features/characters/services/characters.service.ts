@@ -10,5 +10,11 @@ export const charactersService = {
   publicProfile: (id: string) => apiContracts.characters.publicProfile(id),
   rename: (id: string, input: { name: string }) =>
     apiContracts.characters.updateName(id, input),
+  updateCustomization: (
+    id: string,
+    input: { avatarId?: string; titleId?: string; bannerId?: string }
+  ) => apiContracts.characters.updateCustomization(id, input),
+  awaken: (id: string, input: { targetClassId: string }) =>
+    apiContracts.characters.awaken(id, input),
   remove: (id: string) => apiContracts.characters.remove(id)
 };

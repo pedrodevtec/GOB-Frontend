@@ -24,7 +24,11 @@ export function Topbar() {
   const summaryQuery = useActiveCharacterSummary();
   const gold = summaryQuery.data?.inventory.coins ?? activeCharacter?.gold ?? 0;
   const status = summaryQuery.data?.status ?? activeCharacter?.status ?? "READY";
-  const customization = getCharacterCustomization(characters, activeCharacter?.id);
+  const customization = {
+    ...getCharacterCustomization(characters, activeCharacter?.id),
+    ...activeCharacter?.customization,
+    ...summaryQuery.data?.customization
+  };
 
   return (
     <>
@@ -39,10 +43,10 @@ export function Topbar() {
             </span>
             <span className="inline-flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
-              {resolveAvatarGlyph(customization.avatarId)} {activeCharacter?.name ?? "Sem personagem ativo"}
+              {resolveAvatarGlyph(customization.avatarId ?? undefined)} {activeCharacter?.name ?? "Sem personagem ativo"}
             </span>
             {activeCharacter?.id ? (
-              <span className="text-primary">{resolveTitleLabel(customization.titleId)}</span>
+              <span className="text-primary">{resolveTitleLabel(customization.titleId ?? undefined)}</span>
             ) : null}
             <span className="inline-flex items-center gap-2">
               <Coins className="h-4 w-4" />

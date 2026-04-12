@@ -5,6 +5,7 @@ export interface AuthUser {
   email: string;
   username: string;
   role: UserRole;
+  theme?: string | null;
 }
 
 export interface AuthSession {
@@ -30,6 +31,15 @@ export interface CharacterClass {
   modifier?: string;
   description?: string;
   passive?: string;
+  isBaseClass?: boolean;
+  isAwakenedClass?: boolean;
+  awakensTo?: string[];
+}
+
+export interface CharacterCustomization {
+  avatarId?: string | null;
+  titleId?: string | null;
+  bannerId?: string | null;
 }
 
 export interface CharacterSummary {
@@ -44,6 +54,7 @@ export interface CharacterSummary {
   status: CharacterStatus;
   className?: string;
   location?: string;
+  customization?: CharacterCustomization;
 }
 
 export interface CharacterInventorySnapshot {
@@ -70,7 +81,29 @@ export interface CharacterDetailSummary {
   currentHealth: number;
   status: CharacterStatus;
   className?: string;
+  classDetail?: CharacterClass;
+  customization?: CharacterCustomization;
   inventory: CharacterInventorySnapshot;
+  progression?: {
+    currentXp: number;
+    currentLevel: number;
+    currentLevelFloorXp: number;
+    nextLevelFloorXp: number;
+    xpIntoLevel: number;
+    xpForNextLevel: number;
+    xpRemainingToNextLevel: number;
+  };
+  awakening?: {
+    requiredLevel: number;
+    currentClass: string;
+    isBaseClass: boolean;
+    isAwakenedClass: boolean;
+    available: boolean;
+    hasRequiredItem: boolean;
+    requiredItemType: string;
+    requiredItemName: string;
+    targetClasses: CharacterClass[];
+  };
   recentGameplayActions: CharacterActionLog[];
 }
 
@@ -105,6 +138,8 @@ export interface CharacterPublicProfile {
   status: CharacterStatus;
   coins: number;
   className?: string;
+  classDetail?: CharacterClass;
+  customization?: CharacterCustomization;
   stats: Record<string, number>;
   progression: {
     missionsCompleted: number;

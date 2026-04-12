@@ -143,7 +143,8 @@ function mapUser(input: unknown): AuthUser {
       toStringValue(record.username) ||
       toStringValue(record.nome) ||
       toStringValue(record.name),
-    role: (toStringValue(record.role, "PLAYER") as AuthUser["role"]) ?? "PLAYER"
+    role: (toStringValue(record.role, "PLAYER") as AuthUser["role"]) ?? "PLAYER",
+    theme: toStringValue(record.theme) || null
   };
 }
 
@@ -157,6 +158,7 @@ function mapClassName(input: unknown) {
 function mapCharacter(input: unknown): CharacterSummary {
   const record = unwrapEntity(input);
   const inventory = asRecord(record.inventory);
+  const customization = asRecord(record.customization);
   return {
     id: toStringValue(record.id),
     name: toStringValue(record.name ?? record.nome ?? record.title),
@@ -168,7 +170,12 @@ function mapCharacter(input: unknown): CharacterSummary {
     gold: toNumberValue(record.gold ?? inventory.coins ?? record.coins ?? record.wallet),
     status: toStringValue(record.status, "READY") as CharacterSummary["status"],
     className: mapClassName(record.className ?? record.classId ?? record.class),
-    location: toStringValue(record.location ?? record.lastCheckpoint)
+    location: toStringValue(record.location ?? record.lastCheckpoint),
+    customization: {
+      avatarId: toStringValue(record.avatarId ?? customization.avatarId) || null,
+      titleId: toStringValue(record.titleId ?? customization.titleId) || null,
+      bannerId: toStringValue(record.bannerId ?? customization.bannerId) || null
+    }
   };
 }
 
@@ -187,6 +194,10 @@ function mapCharacterActionLog(input: unknown): CharacterActionLog {
 function mapCharacterSummaryDetail(input: unknown): CharacterDetailSummary {
   const record = unwrapEntity(input);
   const inventory = asRecord(record.inventory);
+  const progression = asRecord(record.progression);
+  const awakening = asRecord(record.awakening);
+  const customization = asRecord(record.customization);
+  const classDetail = asRecord(record.class);
   return {
     id: toStringValue(record.id),
     name: toStringValue(record.name),
@@ -195,12 +206,45 @@ function mapCharacterSummaryDetail(input: unknown): CharacterDetailSummary {
     currentHealth: toNumberValue(record.currentHealth ?? record.hp ?? record.health),
     status: toStringValue(record.status, "READY") as CharacterDetailSummary["status"],
     className: mapClassName(record.className ?? record.classId ?? record.class),
+    classDetail:
+      Object.keys(classDetail).length > 0 ? mapCharacterClass(classDetail) : undefined,
+    customization: {
+      avatarId: toStringValue(record.avatarId ?? customization.avatarId) || null,
+      titleId: toStringValue(record.titleId ?? customization.titleId) || null,
+      bannerId: toStringValue(record.bannerId ?? customization.bannerId) || null
+    },
     inventory: {
       id: toStringValue(inventory.id) || null,
       coins: toNumberValue(inventory.coins ?? record.gold ?? record.coins),
       totalItems: toNumberValue(inventory.totalItems),
       totalEquipments: toNumberValue(inventory.totalEquipments)
     },
+    progression:
+      Object.keys(progression).length > 0
+        ? {
+            currentXp: toNumberValue(progression.currentXp),
+            currentLevel: toNumberValue(progression.currentLevel),
+            currentLevelFloorXp: toNumberValue(progression.currentLevelFloorXp),
+            nextLevelFloorXp: toNumberValue(progression.nextLevelFloorXp),
+            xpIntoLevel: toNumberValue(progression.xpIntoLevel),
+            xpForNextLevel: toNumberValue(progression.xpForNextLevel),
+            xpRemainingToNextLevel: toNumberValue(progression.xpRemainingToNextLevel)
+          }
+        : undefined,
+    awakening:
+      Object.keys(awakening).length > 0
+        ? {
+            requiredLevel: toNumberValue(awakening.requiredLevel),
+            currentClass: toStringValue(awakening.currentClass),
+            isBaseClass: toBooleanValue(awakening.isBaseClass),
+            isAwakenedClass: toBooleanValue(awakening.isAwakenedClass),
+            available: toBooleanValue(awakening.available),
+            hasRequiredItem: toBooleanValue(awakening.hasRequiredItem),
+            requiredItemType: toStringValue(awakening.requiredItemType),
+            requiredItemName: toStringValue(awakening.requiredItemName),
+            targetClasses: asArray(awakening.targetClasses, mapCharacterClass)
+          }
+        : undefined,
     recentGameplayActions: asArray(record.recentGameplayActions, mapCharacterActionLog)
   };
 }
@@ -212,7 +256,11 @@ function mapCharacterClass(input: unknown): CharacterClass {
     name: toStringValue(record.name),
     modifier: toStringValue(record.modifier) || undefined,
     description: toStringValue(record.description) || undefined,
-    passive: toStringValue(record.passive) || undefined
+    passive: toStringValue(record.passive) || undefined,
+    isBaseClass: typeof record.isBaseClass === "boolean" ? record.isBaseClass : undefined,
+    isAwakenedClass:
+      typeof record.isAwakenedClass === "boolean" ? record.isAwakenedClass : undefined,
+    awakensTo: Array.isArray(record.awakensTo) ? record.awakensTo.map((item) => String(item)) : undefined
   };
 }
 
@@ -259,6 +307,8 @@ function mapCharacterPublicProfile(input: unknown): CharacterPublicProfile {
   const progression = asRecord(record.progression);
   const equipment = asRecord(record.equipment);
   const statsSource = asRecord(record.stats);
+  const classDetail = asRecord(record.class);
+  const customization = asRecord(record.customization);
   const stats: Record<string, number> = {};
 
   for (const [key, value] of Object.entries(statsSource)) {
@@ -276,6 +326,13 @@ function mapCharacterPublicProfile(input: unknown): CharacterPublicProfile {
     status: toStringValue(record.status, "READY") as CharacterPublicProfile["status"],
     coins: toNumberValue(record.coins ?? record.gold),
     className: mapClassName(record.className ?? record.classId ?? record.class),
+    classDetail:
+      Object.keys(classDetail).length > 0 ? mapCharacterClass(classDetail) : undefined,
+    customization: {
+      avatarId: toStringValue(record.avatarId ?? customization.avatarId) || null,
+      titleId: toStringValue(record.titleId ?? customization.titleId) || null,
+      bannerId: toStringValue(record.bannerId ?? customization.bannerId) || null
+    },
     stats,
     progression: {
       missionsCompleted: toNumberValue(progression.missionsCompleted),
@@ -716,6 +773,11 @@ export interface CharactersApiContract {
   rankings(limit?: number): Promise<CharacterRankings>;
   publicProfile(id: string): Promise<CharacterPublicProfile>;
   updateName(id: string, input: { name: string }): Promise<CharacterSummary>;
+  updateCustomization(
+    id: string,
+    input: { avatarId?: string; titleId?: string; bannerId?: string }
+  ): Promise<CharacterSummary>;
+  awaken(id: string, input: { targetClassId: string }): Promise<void>;
   remove(id: string): Promise<void>;
   updateProgress(
     id: string,
@@ -852,6 +914,11 @@ export const apiContracts = {
       request(apiClient.get(`/api/v1/characters/${id}/public-profile`), mapCharacterPublicProfile),
     updateName: (id, input) =>
       request(apiClient.put(`/api/v1/characters/${id}`, input), mapCharacter),
+    updateCustomization: (id, input) =>
+      request(apiClient.patch(`/api/v1/characters/${id}/customization`, input), mapCharacter),
+    awaken: async (id, input) => {
+      await apiClient.post(`/api/v1/characters/${id}/awaken`, input);
+    },
     remove: async (id) => {
       await apiClient.delete(`/api/v1/characters/${id}`);
     },

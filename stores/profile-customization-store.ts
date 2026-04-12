@@ -20,9 +20,14 @@ interface ProfileCustomizationState {
   theme: ThemeOptionId;
   characters: Record<string, CharacterCustomization>;
   setTheme: (theme: ThemeOptionId) => void;
+  hydrateTheme: (theme?: ThemeOptionId | null) => void;
   setCharacterCustomization: (
     characterId: string,
     customization: Partial<CharacterCustomization>
+  ) => void;
+  hydrateCharacterCustomization: (
+    characterId: string,
+    customization?: Partial<CharacterCustomization> | null
   ) => void;
 }
 
@@ -46,6 +51,7 @@ export const useProfileCustomizationStore = create<ProfileCustomizationState>()(
       theme: "default",
       characters: {},
       setTheme: (theme) => set({ theme }),
+      hydrateTheme: (theme) => set((state) => ({ theme: theme ?? state.theme })),
       setCharacterCustomization: (characterId, customization) =>
         set((state) => ({
           characters: {
@@ -55,7 +61,23 @@ export const useProfileCustomizationStore = create<ProfileCustomizationState>()(
               ...customization
             }
           }
-        }))
+        })),
+      hydrateCharacterCustomization: (characterId, customization) =>
+        set((state) => {
+          if (!customization) {
+            return state;
+          }
+
+          return {
+            characters: {
+              ...state.characters,
+              [characterId]: {
+                ...getCharacterCustomization(state.characters, characterId),
+                ...customization
+              }
+            }
+          };
+        })
     }),
     { name: "gob-profile-customization" }
   )

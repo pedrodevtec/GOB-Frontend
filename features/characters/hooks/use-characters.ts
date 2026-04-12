@@ -81,6 +81,39 @@ export function useRenameCharacter(id: string) {
   });
 }
 
+export function useUpdateCharacterCustomization(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { avatarId?: string; titleId?: string; bannerId?: string }) =>
+      charactersService.updateCustomization(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["characters"] });
+      queryClient.invalidateQueries({ queryKey: ["characters", id] });
+      queryClient.invalidateQueries({ queryKey: ["characters", id, "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["characters", id, "public-profile"] });
+      toast.success("Personalizacao salva.");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useAwakenCharacter(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { targetClassId: string }) => charactersService.awaken(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["characters"] });
+      queryClient.invalidateQueries({ queryKey: ["characters", id] });
+      queryClient.invalidateQueries({ queryKey: ["characters", id, "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["characters", id, "public-profile"] });
+      toast.success("Awaken realizado.");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
 export function useDeleteCharacter() {
   const queryClient = useQueryClient();
 

@@ -55,23 +55,26 @@ export function CharacterGrid() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {data.map((character) => {
-        const customization = getCharacterCustomization(characters, character.id);
+        const customization = {
+          ...getCharacterCustomization(characters, character.id),
+          ...character.customization
+        };
 
         return (
           <Card
             key={character.id}
             className={
               activeCharacterId === character.id
-                ? `space-y-4 border-primary/60 ${resolveBannerClass(customization.bannerId)}`
-                : `space-y-4 ${resolveBannerClass(customization.bannerId)}`
+                ? `space-y-4 border-primary/60 ${resolveBannerClass(customization.bannerId ?? undefined)}`
+                : `space-y-4 ${resolveBannerClass(customization.bannerId ?? undefined)}`
             }
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-display text-2xl">
-                  {resolveAvatarGlyph(customization.avatarId)} {character.name}
+                  {resolveAvatarGlyph(customization.avatarId ?? undefined)} {character.name}
                 </p>
-                <p className="text-sm text-primary">{resolveTitleLabel(customization.titleId)}</p>
+                <p className="text-sm text-primary">{resolveTitleLabel(customization.titleId ?? undefined)}</p>
                 <p className="text-sm text-muted-foreground">
                   Nível {character.level} • XP {formatCompactNumber(character.xp)}
                 </p>
