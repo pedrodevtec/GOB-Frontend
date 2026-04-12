@@ -13,7 +13,9 @@ import {
 import {
   classModifierAccent,
   classModifierLabel,
-  groupClassesByModifier
+  classTierLabel,
+  groupClassesByModifier,
+  isBaseCharacterClass
 } from "@/features/characters/lib/class-presentation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,9 +56,7 @@ export function CharacterForm({
     () =>
       isEditMode
         ? classesQuery.data ?? []
-        : (classesQuery.data ?? []).filter(
-            (characterClass) => characterClass.isBaseClass || !characterClass.isAwakenedClass
-          ),
+        : (classesQuery.data ?? []).filter((characterClass) => isBaseCharacterClass(characterClass)),
     [classesQuery.data, isEditMode]
   );
   const selectedClass = visibleClasses.find(
@@ -101,7 +101,7 @@ export function CharacterForm({
               {selectedClass?.description ?? "A classe define o perfil inicial do personagem."}
             </p>
             <p className="text-xs text-muted-foreground">
-              Classes awakened sao liberadas depois, no resumo do personagem.
+              Apenas classes base podem ser escolhidas na criacao. Evolucoes ficam no fluxo de awaken.
             </p>
             <p className="text-xs text-rose-300">
               {"classId" in form.formState.errors ? form.formState.errors.classId?.message : ""}
@@ -145,6 +145,15 @@ export function CharacterForm({
                               <p className="mt-1 text-sm text-muted-foreground">
                                 {characterClass.description ?? "Sem descrição detalhada."}
                               </p>
+                              <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                <span>{classTierLabel(characterClass.tier)}</span>
+                                {characterClass.awakenLevelRequirement ? (
+                                  <span>Awaken no nivel {characterClass.awakenLevelRequirement}</span>
+                                ) : null}
+                                {(characterClass.awakensTo ?? []).length ? (
+                                  <span>Evolui para {(characterClass.awakensTo ?? []).join(", ")}</span>
+                                ) : null}
+                              </div>
                             </div>
                             <span
                               className={cn(

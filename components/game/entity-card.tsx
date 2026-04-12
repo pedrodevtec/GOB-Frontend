@@ -71,6 +71,17 @@ export function EntityCard({
         </div>
         <DifficultyBadge value={entity.difficulty} />
       </div>
+      {entity.defeatPenalty ? (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+          <p className="font-medium">Risco ao falhar</p>
+          <p className="mt-1">
+            {entity.defeatPenalty.description ??
+              `Perda de ${entity.defeatPenalty.xpLossPercent ?? 0}% de XP e ${entity.defeatPenalty.coinsLossPercent ?? 0}% de gold${
+                entity.defeatPenalty.forceDefeat ? ", com status DEFEATED" : ""
+              }.`}
+          </p>
+        </div>
+      ) : null}
       <div className="mt-auto space-y-3">
         <div className="text-xs uppercase tracking-wide text-muted-foreground">
           {footerLabel ?? entity.rewardHint ?? "Verifique recompensas possiveis"}

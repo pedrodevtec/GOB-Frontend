@@ -50,6 +50,7 @@ export function ShopCatalog() {
   const [sellQuantities, setSellQuantities] = useState<Record<string, number>>({});
 
   const walletCoins = overview.data?.wallet.coins ?? activeCharacter?.gold ?? 0;
+  const characterLevel = activeCharacter?.level ?? 0;
   const buyCatalog = overview.data?.buyCatalog ?? [];
   const sellableItems = overview.data?.sellableItems ?? [];
   const sellableEquipments = overview.data?.sellableEquipments ?? [];
@@ -140,6 +141,7 @@ export function ShopCatalog() {
                     <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                       {entry.category ? <span>{entry.category}</span> : null}
                       {entry.effect ? <span>{entry.effect}</span> : null}
+                      {entry.levelRequirement ? <span>Requer nivel {entry.levelRequirement}</span> : null}
                     </div>
                   </div>
                   <div className="mt-auto space-y-3">
@@ -209,6 +211,17 @@ export function ShopCatalog() {
                     <CardDescription className="mt-2">
                       {item.effect || item.type || "Item de inventario"}
                     </CardDescription>
+                    {item.levelRequirement ? (
+                      <p
+                        className={
+                          item.levelRequirement > characterLevel
+                            ? "mt-2 text-xs text-amber-200"
+                            : "mt-2 text-xs text-muted-foreground"
+                        }
+                      >
+                        Requer nivel {item.levelRequirement}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="grid gap-3 md:grid-cols-[0.9fr_1.1fr]">
                     <div className="space-y-2">

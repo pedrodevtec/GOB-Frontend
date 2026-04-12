@@ -4,11 +4,14 @@ import { InventorySlot } from "@/components/game/inventory-slot";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
+import { useCharacterSummary } from "@/features/characters/hooks/use-characters";
 import { useInventory, useInventoryAction } from "@/features/inventory/hooks/use-inventory";
 
 export function InventoryGrid({ characterId }: { characterId: string }) {
   const { data, isLoading, isError, error, refetch } = useInventory(characterId);
+  const summaryQuery = useCharacterSummary(characterId);
   const action = useInventoryAction(characterId);
+  const characterLevel = summaryQuery.data?.level ?? 0;
 
   if (!characterId) {
     return (
@@ -49,6 +52,7 @@ export function InventoryGrid({ characterId }: { characterId: string }) {
         <InventorySlot
           key={item.id}
           item={item}
+          characterLevel={characterLevel}
           onPrimaryAction={(selected) =>
             action.mutate({
               action: selected.equipped ? "unequip" : "equip",

@@ -16,6 +16,7 @@ import type {
   CharacterRankingEntry,
   CharacterRankings,
   CharacterSummary,
+  Difficulty,
   GameplayActionResult,
   GameplayCombat,
   GameplayCombatRound,
@@ -28,8 +29,18 @@ import type {
   MarketSellableEquipment,
   MarketSellableItem,
   PublicProfileEquipment,
+  PvpMatchResult,
+  PvpOverview,
+  PvpRanking,
+  PvpCombatRound,
+  PresentedStats,
   Reward,
   TransactionRecord,
+  TradeAction,
+  TradeAsset,
+  TradeList,
+  TradeRecord,
+  TradeStatus,
   WalletSummary
 } from "@/types/app";
 
@@ -236,6 +247,8 @@ function mapCharacterSummaryDetail(input: unknown): CharacterDetailSummary {
         ? {
             requiredLevel: toNumberValue(awakening.requiredLevel),
             currentClass: toStringValue(awakening.currentClass),
+            currentTier: toOptionalNumberValue(awakening.currentTier),
+            evolvesFrom: toStringValue(awakening.evolvesFrom) || null,
             isBaseClass: toBooleanValue(awakening.isBaseClass),
             isAwakenedClass: toBooleanValue(awakening.isAwakenedClass),
             available: toBooleanValue(awakening.available),
@@ -254,13 +267,17 @@ function mapCharacterClass(input: unknown): CharacterClass {
   return {
     id: toStringValue(record.id),
     name: toStringValue(record.name),
+    tier: toOptionalNumberValue(record.tier),
+    evolvesFrom: toStringValue(record.evolvesFrom) || null,
     modifier: toStringValue(record.modifier) || undefined,
     description: toStringValue(record.description) || undefined,
     passive: toStringValue(record.passive) || undefined,
     isBaseClass: typeof record.isBaseClass === "boolean" ? record.isBaseClass : undefined,
     isAwakenedClass:
       typeof record.isAwakenedClass === "boolean" ? record.isAwakenedClass : undefined,
-    awakensTo: Array.isArray(record.awakensTo) ? record.awakensTo.map((item) => String(item)) : undefined
+    awakensTo: Array.isArray(record.awakensTo) ? record.awakensTo.map((item) => String(item)) : undefined,
+    awakenLevelRequirement:
+      typeof record.awakenLevelRequirement === "number" ? record.awakenLevelRequirement : null
   };
 }
 
@@ -272,8 +289,32 @@ function mapPublicProfileEquipment(input: unknown): PublicProfileEquipment {
     category: toStringValue(record.category) || undefined,
     type: toStringValue(record.type) || undefined,
     img: toStringValue(record.img) || undefined,
-    effect: toStringValue(record.effect) || undefined
+    effect: toStringValue(record.effect) || undefined,
+    equippedAt: toStringValue(record.equippedAt) || undefined
   };
+}
+
+function mapPresentedStats(input: unknown): PresentedStats {
+  const record = asRecord(input);
+  const descriptionsRecord = asRecord(record.descriptions);
+  const stats: PresentedStats = {};
+
+  for (const [key, value] of Object.entries(record)) {
+    if (typeof value === "number") {
+      stats[key] = value;
+    }
+  }
+
+  if (Object.keys(descriptionsRecord).length > 0) {
+    stats.descriptions = {
+      attack: toStringValue(descriptionsRecord.attack) || undefined,
+      defense: toStringValue(descriptionsRecord.defense) || undefined,
+      maxHealth: toStringValue(descriptionsRecord.maxHealth) || undefined,
+      critChance: toStringValue(descriptionsRecord.critChance) || undefined
+    };
+  }
+
+  return stats;
 }
 
 function mapRankingEntry(input: unknown): CharacterRankingEntry {
@@ -306,16 +347,8 @@ function mapCharacterPublicProfile(input: unknown): CharacterPublicProfile {
   const record = unwrapEntity(input);
   const progression = asRecord(record.progression);
   const equipment = asRecord(record.equipment);
-  const statsSource = asRecord(record.stats);
   const classDetail = asRecord(record.class);
   const customization = asRecord(record.customization);
-  const stats: Record<string, number> = {};
-
-  for (const [key, value] of Object.entries(statsSource)) {
-    if (typeof value === "number") {
-      stats[key] = value;
-    }
-  }
 
   return {
     id: toStringValue(record.id),
@@ -333,7 +366,7 @@ function mapCharacterPublicProfile(input: unknown): CharacterPublicProfile {
       titleId: toStringValue(record.titleId ?? customization.titleId) || null,
       bannerId: toStringValue(record.bannerId ?? customization.bannerId) || null
     },
-    stats,
+    stats: mapPresentedStats(record.stats),
     progression: {
       missionsCompleted: toNumberValue(progression.missionsCompleted),
       bountiesCompleted: toNumberValue(progression.bountiesCompleted)
@@ -371,10 +404,19 @@ function mapInventoryItem(input: unknown): InventoryItem {
   return {
     id: toStringValue(record.id),
     name: toStringValue(record.name ?? record.title),
+    assetKind:
+      toStringValue(record.assetKind).toUpperCase() === "EQUIPMENT" ? "EQUIPMENT" : "ITEM",
+    category: toStringValue(record.category) || undefined,
     type: toStringValue(record.type ?? record.category, "ITEM"),
+    img: toStringValue(record.img) || undefined,
+    effect: toStringValue(record.effect) || undefined,
+    levelRequirement: toOptionalNumberValue(record.levelRequirement),
     quantity: toNumberValue(record.quantity, 1),
     rarity: toStringValue(record.rarity),
-    equipped: toBooleanValue(record.equipped ?? record.isEquipped)
+    equipped:
+      typeof record.equipped === "boolean" || typeof record.isEquipped === "boolean"
+        ? toBooleanValue(record.equipped ?? record.isEquipped)
+        : undefined
   };
 }
 
@@ -390,6 +432,7 @@ function mapInventoryCollection(input: unknown): InventoryItem[] {
     ? record.equipments.map((entry) =>
         mapInventoryItem({
           ...asRecord(entry),
+          assetKind: "EQUIPMENT",
           type: asRecord(entry).type ?? asRecord(entry).category ?? "EQUIPMENT"
         })
       )
@@ -401,6 +444,7 @@ function mapInventoryCollection(input: unknown): InventoryItem[] {
     ? inventoryRecord.equipments.map((entry) =>
         mapInventoryItem({
           ...asRecord(entry),
+          assetKind: "EQUIPMENT",
           type: asRecord(entry).type ?? asRecord(entry).category ?? "EQUIPMENT"
         })
       )
@@ -437,6 +481,7 @@ function mapMarketCatalogEntry(input: unknown): MarketCatalogEntry {
     type: toStringValue(record.type) || undefined,
     img: toStringValue(record.img) || undefined,
     effect: toStringValue(record.effect) || undefined,
+    levelRequirement: toOptionalNumberValue(record.levelRequirement),
     assetKind: toStringValue(record.assetKind) || undefined,
     buyPrice: toNumberValue(record.buyPrice),
     currency: toStringValue(record.currency) || undefined,
@@ -455,6 +500,7 @@ function mapMarketSellableItem(input: unknown): MarketSellableItem {
     type: toStringValue(record.type) || undefined,
     img: toStringValue(record.img) || undefined,
     effect: toStringValue(record.effect) || undefined,
+    levelRequirement: toOptionalNumberValue(record.levelRequirement),
     quantity: toNumberValue(record.quantity),
     unitSellPrice: toNumberValue(record.unitSellPrice),
     totalSellPrice: toNumberValue(record.totalSellPrice)
@@ -497,6 +543,7 @@ function mapGameplayEntity(input: unknown): GameplayEntity {
   const rewardXp = toNumberValue(record.rewardXp ?? record.xpReward);
   const rewardCoins = toNumberValue(record.reward ?? record.rewardCoins ?? record.coinsReward);
   const interactionType = toStringValue(record.interactionType).toLowerCase() || undefined;
+  const defeatPenalty = asRecord(record.defeatPenalty);
 
   return {
     id: toStringValue(record.id),
@@ -522,7 +569,21 @@ function mapGameplayEntity(input: unknown): GameplayEntity {
       undefined,
     activeUntil: toStringValue(record.timeLimit) || undefined,
     role: toStringValue(record.role) || undefined,
-    dialogue: toStringValue(record.dialogue) || undefined
+    dialogue: toStringValue(record.dialogue) || undefined,
+    defeatPenalty:
+      Object.keys(defeatPenalty).length > 0
+        ? {
+            difficulty: (toStringValue(defeatPenalty.difficulty) ||
+              undefined) as GameplayEntity["difficulty"] | undefined,
+            xpLossPercent: toOptionalNumberValue(defeatPenalty.xpLossPercent),
+            coinsLossPercent: toOptionalNumberValue(defeatPenalty.coinsLossPercent),
+            forceDefeat:
+              typeof defeatPenalty.forceDefeat === "boolean"
+                ? defeatPenalty.forceDefeat
+                : undefined,
+            description: toStringValue(defeatPenalty.description) || undefined
+          }
+        : undefined
   };
 }
 
@@ -537,6 +598,179 @@ function mapTransaction(input: unknown): TransactionRecord {
     type: toStringValue(record.type ?? record.status),
     amount: toNumberValue(record.amount ?? record.value ?? record.total ?? record.totalPrice),
     createdAt: toStringValue(record.createdAt ?? record.updatedAt ?? record.timeLimit)
+  };
+}
+
+function mapTradeAsset(input: unknown): TradeAsset {
+  const record = unwrapEntity(input);
+  return {
+    id: toStringValue(record.id) || undefined,
+    side: (toStringValue(record.side) || undefined) as TradeAsset["side"],
+    assetType: (toStringValue(record.assetType, "ITEM") as TradeAsset["assetType"]) ?? "ITEM",
+    assetId: toStringValue(record.assetId),
+    quantity: toNumberValue(record.quantity, 1)
+  };
+}
+
+function mapTradeCharacterRef(input: unknown) {
+  const record = unwrapEntity(input);
+  return {
+    id: toStringValue(record.id),
+    name: toStringValue(record.name),
+    userId: toStringValue(record.userId) || undefined
+  };
+}
+
+function mapTradeRecord(input: unknown): TradeRecord {
+  const record = unwrapEntity(input);
+  return {
+    id: toStringValue(record.id),
+    status: (toStringValue(record.status, "PENDING") as TradeStatus) ?? "PENDING",
+    requesterCharacterId: toStringValue(record.requesterCharacterId),
+    targetCharacterId: toStringValue(record.targetCharacterId),
+    offeredCoins: toNumberValue(record.offeredCoins),
+    requestedCoins: toNumberValue(record.requestedCoins),
+    note: toStringValue(record.note) || null,
+    expiresAt: toStringValue(record.expiresAt) || undefined,
+    createdAt: toStringValue(record.createdAt) || undefined,
+    requesterCharacter: isObject(record.requesterCharacter)
+      ? mapTradeCharacterRef(record.requesterCharacter)
+      : undefined,
+    targetCharacter: isObject(record.targetCharacter)
+      ? mapTradeCharacterRef(record.targetCharacter)
+      : undefined,
+    assets: asArray(record.assets, mapTradeAsset)
+  };
+}
+
+function mapTradeList(input: unknown): TradeList {
+  const record = unwrapEntity(input);
+  return {
+    characterId: toStringValue(record.characterId),
+    incoming: asArray(record.incoming, mapTradeRecord),
+    outgoing: asArray(record.outgoing, mapTradeRecord)
+  };
+}
+
+function mapPvpCombatRound(input: unknown): PvpCombatRound {
+  const record = unwrapEntity(input);
+  return {
+    round: toNumberValue(record.round),
+    actor: (toStringValue(record.actor, "challenger") as PvpCombatRound["actor"]) ?? "challenger",
+    damage: toNumberValue(record.damage),
+    remainingChallengerHealth: toNumberValue(record.remainingChallengerHealth),
+    remainingOpponentHealth: toNumberValue(record.remainingOpponentHealth),
+    critical: toBooleanValue(record.critical)
+  };
+}
+
+function mapPvpOverview(input: unknown): PvpOverview {
+  const record = unwrapEntity(input);
+  const availability = asRecord(record.availability);
+  const ranking = asRecord(record.ranking);
+  return {
+    characterId: toStringValue(record.characterId),
+    level: toNumberValue(record.level),
+    maxLevel: toNumberValue(record.maxLevel, 60),
+    pvpUnlocked: toBooleanValue(record.pvpUnlocked),
+    requiredLevel: toNumberValue(record.requiredLevel, 45),
+    cooldownSeconds: toNumberValue(record.cooldownSeconds, 1800),
+    availability: {
+      available: toBooleanValue(availability.available),
+      nextAvailableAt: toStringValue(availability.nextAvailableAt) || undefined
+    },
+    ranking: {
+      rating: toNumberValue(ranking.rating, 1000),
+      wins: toNumberValue(ranking.wins),
+      losses: toNumberValue(ranking.losses)
+    }
+  };
+}
+
+function mapPvpRanking(input: unknown): PvpRanking {
+  const record = unwrapEntity(input);
+  return {
+    requiredLevel: toNumberValue(record.requiredLevel, 45),
+    cooldownSeconds: toNumberValue(record.cooldownSeconds, 1800),
+    entries: asArray(record.entries, (entry) => {
+      const item = unwrapEntity(entry);
+      const character = asRecord(item.character);
+      const classRecord = asRecord(character.class);
+      return {
+        position: toNumberValue(item.position),
+        rating: toNumberValue(item.rating, 1000),
+        wins: toNumberValue(item.wins),
+        losses: toNumberValue(item.losses),
+        character: {
+          id: toStringValue(character.id),
+          name: toStringValue(character.name),
+          level: toNumberValue(character.level),
+          status: toStringValue(character.status, "READY") as PvpRanking["entries"][number]["character"]["status"],
+          class:
+            Object.keys(classRecord).length > 0
+              ? {
+                  id: toStringValue(classRecord.id),
+                  name: toStringValue(classRecord.name),
+                  tier: toOptionalNumberValue(classRecord.tier),
+                  modifier: toStringValue(classRecord.modifier) || undefined
+                }
+              : undefined
+        }
+      };
+    })
+  };
+}
+
+function mapGameplayCharacterState(input: unknown): GameplayActionResult["characterState"] {
+  const record = asRecord(input);
+  return {
+    currentHealth: toNumberValue(record.currentHealth),
+    maxHealth: toNumberValue(record.maxHealth),
+    status: toStringValue(record.status, "READY") as GameplayActionResult["characterState"]["status"],
+    lastCombatAt: toStringValue(record.lastCombatAt) || undefined,
+    lastRecoveredAt: toStringValue(record.lastRecoveredAt) || undefined
+  };
+}
+
+function mapPvpMatchResult(input: unknown): PvpMatchResult {
+  const record = unwrapEntity(input);
+  const match = asRecord(record.match);
+  const challenger = asRecord(record.challenger);
+  const opponent = asRecord(record.opponent);
+  const combat = asRecord(record.combat);
+
+  return {
+    match: {
+      id: toStringValue(match.id),
+      createdAt: toStringValue(match.createdAt) || undefined,
+      cooldownEndsAt: toStringValue(match.cooldownEndsAt) || undefined,
+      winnerCharacterId: toStringValue(match.winnerCharacterId),
+      loserCharacterId: toStringValue(match.loserCharacterId)
+    },
+    challenger: {
+      id: toStringValue(challenger.id),
+      name: toStringValue(challenger.name),
+      ratingBefore: toNumberValue(challenger.ratingBefore, 1000),
+      ratingAfter: toNumberValue(challenger.ratingAfter, 1000),
+      state: mapGameplayCharacterState(challenger.state),
+      stats: mapPresentedStats(challenger.stats)
+    },
+    opponent: {
+      id: toStringValue(opponent.id),
+      name: toStringValue(opponent.name),
+      ratingBefore: toNumberValue(opponent.ratingBefore, 1000),
+      ratingAfter: toNumberValue(opponent.ratingAfter, 1000),
+      state: mapGameplayCharacterState(opponent.state),
+      stats: mapPresentedStats(opponent.stats)
+    },
+    combat: {
+      winner: (toStringValue(combat.winner, "challenger") as PvpMatchResult["combat"]["winner"]) ?? "challenger",
+      challengerHealthRemaining: toNumberValue(combat.challengerHealthRemaining),
+      opponentHealthRemaining: toNumberValue(combat.opponentHealthRemaining),
+      challengerStats: mapPresentedStats(combat.challengerStats),
+      opponentStats: mapPresentedStats(combat.opponentStats),
+      rounds: asArray(combat.rounds, mapPvpCombatRound)
+    }
   };
 }
 
@@ -633,6 +867,7 @@ function mapGameplayCombat(input: unknown): GameplayCombat | undefined {
     victory: toBooleanValue(record.victory),
     characterHealthRemaining: toNumberValue(record.characterHealthRemaining),
     enemyHealthRemaining: toNumberValue(record.enemyHealthRemaining),
+    stats: mapPresentedStats(record.stats),
     rounds: asArray(record.rounds, mapGameplayCombatRound)
   };
 }
@@ -658,6 +893,7 @@ function mapGameplayActionResult(input: unknown): GameplayActionResult {
   const inventory = asRecord(record.inventory);
   const buff = asRecord(record.buff);
   const transaction = asRecord(record.transaction);
+  const defeatPenalty = asRecord(record.defeatPenalty);
   const nextAvailableAt =
     toStringValue(availability.nextAvailableAt) ||
     toStringValue(record.nextAvailableAt) ||
@@ -708,6 +944,17 @@ function mapGameplayActionResult(input: unknown): GameplayActionResult {
           }
         : undefined,
     combat: mapGameplayCombat(record.combat),
+    defeatPenalty:
+      Object.keys(defeatPenalty).length > 0
+        ? {
+            difficulty: (toStringValue(defeatPenalty.difficulty) || undefined) as
+              | Difficulty
+              | undefined,
+            xpLoss: toNumberValue(defeatPenalty.xpLoss),
+            coinsLoss: toNumberValue(defeatPenalty.coinsLoss),
+            forceDefeat: toBooleanValue(defeatPenalty.forceDefeat)
+          }
+        : null,
     availability:
       nextAvailableAt || availabilityActionType
         ? {
@@ -841,6 +1088,27 @@ export interface ShopApiContract {
 
 export interface TransactionsApiContract {
   list(characterId: string): Promise<TransactionRecord[]>;
+}
+
+export interface TradesApiContract {
+  list(characterId: string): Promise<TradeList>;
+  create(input: {
+    requesterCharacterId: string;
+    targetCharacterId: string;
+    offeredCoins?: number;
+    requestedCoins?: number;
+    note?: string;
+    expiresInHours?: number;
+    offeredAssets?: Array<{ assetType: "ITEM" | "EQUIPMENT"; assetId: string; quantity?: number }>;
+    requestedAssets?: Array<{ assetType: "ITEM" | "EQUIPMENT"; assetId: string; quantity?: number }>;
+  }): Promise<TradeRecord>;
+  respond(tradeId: string, input: { action: TradeAction }): Promise<TradeRecord>;
+}
+
+export interface PvpApiContract {
+  rankings(limit?: number): Promise<PvpRanking>;
+  overview(characterId: string): Promise<PvpOverview>;
+  createMatch(input: { characterId: string; opponentCharacterId: string }): Promise<PvpMatchResult>;
 }
 
 export interface AdminApiContract {
@@ -1048,6 +1316,25 @@ export const apiContracts = {
         asArray(data, mapTransaction)
       )
   } satisfies TransactionsApiContract,
+  trades: {
+    list: (characterId) =>
+      request(apiClient.get(`/api/v1/trades/characters/${characterId}`), mapTradeList),
+    create: (input) => request(apiClient.post("/api/v1/trades/requests", input), mapTradeRecord),
+    respond: (tradeId, input) =>
+      request(apiClient.post(`/api/v1/trades/${tradeId}/respond`, input), mapTradeRecord)
+  } satisfies TradesApiContract,
+  pvp: {
+    rankings: (limit) =>
+      request(
+        apiClient.get("/api/v1/pvp/rankings", {
+          params: typeof limit === "number" ? { limit } : undefined
+        }),
+        mapPvpRanking
+      ),
+    overview: (characterId) =>
+      request(apiClient.get(`/api/v1/pvp/characters/${characterId}/overview`), mapPvpOverview),
+    createMatch: (input) => request(apiClient.post("/api/v1/pvp/matches", input), mapPvpMatchResult)
+  } satisfies PvpApiContract,
   admin: {
     list: (type) =>
       request(apiClient.get(adminBasePath(type)), (data) => asArray(data, mapAdminEntity)),

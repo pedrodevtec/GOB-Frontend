@@ -10,6 +10,7 @@ import {
   Sword,
   Target,
   Trophy,
+  Repeat,
   UserRound,
   Users
 } from "lucide-react";
@@ -27,6 +28,8 @@ export const sidebarItems: NavItem[] = [
   { label: "Perfil", href: "/profile", icon: UserRound },
   { label: "Personagens", href: "/characters", icon: Users },
   { label: "Rankings", href: "/characters/rankings", icon: Trophy },
+  { label: "Trades", href: "/trades", icon: Repeat },
+  { label: "PvP", href: "/pvp", icon: Sword },
   { label: "Jornada", href: "/gameplay/journey", icon: Sword },
   { label: "Treinamentos", href: "/gameplay/trainings", icon: Target },
   { label: "Market", href: "/gameplay/market", icon: ShoppingBag },

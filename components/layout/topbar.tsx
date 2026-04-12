@@ -68,7 +68,10 @@ export function Topbar() {
           {activeCharacter?.id ? (
             <>
               <Button variant="outline" asChild>
-                <Link href={`/characters/${activeCharacter.id}/inventory`}>Inventário</Link>
+                <Link href={`/characters/${activeCharacter.id}/summary`}>Personagem</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href={`/characters/${activeCharacter.id}/inventory`}>Inventario</Link>
               </Button>
               <Button variant="outline" asChild>
                 <Link href={`/characters/${activeCharacter.id}/wallet`}>Carteira</Link>

@@ -22,7 +22,8 @@ import {
 } from "@/features/characters/hooks/use-characters";
 import {
   classModifierAccent,
-  classModifierLabel
+  classModifierLabel,
+  classTierLabel
 } from "@/features/characters/lib/class-presentation";
 import {
   avatarOptions,
@@ -37,6 +38,7 @@ import {
   getCharacterCustomization,
   useProfileCustomizationStore
 } from "@/stores/profile-customization-store";
+import { MAX_CHARACTER_LEVEL } from "@/lib/game-constants";
 
 export function CharacterSummaryPanel({ characterId }: { characterId: string }) {
   const [awakenOpen, setAwakenOpen] = useState(false);
@@ -101,7 +103,7 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
     data.classDetail ?? classesQuery.data?.find((entry) => entry.name === data.className);
   const xpProgress = !data.progression
     ? 0
-    : data.progression.xpForNextLevel <= 0
+    : data.progression.currentLevel >= MAX_CHARACTER_LEVEL || data.progression.xpForNextLevel <= 0
       ? 100
       : Math.max(
           0,
@@ -259,6 +261,13 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
                   <p className="mt-2 text-sm text-muted-foreground">
                     {characterClass.description ?? "Sem descricao detalhada."}
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <span>{classTierLabel(characterClass.tier)}</span>
+                    {characterClass.evolvesFrom ? <span>Evoluiu de {characterClass.evolvesFrom}</span> : null}
+                    {(characterClass.awakensTo ?? []).length ? (
+                      <span>Desperta para {(characterClass.awakensTo ?? []).join(", ")}</span>
+                    ) : null}
+                  </div>
                 </div>
                 <span
                   className={cn(
@@ -327,10 +336,14 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
                 <Sparkles className="h-5 w-5 text-primary" />
               </div>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <div className="mt-4 grid gap-3 md:grid-cols-4">
                 <div className="rounded-xl bg-black/20 p-3">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Elegivel</p>
                   <p className="mt-1 font-semibold">{data.awakening.available ? "Sim" : "Nao"}</p>
+                </div>
+                <div className="rounded-xl bg-black/20 p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Tier atual</p>
+                  <p className="mt-1 font-semibold">{classTierLabel(data.awakening.currentTier)}</p>
                 </div>
                 <div className="rounded-xl bg-black/20 p-3">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Item</p>
@@ -348,6 +361,10 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
                   <p className="mt-1 font-semibold">{data.awakening.currentClass}</p>
                 </div>
                 <div className="rounded-xl bg-black/20 p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Origem</p>
+                  <p className="mt-1 font-semibold">{data.awakening.evolvesFrom ?? "Classe base"}</p>
+                </div>
+                <div className="rounded-xl bg-black/20 p-3">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Item requerido</p>
                   <p className="mt-1 font-semibold">
                     {data.awakening.requiredItemName || data.awakening.requiredItemType || "Awaken token"}
@@ -362,7 +379,7 @@ export function CharacterSummaryPanel({ characterId }: { characterId: string }) 
                       key={targetClass.id}
                       className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm"
                     >
-                      {targetClass.name}
+                      {targetClass.name} • {classTierLabel(targetClass.tier)}
                     </span>
                   ))}
                 </div>
@@ -441,6 +458,8 @@ function AwakenDialog({
   targetClasses: Array<{
     id: string;
     name: string;
+    tier?: number;
+    evolvesFrom?: string | null;
     modifier?: string;
     description?: string;
     passive?: string;
@@ -491,6 +510,10 @@ function AwakenDialog({
                   <p className="mt-2 text-sm text-muted-foreground">
                     {targetClass.description ?? "Sem descricao detalhada."}
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <span>{classTierLabel(targetClass.tier)}</span>
+                    {targetClass.evolvesFrom ? <span>Evolui de {targetClass.evolvesFrom}</span> : null}
+                  </div>
                 </div>
                 <span
                   className={cn(

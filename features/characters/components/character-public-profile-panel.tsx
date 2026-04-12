@@ -3,12 +3,14 @@
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
+import { DerivedStatsGrid } from "@/components/game/derived-stats-grid";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useCharacterPublicProfile } from "@/features/characters/hooks/use-characters";
 import { useCharacterClasses } from "@/features/characters/hooks/use-characters";
 import {
   classModifierAccent,
-  classModifierLabel
+  classModifierLabel,
+  classTierLabel
 } from "@/features/characters/lib/class-presentation";
 import {
   resolveAvatarGlyph,
@@ -20,13 +22,6 @@ import {
   getCharacterCustomization,
   useProfileCustomizationStore
 } from "@/stores/profile-customization-store";
-
-function labelize(value: string) {
-  return value
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/[_-]/g, " ")
-    .replace(/^./, (char) => char.toUpperCase());
-}
 
 export function CharacterPublicProfilePanel({ characterId }: { characterId: string }) {
   const query = useCharacterPublicProfile(characterId);
@@ -58,7 +53,6 @@ export function CharacterPublicProfilePanel({ characterId }: { characterId: stri
   }
 
   const profile = query.data;
-  const stats = Object.entries(profile.stats);
   const customization = {
     ...getCharacterCustomization(characters, characterId),
     ...profile.customization
@@ -84,6 +78,9 @@ export function CharacterPublicProfilePanel({ characterId }: { characterId: stri
         <Card className="space-y-2">
           <p className="text-sm text-muted-foreground">Classe</p>
           <CardTitle>{profile.className ?? "Nao informada"}</CardTitle>
+          {characterClass?.tier ? (
+            <CardDescription>{classTierLabel(characterClass.tier)}</CardDescription>
+          ) : null}
         </Card>
         {characterClass ? (
           <Card className="space-y-2 md:col-span-2">
@@ -125,18 +122,7 @@ export function CharacterPublicProfilePanel({ characterId }: { characterId: stri
               Resultado consolidado de level, classe e equipamentos equipados.
             </CardDescription>
           </div>
-          {stats.length ? (
-            <div className="grid gap-3 md:grid-cols-2">
-              {stats.map(([key, value]) => (
-                <div key={key} className="rounded-xl bg-white/5 p-3">
-                  <p className="text-sm text-muted-foreground">{labelize(key)}</p>
-                  <p className="mt-1 font-semibold">{value}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Nenhum stat derivado foi retornado.</p>
-          )}
+          <DerivedStatsGrid stats={profile.stats} />
         </Card>
 
         <Card className="space-y-4">

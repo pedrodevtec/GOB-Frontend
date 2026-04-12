@@ -16,24 +16,31 @@ export interface AuthSession {
 
 export type Difficulty = "EASY" | "MEDIUM" | "HARD" | "ELITE";
 export type CharacterStatus = "READY" | "WOUNDED" | "DEFEATED";
+export type TradeStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELED" | "EXPIRED";
+export type TradeAssetType = "ITEM" | "EQUIPMENT";
+export type TradeAction = "ACCEPT" | "REJECT" | "CANCEL";
 export type GameplayActionType =
   | "BOUNTY_HUNT"
   | "MISSION"
   | "TRAINING"
   | "NPC_INTERACTION"
-  | "MARKET";
+  | "MARKET"
+  | "PVP";
 
 export type MarketActionType = "barter" | "scavenge";
 
 export interface CharacterClass {
   id: string;
   name: string;
+  tier?: number;
+  evolvesFrom?: string | null;
   modifier?: string;
   description?: string;
   passive?: string;
   isBaseClass?: boolean;
   isAwakenedClass?: boolean;
   awakensTo?: string[];
+  awakenLevelRequirement?: number | null;
 }
 
 export interface CharacterCustomization {
@@ -96,6 +103,8 @@ export interface CharacterDetailSummary {
   awakening?: {
     requiredLevel: number;
     currentClass: string;
+    currentTier?: number;
+    evolvesFrom?: string | null;
     isBaseClass: boolean;
     isAwakenedClass: boolean;
     available: boolean;
@@ -127,6 +136,24 @@ export interface PublicProfileEquipment {
   type?: string;
   img?: string;
   effect?: string;
+  equippedAt?: string;
+}
+
+export interface DerivedStatDescriptions {
+  attack?: string;
+  defense?: string;
+  maxHealth?: string;
+  critChance?: string;
+}
+
+export interface PresentedStats {
+  attack?: number;
+  defense?: number;
+  maxHealth?: number;
+  critChance?: number;
+  critChancePercent?: number;
+  descriptions?: DerivedStatDescriptions;
+  [key: string]: number | DerivedStatDescriptions | undefined;
 }
 
 export interface CharacterPublicProfile {
@@ -140,7 +167,7 @@ export interface CharacterPublicProfile {
   className?: string;
   classDetail?: CharacterClass;
   customization?: CharacterCustomization;
-  stats: Record<string, number>;
+  stats: PresentedStats;
   progression: {
     missionsCompleted: number;
     bountiesCompleted: number;
@@ -164,7 +191,12 @@ export interface Reward {
 export interface InventoryItem {
   id: string;
   name: string;
+  assetKind?: "ITEM" | "EQUIPMENT";
+  category?: string;
   type: string;
+  img?: string;
+  effect?: string;
+  levelRequirement?: number;
   quantity: number;
   rarity?: string;
   equipped?: boolean;
@@ -190,6 +222,7 @@ export interface MarketCatalogEntry {
   type?: string;
   img?: string;
   effect?: string;
+  levelRequirement?: number;
   assetKind?: string;
   buyPrice: number;
   currency?: string;
@@ -205,6 +238,7 @@ export interface MarketSellableItem {
   type?: string;
   img?: string;
   effect?: string;
+  levelRequirement?: number;
   quantity: number;
   unitSellPrice: number;
   totalSellPrice: number;
@@ -244,6 +278,13 @@ export interface GameplayEntity {
   marketAction?: MarketActionType;
   role?: string;
   dialogue?: string;
+  defeatPenalty?: {
+    difficulty?: Difficulty;
+    xpLossPercent?: number;
+    coinsLossPercent?: number;
+    forceDefeat?: boolean;
+    description?: string;
+  };
 }
 
 export interface GameplayCharacterState {
@@ -278,6 +319,7 @@ export interface GameplayCombat {
   victory: boolean;
   characterHealthRemaining: number;
   enemyHealthRemaining: number;
+  stats?: PresentedStats;
   rounds: GameplayCombatRound[];
 }
 
@@ -307,6 +349,12 @@ export interface GameplayActionResult {
     coins: number;
   };
   combat?: GameplayCombat;
+  defeatPenalty?: {
+    difficulty?: Difficulty;
+    xpLoss: number;
+    coinsLoss: number;
+    forceDefeat: boolean;
+  } | null;
   availability?: {
     actionType?: GameplayActionType | string;
     nextAvailableAt?: string;
@@ -316,6 +364,127 @@ export interface GameplayActionResult {
     id?: string;
     type?: string;
     value?: number;
+  };
+}
+
+export interface TradeAsset {
+  id?: string;
+  side?: "REQUESTER" | "TARGET";
+  assetType: TradeAssetType;
+  assetId: string;
+  quantity: number;
+}
+
+export interface TradeCharacterRef {
+  id: string;
+  name: string;
+  userId?: string;
+}
+
+export interface TradeRecord {
+  id: string;
+  status: TradeStatus;
+  requesterCharacterId: string;
+  targetCharacterId: string;
+  offeredCoins: number;
+  requestedCoins: number;
+  note?: string | null;
+  expiresAt?: string;
+  createdAt?: string;
+  requesterCharacter?: TradeCharacterRef;
+  targetCharacter?: TradeCharacterRef;
+  assets: TradeAsset[];
+}
+
+export interface TradeList {
+  characterId: string;
+  incoming: TradeRecord[];
+  outgoing: TradeRecord[];
+}
+
+export interface PvpOverview {
+  characterId: string;
+  level: number;
+  maxLevel: number;
+  pvpUnlocked: boolean;
+  requiredLevel: number;
+  cooldownSeconds: number;
+  availability: {
+    available: boolean;
+    nextAvailableAt?: string;
+  };
+  ranking: {
+    rating: number;
+    wins: number;
+    losses: number;
+  };
+}
+
+export interface PvpRankingEntry {
+  position: number;
+  rating: number;
+  wins: number;
+  losses: number;
+  character: {
+    id: string;
+    name: string;
+    level: number;
+    status: CharacterStatus;
+    class?: {
+      id: string;
+      name: string;
+      tier?: number;
+      modifier?: string;
+    };
+  };
+}
+
+export interface PvpRanking {
+  requiredLevel: number;
+  cooldownSeconds: number;
+  entries: PvpRankingEntry[];
+}
+
+export interface PvpCombatRound {
+  round: number;
+  actor: "challenger" | "opponent";
+  damage: number;
+  remainingChallengerHealth: number;
+  remainingOpponentHealth: number;
+  critical: boolean;
+}
+
+export interface PvpMatchResult {
+  match: {
+    id: string;
+    createdAt?: string;
+    cooldownEndsAt?: string;
+    winnerCharacterId: string;
+    loserCharacterId: string;
+  };
+  challenger: {
+    id: string;
+    name: string;
+    ratingBefore: number;
+    ratingAfter: number;
+    state: GameplayCharacterState;
+    stats: PresentedStats;
+  };
+  opponent: {
+    id: string;
+    name: string;
+    ratingBefore: number;
+    ratingAfter: number;
+    state: GameplayCharacterState;
+    stats: PresentedStats;
+  };
+  combat: {
+    winner: "challenger" | "opponent";
+    challengerHealthRemaining: number;
+    opponentHealthRemaining: number;
+    challengerStats: PresentedStats;
+    opponentStats: PresentedStats;
+    rounds: PvpCombatRound[];
   };
 }
 

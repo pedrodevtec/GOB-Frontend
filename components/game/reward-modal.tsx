@@ -2,6 +2,7 @@
 
 import { Gift, ShieldAlert, Sparkles, Sword } from "lucide-react";
 
+import { DerivedStatsGrid } from "@/components/game/derived-stats-grid";
 import {
   Dialog,
   DialogContent,
@@ -117,6 +118,13 @@ export function RewardModal({
                   {result.combat.victory ? "Vitoria" : "Derrota"} • HP restante{" "}
                   {result.combat.characterHealthRemaining}
                 </p>
+                {result.combat.stats ? (
+                  <DerivedStatsGrid
+                    stats={result.combat.stats}
+                    className="grid gap-2 md:grid-cols-2"
+                    emptyLabel="Sem stats apresentados para este combate."
+                  />
+                ) : null}
                 <div className="grid gap-2 text-xs text-muted-foreground">
                   {result.combat.rounds.length ? (
                     result.combat.rounds.map((_, index) => {
@@ -136,6 +144,14 @@ export function RewardModal({
                     </div>
                   )}
                 </div>
+              </div>
+            ) : null}
+            {result.defeatPenalty ? (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
+                <p className="text-sm text-amber-100">
+                  Penalidade de derrota: XP {result.defeatPenalty.xpLoss} / Gold {result.defeatPenalty.coinsLoss}
+                  {result.defeatPenalty.forceDefeat ? " / Status DEFEATED" : ""}
+                </p>
               </div>
             ) : null}
             {result.availability?.nextAvailableAt ? (

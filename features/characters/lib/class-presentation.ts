@@ -14,6 +14,19 @@ export function classModifierAccent(modifier?: string) {
   return "border-white/10 bg-white/5 text-foreground";
 }
 
+export function classTierLabel(tier?: number | null) {
+  if (!tier) return "Tier ?";
+  return `Tier ${tier}`;
+}
+
+export function isBaseCharacterClass(characterClass: CharacterClass) {
+  if (characterClass.isBaseClass === true) return true;
+  if (typeof characterClass.tier === "number") {
+    return characterClass.tier === 1 && !characterClass.evolvesFrom;
+  }
+  return !characterClass.isAwakenedClass;
+}
+
 export function groupClassesByModifier(classes: CharacterClass[]) {
   const groups: Array<{ modifier: string; label: string; items: CharacterClass[] }> = [
     { modifier: "STR", label: "Força", items: [] },
