@@ -268,6 +268,7 @@ export interface GameplayEntity {
   name: string;
   description: string;
   difficulty: Difficulty;
+  imageUrl?: string;
   rewardHint?: string;
   unlocked?: boolean;
   actionType?: GameplayActionType;
@@ -279,6 +280,22 @@ export interface GameplayEntity {
   marketAction?: MarketActionType;
   role?: string;
   dialogue?: string;
+  startNpcId?: string;
+  completionNpcId?: string;
+  startDialogue?: string;
+  completionDialogue?: string;
+  repeatCooldownSeconds?: number;
+  journeySummary?: string[];
+  startingMissions?: Array<{
+    id: string;
+    title: string;
+    isActive?: boolean;
+  }>;
+  completionMissions?: Array<{
+    id: string;
+    title: string;
+    isActive?: boolean;
+  }>;
   defeatPenalty?: {
     difficulty?: Difficulty;
     xpLossPercent?: number;
@@ -307,7 +324,9 @@ export interface GameplayProgression {
 export interface GameplayCombatRound {
   round?: number;
   actor?: "character" | "monster";
+  action?: string;
   damage?: number;
+  critical?: boolean;
   attacker?: string;
   defender?: string;
   remainingCharacterHealth?: number;
@@ -322,6 +341,95 @@ export interface GameplayCombat {
   enemyHealthRemaining: number;
   stats?: PresentedStats;
   rounds: GameplayCombatRound[];
+}
+
+export type MissionJourneyNodeType =
+  | "DIALOGUE"
+  | "CHOICE"
+  | "COMBAT"
+  | "RETURN_TO_NPC"
+  | "COMPLETE";
+
+export type CombatSessionAction = "ATTACK" | "DEFEND" | "POWER_ATTACK";
+
+export interface MissionJourneyChoice {
+  id: string;
+  label: string;
+  description?: string;
+  nextNodeId: string;
+}
+
+export interface MissionJourneyEnemy {
+  name: string;
+  imageUrl?: string;
+  level: number;
+  health: number;
+  attack: number;
+  defense: number;
+}
+
+export interface MissionJourneyNode {
+  id: string;
+  type: MissionJourneyNodeType;
+  title?: string;
+  text?: string;
+  nextNodeId?: string;
+  npcId?: string;
+  enemy?: MissionJourneyEnemy;
+  choices: MissionJourneyChoice[];
+}
+
+export interface CombatSessionState {
+  id: string;
+  missionSessionId?: string | null;
+  sourceType?: "BOUNTY_HUNT" | "MISSION";
+  sourceId?: string;
+  status: "IN_PROGRESS" | "VICTORY" | "DEFEAT" | "ESCAPED";
+  turnNumber: number;
+  availableAt?: string;
+  enemy: {
+    name: string;
+    imageUrl?: string;
+    level: number;
+    attack: number;
+    defense: number;
+    currentHealth: number;
+    maxHealth: number;
+  };
+  character: {
+    currentHealth: number;
+    maxHealth: number;
+    stats?: {
+      attack: number;
+      defense: number;
+      maxHealth: number;
+      critChance: number;
+      critChancePercent: number;
+    };
+  };
+  actions: CombatSessionAction[];
+  battleLog: GameplayCombatRound[];
+}
+
+export interface MissionSessionState {
+  sessionId: string;
+  status: "IN_PROGRESS" | "READY_TO_TURN_IN" | "COMPLETED" | "FAILED" | "ABANDONED";
+  startedAt: string;
+  updatedAt: string;
+  completedAt?: string | null;
+  nextAvailableAt?: string | null;
+  mission: GameplayEntity;
+  currentNode?: MissionJourneyNode;
+  journeySummary: MissionJourneyNode[];
+  combatSession?: CombatSessionState | null;
+  completion?: {
+    rewards?: GameplayRewards;
+    progression?: GameplayProgression;
+    inventory?: {
+      id?: string;
+      coins: number;
+    };
+  } | null;
 }
 
 export interface GameplayRewards {
@@ -366,6 +474,31 @@ export interface GameplayActionResult {
     type?: string;
     value?: number;
   };
+}
+
+export interface CombatTurnResult {
+  action?: string;
+  outcome: CombatSessionState["status"] | "IN_PROGRESS";
+  combatSession: CombatSessionState;
+  characterState?: GameplayCharacterState;
+  mission?: MissionSessionState;
+  rewards?: GameplayRewards;
+  progression?: GameplayProgression;
+  inventory?: {
+    id?: string;
+    coins: number;
+  };
+  transaction?: {
+    id?: string;
+    type?: string;
+    value?: number;
+  };
+  defeatPenalty?: {
+    difficulty?: Difficulty;
+    xpLossPercent?: number;
+    coinsLossPercent?: number;
+    forceDefeat?: boolean;
+  } | null;
 }
 
 export interface TradeAsset {
@@ -503,6 +636,7 @@ export interface AdminEntity {
   description: string;
   difficulty?: Difficulty;
   active?: boolean;
+  imageUrl?: string;
   relatedId?: string;
   title?: string;
   level?: number;
@@ -522,6 +656,16 @@ export interface AdminEntity {
   enemyAttack?: number;
   enemyDefense?: number;
   rewardCoins?: number;
+  startNpcId?: string;
+  completionNpcId?: string;
+  startDialogue?: string;
+  completionDialogue?: string;
+  repeatCooldownSeconds?: number;
+  journey?: {
+    startNodeId?: string;
+    nodes?: unknown[];
+  };
+  journeySummary?: string[];
   trainingType?: string;
   xpReward?: number;
   coinsReward?: number;

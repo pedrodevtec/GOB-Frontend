@@ -1,151 +1,213 @@
 "use client";
 
-import { Swords, Target, Trophy, UserRound, Wand2 } from "lucide-react";
+import { useState } from "react";
+import Link from "next/link";
 
-import { ActionPanel } from "@/components/game/action-panel";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { GameplaySection } from "@/features/gameplay/components/gameplay-section";
+import { MarketSection } from "@/features/gameplay/components/market-section";
+import { MissionJourneyCenter } from "@/features/gameplay/components/mission-journey-center";
 import { useGameplayList } from "@/features/gameplay/hooks/use-gameplay";
 
-const panels = [
-  {
-    key: "journey",
-    title: "Storyline & Journey",
-    fallback: "Centro de progressao, desbloqueios e caminhos da campanha.",
-    href: "/gameplay/journey",
-    icon: Swords
-  },
-  {
-    key: "trainings",
-    title: "Treinamentos",
-    fallback: "Aprimore atributos e prepare seu personagem.",
-    href: "/gameplay/trainings",
-    icon: Wand2
-  },
-  {
-    key: "market",
-    title: "Market",
-    fallback: "Acoes economicas com cooldown proprio por personagem.",
-    href: "/gameplay/market",
-    icon: Trophy
-  },
-  {
-    key: "missions",
-    title: "Missoes",
-    fallback: "Execute objetivos de progressao com recompensas dirigidas.",
-    href: "/gameplay/missions",
-    icon: Target
-  },
-  {
-    key: "bounties",
-    title: "Bounties",
-    fallback: "Enfrente alvos especiais e ganhe loot de maior valor.",
-    href: "/gameplay/bounties",
-    icon: Trophy
-  },
-  {
-    key: "npcs",
-    title: "NPCs",
-    fallback: "Interaja com personagens do mundo para decisoes e eventos.",
-    href: "/gameplay/npcs",
-    icon: UserRound
-  },
-  {
-    key: "shop",
-    title: "Loja",
-    fallback: "Gerencie compras, consumiveis e ordens de pagamento.",
-    href: "/shop",
-    icon: Trophy
-  }
+const quickLinks = [
+  { key: "missoes", label: "Missoes" },
+  { key: "cacadas", label: "Cacadas" },
+  { key: "treinamentos", label: "Treinamentos" },
+  { key: "npcs", label: "NPCs" },
+  { key: "bazar", label: "Bazar" }
 ] as const;
 
-function JourneyInfoCard() {
-  const query = useGameplayList("journey");
+type GameplaySectionKey = (typeof quickLinks)[number]["key"];
 
-  if (query.isLoading) {
-    return <LoadingState label="Carregando jornada..." />;
+function CampaignOverviewCard() {
+  const journey = useGameplayList("journey");
+  const missions = useGameplayList("missions");
+
+  if (journey.isLoading || missions.isLoading) {
+    return <LoadingState label="Carregando progresso principal..." />;
   }
 
-  if (query.isError) {
+  if (journey.isError || missions.isError) {
     return (
       <ErrorState
-        description={(query.error as Error).message}
+        description={
+          (journey.error as Error)?.message ||
+          (missions.error as Error)?.message ||
+          "Falha ao carregar o fluxo principal."
+        }
         onRetry={() => {
-          void query.refetch();
+          void journey.refetch();
+          void missions.refetch();
         }}
       />
     );
   }
 
-  if (!query.data?.length) {
-    return (
-      <EmptyState
-        title="Sem progresso de jornada retornado"
-        description="A API ainda nao retornou blocos de journey para este usuario."
-      />
-    );
-  }
+  const campaignPreview = journey.data?.slice(0, 3) ?? [];
+  const missionCount = missions.data?.length ?? 0;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {query.data.slice(0, 3).map((entry) => (
-        <Card key={entry.id} className="space-y-3">
-          <CardTitle className="text-lg">{entry.name}</CardTitle>
-          <CardDescription>{entry.description}</CardDescription>
-        </Card>
-      ))}
-    </div>
+    <Card className="space-y-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.32em] text-primary">Gameplay</p>
+          <CardTitle className="text-2xl">Fluxo unico de progresso</CardTitle>
+          <CardDescription className="max-w-3xl text-sm">
+            Jornada, missoes, cacadas, NPCs, treinamentos e bazar agora ficam no mesmo caminho.
+            O objetivo aqui e tirar navegacao redundante e deixar a acao principal ao alcance do
+            jogador.
+          </CardDescription>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-muted-foreground">
+          <span className="font-semibold text-foreground">{missionCount}</span> missoes ativas carregadas
+        </div>
+      </div>
+
+      {campaignPreview.length ? (
+        <div className="grid gap-4 md:grid-cols-3">
+          {campaignPreview.map((entry) => (
+            <div key={entry.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <p className="text-sm font-semibold text-foreground">{entry.name}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{entry.description}</p>
+              {entry.journeySummary?.length ? (
+                <p className="mt-3 text-xs uppercase tracking-wide text-primary">
+                  {entry.journeySummary.slice(0, 2).join(" • ")}
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="Sem blocos de jornada retornados"
+          description="Quando a API enviar o andamento da campanha, ele aparecera junto das missoes aqui."
+        />
+      )}
+    </Card>
+  );
+}
+
+function SectionBlock({
+  id,
+  eyebrow,
+  title,
+  description,
+  children,
+  secondaryLink
+}: {
+  id: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  secondaryLink?: {
+    href: string;
+    label: string;
+  };
+}) {
+  return (
+    <section id={id} className="scroll-mt-24 space-y-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.32em] text-primary">{eyebrow}</p>
+          <CardTitle className="mt-2 text-2xl">{title}</CardTitle>
+          <CardDescription className="mt-2 max-w-3xl">{description}</CardDescription>
+        </div>
+        {secondaryLink ? (
+          <Button variant="outline" asChild>
+            <Link href={secondaryLink.href}>{secondaryLink.label}</Link>
+          </Button>
+        ) : null}
+      </div>
+      {children}
+    </section>
   );
 }
 
 export function GameplayHub() {
-  const trainings = useGameplayList("trainings");
-  const missions = useGameplayList("missions");
-  const bounties = useGameplayList("bounties");
-  const npcs = useGameplayList("npcs");
-
-  const meta = {
-    trainings: trainings.data?.length ?? 0,
-    missions: missions.data?.length ?? 0,
-    bounties: bounties.data?.length ?? 0,
-    npcs: npcs.data?.length ?? 0
-  };
+  const [activeSection, setActiveSection] = useState<GameplaySectionKey>("missoes");
 
   return (
-    <div className="space-y-6">
-      <JourneyInfoCard />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {panels.map((panel) => {
-          const count =
-            panel.key === "trainings"
-              ? meta.trainings
-              : panel.key === "market"
-                ? 2
-              : panel.key === "missions"
-                ? meta.missions
-                : panel.key === "bounties"
-                  ? meta.bounties
-                  : panel.key === "npcs"
-                    ? meta.npcs
-                    : null;
+    <div className="space-y-8">
+      <CampaignOverviewCard />
 
-          const description =
-            count !== null
-              ? `${panel.fallback} ${count} opcoes carregadas pela API.`
-              : panel.fallback;
-
-          return (
-            <ActionPanel
-              key={panel.href}
-              title={panel.title}
-              description={description}
-              href={panel.href}
-            />
-          );
-        })}
+      <div className="flex flex-wrap gap-3">
+        {quickLinks.map((link) => (
+          <Button
+            key={link.key}
+            variant={activeSection === link.key ? "default" : "outline"}
+            size="sm"
+            type="button"
+            onClick={() => setActiveSection(link.key)}
+          >
+            {link.label}
+          </Button>
+        ))}
       </div>
+
+      {activeSection === "missoes" ? (
+        <SectionBlock
+          id="missoes"
+          eyebrow="Campanha"
+          title="Jornada e missoes"
+          description="Comece no NPC, receba a missao, escolha a rota, lute e volte ao NPC correto para concluir."
+          secondaryLink={{ href: "/gameplay/missions", label: "Abrir pagina isolada" }}
+        >
+          <MissionJourneyCenter />
+        </SectionBlock>
+      ) : null}
+
+      {activeSection === "cacadas" ? (
+        <SectionBlock
+          id="cacadas"
+          eyebrow="Combate"
+          title="Cacadas"
+          description="Alvos especiais e recompensas de maior risco ficam no mesmo fluxo, sem exigir retorno ao hub."
+          secondaryLink={{ href: "/gameplay/bounties", label: "Abrir pagina isolada" }}
+        >
+          <GameplaySection type="bounties" actionKind="bounty" actionLabel="Cacar alvo" />
+        </SectionBlock>
+      ) : null}
+
+      {activeSection === "treinamentos" ? (
+        <SectionBlock
+          id="treinamentos"
+          eyebrow="Preparacao"
+          title="Treinamentos"
+          description="Treinos disponiveis para evolucao rapida do personagem, sem trocar de contexto."
+          secondaryLink={{ href: "/gameplay/trainings", label: "Abrir pagina isolada" }}
+        >
+          <GameplaySection type="trainings" actionKind="training" actionLabel="Treinar" />
+        </SectionBlock>
+      ) : null}
+
+      {activeSection === "npcs" ? (
+        <SectionBlock
+          id="npcs"
+          eyebrow="Mundo"
+          title="NPCs de suporte"
+          description="Healer, buffer e outros NPCs fora da jornada principal seguem aqui para uso rapido."
+          secondaryLink={{ href: "/gameplay/npcs", label: "Abrir pagina isolada" }}
+        >
+          <GameplaySection type="npcs" actionKind="npc" actionLabel="Interagir" />
+        </SectionBlock>
+      ) : null}
+
+      {activeSection === "bazar" ? (
+        <SectionBlock
+          id="bazar"
+          eyebrow="Economia"
+          title="Bazar"
+          description="As acoes economicas de gameplay foram consolidadas sob o nome bazar para evitar conflito com a loja."
+          secondaryLink={{ href: "/gameplay/bazar", label: "Abrir pagina isolada" }}
+        >
+          <MarketSection />
+        </SectionBlock>
+      ) : null}
     </div>
   );
 }

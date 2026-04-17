@@ -66,7 +66,7 @@ export function DashboardQuestPreview() {
                 {entry.rewardHint ?? "Sem rewardHint especificado"}
               </p>
               <Button variant="outline" size="sm" asChild>
-                <Link href={isBounty ? "/gameplay/bounties" : "/gameplay/missions"}>
+                <Link href={isBounty ? "/gameplay#cacadas" : "/gameplay#missoes"}>
                   Abrir
                 </Link>
               </Button>

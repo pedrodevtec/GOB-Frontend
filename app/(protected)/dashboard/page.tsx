@@ -28,9 +28,9 @@ export default function DashboardPage() {
       <div className="grid gap-6">
         <Card className="space-y-5">
           <PageHeader
-            eyebrow="Journey"
+            eyebrow="Gameplay"
             title="Fluxo principal"
-            description="Storyline, journey, training, missions, bounty e shop organizados como hub de progressao."
+            description="Missoes, cacadas, NPCs, treinamentos e bazar organizados em um caminho unico de gameplay."
           />
           <GameplayHub />
         </Card>

@@ -18,9 +18,17 @@ import type {
   CharacterSummary,
   Difficulty,
   GameplayActionResult,
+  CombatSessionAction,
+  CombatTurnResult,
+  CombatSessionState,
+  GameplayCharacterState,
   GameplayCombat,
   GameplayCombatRound,
   GameplayEntity,
+  MissionJourneyChoice,
+  MissionJourneyEnemy,
+  MissionJourneyNode,
+  MissionSessionState,
   GameplayProgression,
   InventoryItem,
   MarketActionType,
@@ -72,7 +80,15 @@ const ARRAY_KEYS = [
   "activities",
   "recentGameplayActions",
   "recentTransactions",
-  "rounds"
+  "rounds",
+  "choices",
+  "nodes",
+  "sessions",
+  "missionSessions",
+  "actions",
+  "battleLog",
+  "startingMissions",
+  "completionMissions"
 ];
 
 function isObject(value: unknown): value is Dict {
@@ -117,6 +133,7 @@ function unwrapEntity(value: unknown): Dict {
       "data",
       "item",
       "result",
+      "session",
       "user",
       "character",
       "profile",
@@ -540,21 +557,35 @@ function mapMarketOverview(input: unknown): MarketOverview {
 
 function mapGameplayEntity(input: unknown): GameplayEntity {
   const record = unwrapEntity(input);
+  const startNpc = asRecord(record.startNpc);
+  const completionNpc = asRecord(record.completionNpc);
   const title = toStringValue(record.title ?? record.name ?? record.label ?? record.key);
   const rewardXp = toNumberValue(record.rewardXp ?? record.xpReward);
   const rewardCoins = toNumberValue(record.reward ?? record.rewardCoins ?? record.coinsReward);
   const interactionType = toStringValue(record.interactionType).toLowerCase() || undefined;
   const defeatPenalty = asRecord(record.defeatPenalty);
+  const journeySummary = asArray(record.journeySummary, (entry) => {
+    const node = asRecord(entry);
+    return (
+      toStringValue(node.title) ||
+      toStringValue(node.text) ||
+      toStringValue(node.type)
+    );
+  }).filter(Boolean);
 
   return {
     id: toStringValue(record.id),
     name: title,
     description:
       toStringValue(record.description) ||
+      toStringValue(record.startDialogue) ||
+      toStringValue(record.completionDialogue) ||
+      journeySummary[0] ||
       toStringValue(record.dialogue) ||
       toStringValue(record.role) ||
       "Sem descricao detalhada na API.",
     difficulty: (toStringValue(record.difficulty, "MEDIUM") as GameplayEntity["difficulty"]) ?? "MEDIUM",
+    imageUrl: toStringValue(record.imageUrl) || undefined,
     rewardHint:
       rewardXp || rewardCoins
         ? `XP ${rewardXp} • Gold ${rewardCoins}`
@@ -571,6 +602,14 @@ function mapGameplayEntity(input: unknown): GameplayEntity {
     activeUntil: toStringValue(record.timeLimit) || undefined,
     role: toStringValue(record.role) || undefined,
     dialogue: toStringValue(record.dialogue) || undefined,
+    startNpcId: toStringValue(record.startNpcId ?? startNpc.id) || undefined,
+    completionNpcId: toStringValue(record.completionNpcId ?? completionNpc.id) || undefined,
+    startDialogue: toStringValue(record.startDialogue) || undefined,
+    completionDialogue: toStringValue(record.completionDialogue) || undefined,
+    repeatCooldownSeconds: toOptionalNumberValue(record.repeatCooldownSeconds),
+    journeySummary: journeySummary.length ? journeySummary : undefined,
+    startingMissions: asArray(record.startingMissions, mapMissionReference),
+    completionMissions: asArray(record.completionMissions, mapMissionReference),
     defeatPenalty:
       Object.keys(defeatPenalty).length > 0
         ? {
@@ -779,6 +818,15 @@ function mapAdminEntity(input: unknown): AdminEntity {
   const record = unwrapEntity(input);
   const product = asRecord(record.product ?? record.shopProduct);
   const monster = asRecord(record.monster);
+  const journey = asRecord(record.journey);
+  const journeySummary = asArray(record.journeySummary, (entry) => {
+    const node = asRecord(entry);
+    return (
+      toStringValue(node.title) ||
+      toStringValue(node.text) ||
+      toStringValue(node.type)
+    );
+  }).filter(Boolean);
   return {
     id: toStringValue(record.id ?? product.id ?? record.productId),
     name: toStringValue(
@@ -787,15 +835,20 @@ function mapAdminEntity(input: unknown): AdminEntity {
     title: toStringValue(record.title ?? product.title) || undefined,
     description:
       toStringValue(record.description) ||
+      toStringValue(record.startDialogue) ||
+      toStringValue(record.completionDialogue) ||
       toStringValue(product.description) ||
       toStringValue(record.effect) ||
       toStringValue(product.effect) ||
+      toStringValue(monster.description) ||
       toStringValue(monster.name) ||
       toStringValue(record.dialogue) ||
       toStringValue(record.enemyName) ||
       "Sem descricao detalhada.",
     difficulty: toStringValue(record.difficulty) as AdminEntity["difficulty"],
     active: toBooleanValue(record.isActive ?? product.isActive, true),
+    imageUrl:
+      toStringValue(record.imageUrl ?? monster.imageUrl ?? product.img) || undefined,
     relatedId: toStringValue(record.monsterId) || undefined,
     level: toOptionalNumberValue(record.level),
     health: toOptionalNumberValue(record.health),
@@ -814,6 +867,19 @@ function mapAdminEntity(input: unknown): AdminEntity {
     enemyAttack: toOptionalNumberValue(record.enemyAttack),
     enemyDefense: toOptionalNumberValue(record.enemyDefense),
     rewardCoins: toOptionalNumberValue(record.rewardCoins),
+    startNpcId: toStringValue(record.startNpcId) || undefined,
+    completionNpcId: toStringValue(record.completionNpcId) || undefined,
+    startDialogue: toStringValue(record.startDialogue) || undefined,
+    completionDialogue: toStringValue(record.completionDialogue) || undefined,
+    repeatCooldownSeconds: toOptionalNumberValue(record.repeatCooldownSeconds),
+    journey:
+      Object.keys(journey).length > 0
+        ? {
+            startNodeId: toStringValue(journey.startNodeId) || undefined,
+            nodes: Array.isArray(journey.nodes) ? journey.nodes : undefined
+          }
+        : undefined,
+    journeySummary: journeySummary.length ? journeySummary : undefined,
     trainingType: toStringValue(record.trainingType) || undefined,
     xpReward: toOptionalNumberValue(record.xpReward),
     coinsReward: toOptionalNumberValue(record.coinsReward),
@@ -870,6 +936,255 @@ function mapGameplayCombat(input: unknown): GameplayCombat | undefined {
     enemyHealthRemaining: toNumberValue(record.enemyHealthRemaining),
     stats: mapPresentedStats(record.stats),
     rounds: asArray(record.rounds, mapGameplayCombatRound)
+  };
+}
+
+function mapMissionReference(input: unknown) {
+  const record = unwrapEntity(input);
+  return {
+    id: toStringValue(record.id),
+    title: toStringValue(record.title ?? record.name),
+    isActive:
+      typeof record.isActive === "boolean"
+        ? record.isActive
+        : undefined
+  };
+}
+
+function mapMissionJourneyChoice(input: unknown): MissionJourneyChoice {
+  const record = unwrapEntity(input);
+  return {
+    id: toStringValue(record.id),
+    label: toStringValue(record.label),
+    description: toStringValue(record.description) || undefined,
+    nextNodeId: toStringValue(record.nextNodeId)
+  };
+}
+
+function mapMissionJourneyEnemy(input: unknown): MissionJourneyEnemy {
+  const record = unwrapEntity(input);
+  return {
+    name: toStringValue(record.name),
+    imageUrl: toStringValue(record.imageUrl) || undefined,
+    level: toNumberValue(record.level),
+    health: toNumberValue(record.health),
+    attack: toNumberValue(record.attack),
+    defense: toNumberValue(record.defense)
+  };
+}
+
+function mapMissionJourneyNode(input: unknown): MissionJourneyNode {
+  const record = unwrapEntity(input);
+  return {
+    id: toStringValue(record.id),
+    type: toStringValue(record.type, "DIALOGUE") as MissionJourneyNode["type"],
+    title: toStringValue(record.title) || undefined,
+    text: toStringValue(record.text) || undefined,
+    nextNodeId: toStringValue(record.nextNodeId) || undefined,
+    npcId: toStringValue(record.npcId) || undefined,
+    enemy: isObject(record.enemy) ? mapMissionJourneyEnemy(record.enemy) : undefined,
+    choices: asArray(record.choices, mapMissionJourneyChoice)
+  };
+}
+
+function mapBattleLogEntry(input: unknown) {
+  if (typeof input === "string") {
+    return {
+      action: input
+    };
+  }
+
+  const record = asRecord(input);
+  return {
+    round: toOptionalNumberValue(record.round),
+    actor:
+      (toStringValue(record.actor) || undefined) as
+        | "character"
+        | "monster"
+        | undefined,
+    action: toStringValue(record.action) || undefined,
+    damage: toOptionalNumberValue(record.damage),
+    critical:
+      typeof record.critical === "boolean" ? record.critical : undefined,
+    attacker: toStringValue(record.attacker) || undefined,
+    defender: toStringValue(record.defender) || undefined,
+    remainingCharacterHealth: toOptionalNumberValue(record.remainingCharacterHealth),
+    remainingEnemyHealth: toOptionalNumberValue(record.remainingEnemyHealth),
+    characterHealth: toOptionalNumberValue(record.characterHealth),
+    enemyHealth: toOptionalNumberValue(record.enemyHealth)
+  };
+}
+
+function mapCombatSession(input: unknown): CombatSessionState | undefined {
+  if (!isObject(input)) return undefined;
+  const record = asRecord(input);
+  const enemy = asRecord(record.enemy);
+  const character = asRecord(record.character);
+  const characterStats = asRecord(character.stats);
+  const id = toStringValue(record.id);
+  const enemyName = toStringValue(enemy.name);
+  const actions = asArray(record.actions, (entry) =>
+    toStringValue(entry, "ATTACK") as CombatSessionAction
+  );
+
+  if (!id || !enemyName || actions.length === 0) {
+    return undefined;
+  }
+
+  return {
+    id,
+    missionSessionId: toStringValue(record.missionSessionId) || null,
+    sourceType: (toStringValue(record.sourceType) || undefined) as CombatSessionState["sourceType"],
+    sourceId: toStringValue(record.sourceId) || undefined,
+    status: (toStringValue(record.status, "IN_PROGRESS") as CombatSessionState["status"]) ?? "IN_PROGRESS",
+    turnNumber: toNumberValue(record.turnNumber),
+    availableAt: toStringValue(record.availableAt) || undefined,
+    enemy: {
+      name: enemyName,
+      imageUrl: toStringValue(enemy.imageUrl) || undefined,
+      level: toNumberValue(enemy.level),
+      attack: toNumberValue(enemy.attack),
+      defense: toNumberValue(enemy.defense),
+      currentHealth: toNumberValue(enemy.currentHealth),
+      maxHealth: toNumberValue(enemy.maxHealth)
+    },
+    character: {
+      currentHealth: toNumberValue(character.currentHealth),
+      maxHealth: toNumberValue(character.maxHealth),
+      stats:
+        Object.keys(characterStats).length > 0
+          ? {
+              attack: toNumberValue(characterStats.attack),
+              defense: toNumberValue(characterStats.defense),
+              maxHealth: toNumberValue(characterStats.maxHealth),
+              critChance: toNumberValue(characterStats.critChance),
+              critChancePercent: toNumberValue(characterStats.critChancePercent)
+            }
+          : undefined
+    },
+    actions,
+    battleLog: asArray(record.battleLog, mapBattleLogEntry)
+  };
+}
+
+function mapMissionSession(input: unknown): MissionSessionState {
+  const record = unwrapEntity(input);
+  const completion = asRecord(record.completion);
+  const completionInventory = asRecord(completion.inventory);
+  return {
+    sessionId: toStringValue(record.sessionId ?? record.id),
+    status:
+      (toStringValue(record.status, "IN_PROGRESS") as MissionSessionState["status"]) ??
+      "IN_PROGRESS",
+    startedAt: toStringValue(record.startedAt ?? record.createdAt),
+    updatedAt: toStringValue(record.updatedAt ?? record.startedAt),
+    completedAt: toStringValue(record.completedAt) || null,
+    nextAvailableAt: toStringValue(record.nextAvailableAt) || null,
+    mission: mapGameplayEntity(record.mission ?? record.missionDefinition ?? {}),
+    currentNode: isObject(record.currentNode) ? mapMissionJourneyNode(record.currentNode) : undefined,
+    journeySummary: asArray(record.journeySummary, mapMissionJourneyNode),
+    combatSession: mapCombatSession(record.combatSession) ?? null,
+    completion:
+      Object.keys(completion).length > 0
+        ? {
+            rewards: Object.keys(asRecord(completion.rewards)).length > 0
+              ? {
+                  xp: toNumberValue(asRecord(completion.rewards).xp),
+                  coins: toNumberValue(asRecord(completion.rewards).coins),
+                  items: []
+                }
+              : undefined,
+            progression: mapGameplayProgression(completion.progression),
+            inventory:
+              Object.keys(completionInventory).length > 0
+                ? {
+                    id: toStringValue(completionInventory.id) || undefined,
+                    coins: toNumberValue(completionInventory.coins)
+                  }
+                : undefined
+          }
+        : null
+  };
+}
+
+function mapCombatTurnResult(input: unknown): CombatTurnResult {
+  const record = unwrapEntity(input);
+  const rewardsRecord = asRecord(record.rewards);
+  const inventoryRecord = asRecord(record.inventory);
+  const transactionRecord = asRecord(record.transaction);
+  const defeatPenaltyRecord = asRecord(record.defeatPenalty);
+  const combatSession =
+    mapCombatSession(record.combatSession ?? record.session ?? record.result) ??
+    mapCombatSession(record);
+
+  if (!combatSession) {
+    throw new Error("A API nao retornou combatSession para o turno de combate.");
+  }
+
+  return {
+    action: toStringValue(record.action) || undefined,
+    outcome:
+      (toStringValue(record.outcome, "IN_PROGRESS") as CombatTurnResult["outcome"]) ??
+      "IN_PROGRESS",
+    combatSession,
+    characterState: isObject(record.characterState)
+      ? {
+          currentHealth: toNumberValue(asRecord(record.characterState).currentHealth),
+          maxHealth: toNumberValue(asRecord(record.characterState).maxHealth),
+          status:
+            (toStringValue(asRecord(record.characterState).status, "READY") as
+              GameplayCharacterState["status"]) ?? "READY",
+          lastCombatAt: toStringValue(asRecord(record.characterState).lastCombatAt) || undefined,
+          lastRecoveredAt:
+            toStringValue(asRecord(record.characterState).lastRecoveredAt) || undefined
+        }
+      : undefined,
+    mission: isObject(record.mission) ? mapMissionSession(record.mission) : undefined,
+    rewards:
+      Object.keys(rewardsRecord).length > 0
+        ? {
+            xp: toNumberValue(rewardsRecord.xp),
+            coins: toNumberValue(rewardsRecord.coins),
+            items: []
+          }
+        : undefined,
+    progression:
+      Object.keys(asRecord(record.progression)).length > 0
+        ? mapGameplayProgression(record.progression)
+        : undefined,
+    inventory:
+      Object.keys(inventoryRecord).length > 0
+        ? {
+            id: toStringValue(inventoryRecord.id) || undefined,
+            coins: toNumberValue(inventoryRecord.coins)
+          }
+        : undefined,
+    transaction:
+      Object.keys(transactionRecord).length > 0
+        ? {
+            id: toStringValue(transactionRecord.id) || undefined,
+            type: toStringValue(transactionRecord.type) || undefined,
+            value:
+              typeof transactionRecord.value === "number"
+                ? transactionRecord.value
+                : undefined
+          }
+        : undefined,
+    defeatPenalty:
+      Object.keys(defeatPenaltyRecord).length > 0
+        ? {
+            difficulty:
+              (toStringValue(defeatPenaltyRecord.difficulty) || undefined) as
+                | Difficulty
+                | undefined,
+            xpLossPercent: toOptionalNumberValue(defeatPenaltyRecord.xpLossPercent),
+            coinsLossPercent: toOptionalNumberValue(defeatPenaltyRecord.coinsLossPercent),
+            forceDefeat:
+              typeof defeatPenaltyRecord.forceDefeat === "boolean"
+                ? defeatPenaltyRecord.forceDefeat
+                : undefined
+          }
+        : null
   };
 }
 
@@ -1052,6 +1367,23 @@ export interface GameplayApiContract {
   missions(): Promise<GameplayEntity[]>;
   trainings(): Promise<GameplayEntity[]>;
   npcs(): Promise<GameplayEntity[]>;
+  missionSessions(characterId: string): Promise<MissionSessionState[]>;
+  missionSession(characterId: string, sessionId: string): Promise<MissionSessionState>;
+  startMissionJourney(
+    characterId: string,
+    input: { missionId: string; npcId: string }
+  ): Promise<MissionSessionState>;
+  progressMissionJourney(
+    characterId: string,
+    sessionId: string,
+    input: { choiceId?: string; npcId?: string }
+  ): Promise<MissionSessionState>;
+  abandonMissionJourney(characterId: string, sessionId: string): Promise<MissionSessionState>;
+  combatTurn(
+    characterId: string,
+    combatSessionId: string,
+    input: { action: CombatSessionAction }
+  ): Promise<CombatTurnResult>;
   execute(
     action: "bounty" | "mission" | "training" | "npc" | "market",
     payload: Record<string, unknown>
@@ -1230,6 +1562,47 @@ export const apiContracts = {
       request(apiClient.get("/api/v1/gameplay/trainings"), (data) => asArray(data, mapGameplayEntity)),
     npcs: () =>
       request(apiClient.get("/api/v1/gameplay/npcs"), (data) => asArray(data, mapGameplayEntity)),
+    missionSessions: (characterId) =>
+      request(
+        apiClient.get(`/api/v1/gameplay/characters/${characterId}/missions/sessions`),
+        (data) => asArray(data, mapMissionSession)
+      ),
+    missionSession: (characterId, sessionId) =>
+      request(
+        apiClient.get(`/api/v1/gameplay/characters/${characterId}/missions/sessions/${sessionId}`),
+        mapMissionSession
+      ),
+    startMissionJourney: (characterId, input) =>
+      request(
+        apiClient.post(`/api/v1/gameplay/characters/${characterId}/missions/start`, input),
+        mapMissionSession
+      ),
+    progressMissionJourney: (characterId, sessionId, input) =>
+      request(
+        apiClient.post(
+          `/api/v1/gameplay/characters/${characterId}/missions/sessions/${sessionId}/progress`,
+          input
+        ),
+        mapMissionSession
+      ),
+    abandonMissionJourney: (characterId, sessionId) =>
+      request(
+        apiClient.post(
+          `/api/v1/gameplay/characters/${characterId}/missions/sessions/${sessionId}/abandon`
+        ),
+        mapMissionSession
+      ),
+    combatTurn: async (characterId, combatSessionId, input): Promise<CombatTurnResult> => {
+      try {
+        const response = await apiClient.post(
+          `/api/v1/gameplay/characters/${characterId}/combat-sessions/${combatSessionId}/actions`,
+          input
+        );
+        return mapCombatTurnResult(response.data);
+      } catch (error) {
+        throw apiRequestError(error, "Falha ao processar turno de combate.");
+      }
+    },
     execute: (action, payload) => {
       const characterId = String(payload.characterId ?? "");
 

@@ -14,15 +14,15 @@ import type { AdminEntity } from "@/types/app";
 function entityMeta(entityType: string, entity: AdminEntity) {
   switch (entityType) {
     case "monsters":
-      return `Nível ${entity.level ?? 0} • HP ${entity.health ?? 0} • XP ${entity.experience ?? 0}`;
+      return `Nivel ${entity.level ?? 0} • HP ${entity.health ?? 0} • XP ${entity.experience ?? 0}`;
     case "bounties":
       return `Dificuldade ${entity.difficulty ?? "MEDIUM"} • Reward ${entity.reward ?? 0} • XP ${entity.rewardXp ?? 0}`;
     case "missions":
-      return `Inimigo ${entity.enemyName ?? "-"} • XP ${entity.rewardXp ?? 0} • Coins ${entity.rewardCoins ?? 0}`;
+      return `Inimigo ${entity.enemyName ?? "-"} • XP ${entity.rewardXp ?? 0} • Coins ${entity.rewardCoins ?? 0} • Nodes ${entity.journey?.nodes?.length ?? entity.journeySummary?.length ?? 0}`;
     case "trainings":
       return `Tipo ${entity.trainingType ?? "-"} • XP ${entity.xpReward ?? 0} • Cooldown ${entity.cooldownSeconds ?? 0}s`;
     case "npcs":
-      return `Role ${entity.role ?? "-"} • Interação ${entity.interactionType ?? "-"} • XP ${entity.xpReward ?? 0}`;
+      return `Role ${entity.role ?? "-"} • Interacao ${entity.interactionType ?? "-"} • XP ${entity.xpReward ?? 0}`;
     case "shop-products":
       return `${formatCurrency(entity.buyPrice ?? 0, entity.currency ?? "GOLD")} • Qty ${entity.rewardQuantity ?? 1} • ${entity.assetKind ?? entity.type ?? "Produto"}`;
     default:
@@ -61,7 +61,7 @@ export function AdminEntityTable({
     return (
       <EmptyState
         title="Nenhum registro cadastrado"
-        description={`Os registros de ${entityType} serão listados aqui.`}
+        description={`Os registros de ${entityType} serao listados aqui.`}
       />
     );
   }
@@ -77,6 +77,9 @@ export function AdminEntityTable({
             <div>
               <p className="font-semibold">{entity.name}</p>
               <p className="mt-1 text-xs text-muted-foreground">{entityMeta(entityType, entity)}</p>
+              {entity.imageUrl ? (
+                <p className="mt-1 truncate text-[11px] text-muted-foreground">{entity.imageUrl}</p>
+              ) : null}
             </div>
             <p className="text-xs text-muted-foreground">
               {entity.active === false ? "Inativo" : "Ativo"}

@@ -54,7 +54,7 @@ function MarketFooter({
   return (
     <div className="space-y-1">
       <p className={conflict ? "text-rose-300" : "text-sky-300"}>
-        {conflict ? "Cooldown ativo" : "Mercado reabre em"} {countdown}
+        {conflict ? "Cooldown ativo" : "Bazar reabre em"} {countdown}
       </p>
       {availability ? <p className="text-[11px] text-muted-foreground">Disponivel em {availability}</p> : null}
     </div>
@@ -72,7 +72,7 @@ export function MarketSection() {
     return (
       <EmptyState
         title="Nenhum personagem ativo"
-        description="Ative um personagem antes de usar as acoes de market."
+        description="Ative um personagem antes de usar as acoes do bazar."
       />
     );
   }

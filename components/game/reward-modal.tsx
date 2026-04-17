@@ -72,7 +72,7 @@ export function RewardModal({
             </div>
             {result.marketAction ? (
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Acao de market</span>
+                <span className="text-muted-foreground">Acao de bazar</span>
                 <span className="uppercase">{result.marketAction}</span>
               </div>
             ) : null}

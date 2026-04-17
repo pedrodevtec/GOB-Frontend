@@ -355,7 +355,19 @@ export function GameplaySection({
     [summaryQuery.data?.recentGameplayActions]
   );
   const data = useMemo(
-    () => sortEntitiesByProgression(entities ?? query.data ?? [], type),
+    () => {
+      const base = entities ?? query.data ?? [];
+      const filtered =
+        type === "npcs"
+          ? base.filter(
+              (entity) =>
+                (entity.startingMissions?.length ?? 0) === 0 &&
+                (entity.completionMissions?.length ?? 0) === 0
+            )
+          : base;
+
+      return sortEntitiesByProgression(filtered, type);
+    },
     [entities, query.data, type]
   );
   const walletCoins = summaryQuery.data?.inventory.coins ?? activeCharacter?.gold ?? 0;
