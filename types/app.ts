@@ -630,6 +630,122 @@ export interface TransactionRecord {
   createdAt: string;
 }
 
+export type TableRole = "MASTER" | "PLAYER";
+export type TableMemberStatus = "ACTIVE" | "INVITED" | "REMOVED" | "LEFT";
+export type CharacterReviewStatus = "PENDING" | "APPROVED" | "REJECTED" | "CHANGES_REQUESTED";
+export type CharacterTraitTone = "POSITIVE" | "NEGATIVE" | "NEUTRAL";
+export type TableMissionStatus = "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
+export type TableMissionSubmissionStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type TableTimelineEventKind =
+  | "SESSION"
+  | "MISSION"
+  | "CHARACTER"
+  | "WORLD"
+  | "REWARD"
+  | "NOTE";
+
+export interface TableMember {
+  id: string;
+  tableId: string;
+  userId: string;
+  username: string;
+  role: TableRole;
+  status: TableMemberStatus;
+  characterId?: string | null;
+  characterName?: string | null;
+  joinedAt?: string;
+}
+
+export interface TableWorld {
+  id: string;
+  tableId: string;
+  name: string;
+  summary: string;
+  currentArc?: string | null;
+  tone?: string | null;
+  rules?: string | null;
+  updatedAt?: string;
+}
+
+export interface CharacterTrait {
+  id: string;
+  characterId: string;
+  tableId?: string;
+  name: string;
+  description: string;
+  tone?: CharacterTraitTone;
+  category?: string;
+  value?: number;
+}
+
+export interface CharacterReview {
+  id: string;
+  tableId: string;
+  characterId: string;
+  characterName?: string;
+  submittedBy?: string;
+  status: CharacterReviewStatus;
+  notes?: string | null;
+  traits: CharacterTrait[];
+  createdAt?: string;
+  reviewedAt?: string | null;
+}
+
+export interface TableMissionSubmission {
+  id: string;
+  tableId: string;
+  missionId: string;
+  characterId: string;
+  characterName?: string;
+  status: TableMissionSubmissionStatus;
+  content: string;
+  rewardXp?: number;
+  rewardCoins?: number;
+  submittedAt?: string;
+  reviewedAt?: string | null;
+}
+
+export interface TableMission {
+  id: string;
+  tableId: string;
+  title: string;
+  description: string;
+  status: TableMissionStatus;
+  recommendedLevel?: number;
+  rewardHint?: string;
+  dueAt?: string | null;
+  submissions: TableMissionSubmission[];
+  createdAt?: string;
+}
+
+export interface TableTimelineEvent {
+  id: string;
+  tableId: string;
+  kind: TableTimelineEventKind;
+  title: string;
+  description: string;
+  occurredAt: string;
+  actorName?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface Table {
+  id: string;
+  name: string;
+  description: string;
+  code: string;
+  masterId?: string;
+  memberCount: number;
+  currentArc?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  members: TableMember[];
+  world?: TableWorld | null;
+  characterReviews: CharacterReview[];
+  missions: TableMission[];
+  timeline: TableTimelineEvent[];
+}
+
 export interface AdminEntity {
   id: string;
   name: string;

@@ -43,6 +43,14 @@ import type {
   PvpCombatRound,
   PresentedStats,
   Reward,
+  Table,
+  TableMember,
+  TableMission,
+  TableMissionSubmission,
+  TableTimelineEvent,
+  TableWorld,
+  CharacterReview,
+  CharacterTrait,
   TransactionRecord,
   TradeAction,
   TradeAsset,
@@ -76,6 +84,13 @@ const ARRAY_KEYS = [
   "inventory",
   "transactions",
   "orders",
+  "tables",
+  "members",
+  "reviews",
+  "traits",
+  "submissions",
+  "timeline",
+  "timelineEvents",
   "classes",
   "activities",
   "recentGameplayActions",
@@ -814,6 +829,176 @@ function mapPvpMatchResult(input: unknown): PvpMatchResult {
   };
 }
 
+function mapTableMember(input: unknown): TableMember {
+  const record = unwrapEntity(input);
+  const user = asRecord(record.user);
+  const character = asRecord(record.character);
+
+  return {
+    id: toStringValue(record.id),
+    tableId: toStringValue(record.tableId),
+    userId: toStringValue(record.userId ?? user.id),
+    username:
+      toStringValue(record.username) ||
+      toStringValue(user.username) ||
+      toStringValue(user.name) ||
+      toStringValue(user.email),
+    role: toStringValue(record.role, "PLAYER") as TableMember["role"],
+    status: toStringValue(record.status, "ACTIVE") as TableMember["status"],
+    characterId: toStringValue(record.characterId ?? character.id) || null,
+    characterName:
+      toStringValue(record.characterName ?? character.name ?? character.title) || null,
+    joinedAt: toStringValue(record.joinedAt ?? record.createdAt) || undefined
+  };
+}
+
+function mapTableWorld(input: unknown): TableWorld {
+  const record = unwrapEntity(input);
+
+  return {
+    id: toStringValue(record.id),
+    tableId: toStringValue(record.tableId),
+    name: toStringValue(record.name ?? record.title, "Mundo da mesa"),
+    summary:
+      toStringValue(record.summary) ||
+      toStringValue(record.description) ||
+      "Resumo de mundo ainda nao informado.",
+    currentArc: toStringValue(record.currentArc ?? record.arc) || null,
+    tone: toStringValue(record.tone) || null,
+    rules: toStringValue(record.rules ?? record.houseRules) || null,
+    updatedAt: toStringValue(record.updatedAt) || undefined
+  };
+}
+
+function mapCharacterTrait(input: unknown): CharacterTrait {
+  const record = unwrapEntity(input);
+
+  return {
+    id: toStringValue(record.id),
+    characterId: toStringValue(record.characterId),
+    tableId: toStringValue(record.tableId) || undefined,
+    name: toStringValue(record.name ?? record.title),
+    description: toStringValue(record.description ?? record.effect),
+    tone: toStringValue(record.tone ?? record.alignment, "NEUTRAL") as CharacterTrait["tone"],
+    category: toStringValue(record.category ?? record.type) || undefined,
+    value: toOptionalNumberValue(record.value)
+  };
+}
+
+function mapCharacterReview(input: unknown): CharacterReview {
+  const record = unwrapEntity(input);
+  const character = asRecord(record.character);
+  const submitter = asRecord(record.submittedBy ?? record.user);
+
+  return {
+    id: toStringValue(record.id),
+    tableId: toStringValue(record.tableId),
+    characterId: toStringValue(record.characterId ?? character.id),
+    characterName: toStringValue(record.characterName ?? character.name) || undefined,
+    submittedBy:
+      toStringValue(record.submittedByName) ||
+      toStringValue(submitter.username) ||
+      toStringValue(submitter.name) ||
+      undefined,
+    status: toStringValue(record.status, "PENDING") as CharacterReview["status"],
+    notes: toStringValue(record.notes ?? record.message) || null,
+    traits: asArray(record.traits, mapCharacterTrait),
+    createdAt: toStringValue(record.createdAt) || undefined,
+    reviewedAt: toStringValue(record.reviewedAt) || null
+  };
+}
+
+function mapTableMissionSubmission(input: unknown): TableMissionSubmission {
+  const record = unwrapEntity(input);
+  const character = asRecord(record.character);
+
+  return {
+    id: toStringValue(record.id),
+    tableId: toStringValue(record.tableId),
+    missionId: toStringValue(record.missionId),
+    characterId: toStringValue(record.characterId ?? character.id),
+    characterName: toStringValue(record.characterName ?? character.name) || undefined,
+    status: toStringValue(record.status, "PENDING") as TableMissionSubmission["status"],
+    content:
+      toStringValue(record.content) ||
+      toStringValue(record.description) ||
+      toStringValue(record.note),
+    rewardXp: toOptionalNumberValue(record.rewardXp),
+    rewardCoins: toOptionalNumberValue(record.rewardCoins ?? record.reward),
+    submittedAt: toStringValue(record.submittedAt ?? record.createdAt) || undefined,
+    reviewedAt: toStringValue(record.reviewedAt) || null
+  };
+}
+
+function mapTableMission(input: unknown): TableMission {
+  const record = unwrapEntity(input);
+
+  return {
+    id: toStringValue(record.id),
+    tableId: toStringValue(record.tableId),
+    title: toStringValue(record.title ?? record.name),
+    description: toStringValue(record.description) || "Missao sem descricao detalhada.",
+    status: toStringValue(record.status, "ACTIVE") as TableMission["status"],
+    recommendedLevel: toOptionalNumberValue(record.recommendedLevel),
+    rewardHint:
+      toStringValue(record.rewardHint) ||
+      toStringValue(record.rewardDescription) ||
+      undefined,
+    dueAt: toStringValue(record.dueAt ?? record.endsAt) || null,
+    submissions: asArray(record.submissions, mapTableMissionSubmission),
+    createdAt: toStringValue(record.createdAt) || undefined
+  };
+}
+
+function mapTableTimelineEvent(input: unknown): TableTimelineEvent {
+  const record = unwrapEntity(input);
+  const actor = asRecord(record.actor ?? record.user);
+
+  return {
+    id: toStringValue(record.id),
+    tableId: toStringValue(record.tableId),
+    kind: toStringValue(record.kind ?? record.type, "NOTE") as TableTimelineEvent["kind"],
+    title: toStringValue(record.title ?? record.name),
+    description:
+      toStringValue(record.description) ||
+      toStringValue(record.content) ||
+      toStringValue(record.message),
+    occurredAt:
+      toStringValue(record.occurredAt) ||
+      toStringValue(record.createdAt) ||
+      toStringValue(record.updatedAt),
+    actorName:
+      toStringValue(record.actorName) ||
+      toStringValue(actor.username) ||
+      toStringValue(actor.name) ||
+      undefined,
+    metadata: isObject(record.metadata) ? record.metadata : undefined
+  };
+}
+
+function mapTable(input: unknown): Table {
+  const record = unwrapEntity(input);
+  const world = record.world ? mapTableWorld(record.world) : null;
+  const members = asArray(record.members, mapTableMember);
+
+  return {
+    id: toStringValue(record.id),
+    name: toStringValue(record.name ?? record.title),
+    description: toStringValue(record.description) || "Mesa sem descricao detalhada.",
+    code: toStringValue(record.code ?? record.inviteCode ?? record.joinCode),
+    masterId: toStringValue(record.masterId ?? record.ownerId) || undefined,
+    memberCount: toNumberValue(record.memberCount, members.length),
+    currentArc: toStringValue(record.currentArc ?? record.arc ?? world?.currentArc) || null,
+    createdAt: toStringValue(record.createdAt) || undefined,
+    updatedAt: toStringValue(record.updatedAt) || undefined,
+    members,
+    world,
+    characterReviews: asArray(record.characterReviews ?? record.reviews, mapCharacterReview),
+    missions: asArray(record.missions, mapTableMission),
+    timeline: asArray(record.timeline ?? record.timelineEvents, mapTableTimelineEvent)
+  };
+}
+
 function mapAdminEntity(input: unknown): AdminEntity {
   const record = unwrapEntity(input);
   const product = asRecord(record.product ?? record.shopProduct);
@@ -1444,6 +1629,52 @@ export interface PvpApiContract {
   createMatch(input: { characterId: string; opponentCharacterId: string }): Promise<PvpMatchResult>;
 }
 
+export interface TablesApiContract {
+  list(): Promise<Table[]>;
+  create(input: { name: string; description?: string; worldName?: string; worldSummary?: string }): Promise<Table>;
+  join(input: { code: string }): Promise<Table>;
+  byId(id: string): Promise<Table>;
+  updateWorld(
+    tableId: string,
+    input: { name?: string; summary?: string; currentArc?: string; tone?: string; rules?: string }
+  ): Promise<Table>;
+  reviewCharacter(
+    tableId: string,
+    reviewId: string,
+    input: { status: CharacterReview["status"]; notes?: string }
+  ): Promise<Table>;
+  createTrait(
+    tableId: string,
+    characterId: string,
+    input: { name: string; description?: string; tone: CharacterTrait["tone"]; category?: string; value?: number }
+  ): Promise<CharacterTrait>;
+  createMission(
+    tableId: string,
+    input: {
+      title: string;
+      description?: string;
+      status?: TableMission["status"];
+      recommendedLevel?: number;
+      rewardHint?: string;
+      dueAt?: string;
+    }
+  ): Promise<TableMission>;
+  reviewMissionSubmission(
+    tableId: string,
+    submissionId: string,
+    input: { status: TableMissionSubmission["status"]; notes?: string; rewardXp?: number; rewardCoins?: number }
+  ): Promise<Table>;
+  createTimelineEvent(
+    tableId: string,
+    input: {
+      kind: TableTimelineEvent["kind"];
+      title: string;
+      description?: string;
+      occurredAt?: string;
+    }
+  ): Promise<TableTimelineEvent>;
+}
+
 export interface AdminApiContract {
   list(type: string): Promise<AdminEntity[]>;
   create(type: string, input: Record<string, unknown>): Promise<AdminEntity>;
@@ -1709,6 +1940,39 @@ export const apiContracts = {
       request(apiClient.get(`/api/v1/pvp/characters/${characterId}/overview`), mapPvpOverview),
     createMatch: (input) => request(apiClient.post("/api/v1/pvp/matches", input), mapPvpMatchResult)
   } satisfies PvpApiContract,
+  tables: {
+    list: () => request(apiClient.get("/api/v1/tables"), (data) => asArray(data, mapTable)),
+    create: (input) => request(apiClient.post("/api/v1/tables", input), mapTable),
+    join: (input) => request(apiClient.post("/api/v1/tables/join", input), mapTable),
+    byId: (id) => request(apiClient.get(`/api/v1/tables/${id}`), mapTable),
+    updateWorld: (tableId, input) =>
+      request(apiClient.patch(`/api/v1/tables/${tableId}/world`, input), mapTable),
+    reviewCharacter: (tableId, reviewId, input) =>
+      request(
+        apiClient.post(`/api/v1/tables/${tableId}/character-reviews/${reviewId}/review`, input),
+        mapTable
+      ),
+    createTrait: (tableId, characterId, input) =>
+      request(
+        apiClient.post(`/api/v1/tables/${tableId}/characters/${characterId}/traits`, input),
+        mapCharacterTrait
+      ),
+    createMission: (tableId, input) =>
+      request(apiClient.post(`/api/v1/tables/${tableId}/missions`, input), mapTableMission),
+    reviewMissionSubmission: (tableId, submissionId, input) =>
+      request(
+        apiClient.post(
+          `/api/v1/tables/${tableId}/mission-submissions/${submissionId}/review`,
+          input
+        ),
+        mapTable
+      ),
+    createTimelineEvent: (tableId, input) =>
+      request(
+        apiClient.post(`/api/v1/tables/${tableId}/timeline`, input),
+        mapTableTimelineEvent
+      )
+  } satisfies TablesApiContract,
   admin: {
     list: (type) =>
       request(apiClient.get(adminBasePath(type)), (data) => asArray(data, mapAdminEntity)),
