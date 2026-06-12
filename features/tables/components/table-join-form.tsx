@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useJoinTable } from "@/features/tables/hooks/use-tables";
 
 const tableJoinSchema = z.object({
-  code: z.string().min(4, "Informe o codigo da mesa.")
+  joinCode: z.string().trim().min(1, "Informe o codigo da mesa.")
 });
 
 type TableJoinInput = z.infer<typeof tableJoinSchema>;
@@ -18,20 +18,27 @@ export function TableJoinForm() {
   const joinTable = useJoinTable();
   const form = useForm<TableJoinInput>({
     resolver: zodResolver(tableJoinSchema),
-    defaultValues: { code: "" }
+    defaultValues: { joinCode: "" }
   });
 
   return (
     <form
       className="space-y-5"
-      onSubmit={form.handleSubmit((values) =>
-        joinTable.mutate({ code: values.code.trim().toUpperCase() })
-      )}
+      onSubmit={form.handleSubmit((values) => {
+        const joinCode = values.joinCode.trim().toUpperCase();
+
+        if (!joinCode) {
+          form.setError("joinCode", { message: "Informe o codigo da mesa." });
+          return;
+        }
+
+        joinTable.mutate({ joinCode });
+      })}
     >
       <div className="space-y-2">
         <label className="text-sm font-medium">Codigo de convite</label>
-        <Input placeholder="Ex.: BRAV-1234" {...form.register("code")} />
-        <p className="text-xs text-rose-300">{form.formState.errors.code?.message}</p>
+        <Input placeholder="Ex.: RPBTEQ" {...form.register("joinCode")} />
+        <p className="text-xs text-rose-300">{form.formState.errors.joinCode?.message}</p>
       </div>
 
       <Button type="submit" disabled={joinTable.isPending}>

@@ -8,7 +8,7 @@ export const tablesService = {
     worldName?: string;
     worldSummary?: string;
   }) => apiContracts.tables.create(input),
-  join: (input: { code: string }) => apiContracts.tables.join(input),
+  join: (input: { joinCode: string }) => apiContracts.tables.join(input),
   byId: (id: string) => apiContracts.tables.byId(id),
   updateWorld: (
     tableId: string,

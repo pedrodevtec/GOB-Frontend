@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { tablesService } from "@/features/tables/services/tables.service";
+import { ApiRequestError } from "@/lib/api/errors";
 
 export function useTables() {
   return useQuery({
@@ -47,7 +48,14 @@ export function useJoinTable() {
       toast.success("Voce entrou na mesa.");
       router.push(`/tables/${table.id}`);
     },
-    onError: (error: Error) => toast.error(error.message)
+    onError: (error: Error) => {
+      if (error instanceof ApiRequestError && error.code === "TABLE_NOT_FOUND") {
+        toast.error("Codigo de mesa invalido. Confira o codigo e tente novamente.");
+        return;
+      }
+
+      toast.error(error.message);
+    }
   });
 }
 

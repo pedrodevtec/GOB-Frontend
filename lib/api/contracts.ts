@@ -1632,7 +1632,7 @@ export interface PvpApiContract {
 export interface TablesApiContract {
   list(): Promise<Table[]>;
   create(input: { name: string; description?: string; worldName?: string; worldSummary?: string }): Promise<Table>;
-  join(input: { code: string }): Promise<Table>;
+  join(input: { joinCode: string }): Promise<Table>;
   byId(id: string): Promise<Table>;
   updateWorld(
     tableId: string,
