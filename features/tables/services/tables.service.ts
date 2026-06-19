@@ -1,10 +1,24 @@
 import { apiContracts } from "@/lib/api/contracts";
+import type {
+  AIInstructionPayload,
+  AITimelineSummaryPayload,
+  AITraitsPayload
+} from "@/types/app";
 
 export const tablesService = {
   list: () => apiContracts.tables.list(),
   create: (input: { name: string }) => apiContracts.tables.create(input),
   join: (input: { joinCode: string }) => apiContracts.tables.join(input),
   byId: (id: string) => apiContracts.tables.byId(id),
+  getTableMasterOverview: (tableId: string) => apiContracts.tables.masterOverview(tableId),
+  generateWorldSummary: (tableId: string, input: AIInstructionPayload) =>
+    apiContracts.tables.generateWorldSummary(tableId, input),
+  generateMissionIdeas: (tableId: string, input: AIInstructionPayload) =>
+    apiContracts.tables.generateMissionIdeas(tableId, input),
+  generateTraitSuggestions: (tableId: string, input: AITraitsPayload) =>
+    apiContracts.tables.generateTraitSuggestions(tableId, input),
+  generateTimelineSummary: (tableId: string, input: AITimelineSummaryPayload) =>
+    apiContracts.tables.generateTimelineSummary(tableId, input),
   characters: (tableId: string) => apiContracts.tables.characters(tableId),
   createCharacter: (tableId: string, input: { name: string; classId?: string }) =>
     apiContracts.tables.createCharacter(tableId, input),

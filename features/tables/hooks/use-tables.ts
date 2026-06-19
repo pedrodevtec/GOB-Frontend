@@ -7,6 +7,11 @@ import { toast } from "sonner";
 import { tablesService } from "@/features/tables/services/tables.service";
 import { ApiRequestError } from "@/lib/api/errors";
 import { canAccessMasterPanel } from "@/lib/permissions";
+import type {
+  AIInstructionPayload,
+  AITimelineSummaryPayload,
+  AITraitsPayload
+} from "@/types/app";
 
 export function useTables() {
   return useQuery({
@@ -20,6 +25,43 @@ export function useTable(id: string) {
     queryKey: ["tables", id],
     queryFn: () => tablesService.byId(id),
     enabled: Boolean(id)
+  });
+}
+
+export function useTableMasterOverview(tableId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["tables", tableId, "master", "overview"],
+    queryFn: () => tablesService.getTableMasterOverview(tableId),
+    enabled: Boolean(tableId && enabled),
+    retry: false
+  });
+}
+
+export function useGenerateWorldSummary(tableId: string) {
+  return useMutation({
+    mutationFn: (input: AIInstructionPayload) =>
+      tablesService.generateWorldSummary(tableId, input)
+  });
+}
+
+export function useGenerateMissionIdeas(tableId: string) {
+  return useMutation({
+    mutationFn: (input: AIInstructionPayload) =>
+      tablesService.generateMissionIdeas(tableId, input)
+  });
+}
+
+export function useGenerateTraitSuggestions(tableId: string) {
+  return useMutation({
+    mutationFn: (input: AITraitsPayload) =>
+      tablesService.generateTraitSuggestions(tableId, input)
+  });
+}
+
+export function useGenerateTimelineSummary(tableId: string) {
+  return useMutation({
+    mutationFn: (input: AITimelineSummaryPayload) =>
+      tablesService.generateTimelineSummary(tableId, input)
   });
 }
 
@@ -55,11 +97,11 @@ export function useTableMissionSubmissions(tableId: string, missionId?: string) 
   });
 }
 
-export function useTableTimeline(tableId: string) {
+export function useTableTimeline(tableId: string, enabled = true) {
   return useQuery({
     queryKey: ["tables", tableId, "timeline"],
     queryFn: () => tablesService.timeline(tableId),
-    enabled: Boolean(tableId)
+    enabled: Boolean(tableId && enabled)
   });
 }
 
@@ -108,6 +150,7 @@ export function useCreateTableCharacter(tableId: string) {
       tablesService.createCharacter(tableId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tables", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "master", "overview"] });
       queryClient.invalidateQueries({ queryKey: ["tables", tableId, "characters"] });
       queryClient.invalidateQueries({ queryKey: ["tables", tableId, "timeline"] });
       queryClient.invalidateQueries({ queryKey: ["characters"] });
@@ -126,6 +169,7 @@ export function useCreateMissionSubmission(tableId: string) {
       return tablesService.createMissionSubmission(tableId, missionId, payload);
     },
     onSuccess: (_submission, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "master", "overview"] });
       queryClient.invalidateQueries({ queryKey: ["tables", tableId, "missions"] });
       queryClient.invalidateQueries({
         queryKey: ["tables", tableId, "missions", variables.missionId, "submissions"]
@@ -153,6 +197,7 @@ function useTableMutation<TInput>({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tables"] });
       queryClient.invalidateQueries({ queryKey: ["tables", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "master", "overview"] });
       queryClient.invalidateQueries({ queryKey: ["tables", tableId, "characters"] });
       queryClient.invalidateQueries({ queryKey: ["tables", tableId, "missions"] });
       queryClient.invalidateQueries({ queryKey: ["tables", tableId, "timeline"] });

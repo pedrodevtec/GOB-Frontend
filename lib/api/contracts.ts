@@ -8,6 +8,14 @@ import {
 import type {
   AccountRole,
   AdminEntity,
+  AIInstructionPayload,
+  AIMissionIdeasResponse,
+  AITimelineSummaryPayload,
+  AITimelineSummaryResponse,
+  AITraitsPayload,
+  AITraitsResponse,
+  AITraitSuggestion,
+  AIWorldSummaryResponse,
   AuthSession,
   AuthUser,
   CharacterClass,
@@ -37,6 +45,9 @@ import type {
   MarketOverview,
   MarketSellableEquipment,
   MarketSellableItem,
+  MasterOverview,
+  MasterOverviewChecklistItem,
+  MasterPanelSection,
   PublicProfileEquipment,
   PvpMatchResult,
   PvpOverview,
@@ -1112,6 +1123,146 @@ function mapTable(input: unknown): Table {
   };
 }
 
+function mapMasterOverview(input: unknown): MasterOverview {
+  const root = asRecord(input);
+  const record = unwrapEntity(input);
+  const table = mapTable(record.table ?? root.table ?? record);
+  const worldStatus = asRecord(record.worldStatus);
+  const membersSummary = asRecord(record.membersSummary);
+  const charactersSummary = asRecord(record.charactersSummary);
+  const missionsSummary = asRecord(record.missionsSummary);
+  const submissionsSummary = asRecord(record.submissionsSummary);
+  const timelineSummary = asRecord(record.timelineSummary);
+  const recommendedAction = asRecord(record.nextRecommendedAction);
+  const onboardingChecklist = asArray(
+    record.onboardingChecklist,
+    (entry): MasterOverviewChecklistItem => {
+      const item = asRecord(entry);
+      const section = toStringValue(item.section ?? item.target ?? item.anchor);
+
+      return {
+        key: toStringValue(item.key ?? item.id ?? item.code),
+        label: toStringValue(item.label ?? item.title ?? item.name),
+        completed:
+          toBooleanValue(item.completed ?? item.done ?? item.isCompleted) ||
+          ["DONE", "COMPLETED"].includes(toStringValue(item.status).toUpperCase()),
+        section: section ? (section as MasterPanelSection) : undefined,
+        actionLabel: toStringValue(item.actionLabel ?? item.buttonLabel) || undefined
+      };
+    }
+  );
+  const recommendedSection = toStringValue(
+    recommendedAction.section ?? recommendedAction.target ?? recommendedAction.anchor
+  );
+
+  return {
+    table,
+    worldStatus: {
+      configured: toBooleanValue(worldStatus.configured ?? worldStatus.completed)
+    },
+    membersSummary: {
+      total: toNumberValue(membersSummary.total ?? membersSummary.count, table.membersCount),
+      pending: toOptionalNumberValue(membersSummary.pending)
+    },
+    charactersSummary: {
+      total: toNumberValue(charactersSummary.total ?? charactersSummary.count),
+      pending: toOptionalNumberValue(charactersSummary.pending)
+    },
+    missionsSummary: {
+      total: toNumberValue(missionsSummary.total ?? missionsSummary.count),
+      active: toOptionalNumberValue(missionsSummary.active),
+      completed: toOptionalNumberValue(missionsSummary.completed)
+    },
+    submissionsSummary: {
+      total: toNumberValue(submissionsSummary.total ?? submissionsSummary.count),
+      pending: toOptionalNumberValue(submissionsSummary.pending)
+    },
+    timelineSummary: {
+      total: toNumberValue(timelineSummary.total ?? timelineSummary.count)
+    },
+    onboardingChecklist,
+    nextRecommendedAction: Object.keys(recommendedAction).length
+      ? {
+          title: toStringValue(recommendedAction.title),
+          description: toStringValue(recommendedAction.description),
+          actionLabel:
+            toStringValue(recommendedAction.actionLabel ?? recommendedAction.buttonLabel) ||
+            undefined,
+          section: recommendedSection
+            ? (recommendedSection as MasterPanelSection)
+            : undefined
+        }
+      : null
+  };
+}
+
+function mapAIWorldSummary(input: unknown): AIWorldSummaryResponse {
+  const record = unwrapEntity(input);
+
+  return {
+    suggestedTitle: toStringValue(record.suggestedTitle ?? record.title),
+    suggestedSummary: toStringValue(record.suggestedSummary ?? record.summary),
+    suggestedTone: toStringValue(record.suggestedTone ?? record.tone),
+    suggestedRules: toStringValue(record.suggestedRules ?? record.rules)
+  };
+}
+
+function mapAIMissionIdeas(input: unknown): AIMissionIdeasResponse {
+  const record = unwrapEntity(input);
+  const source = record.ideas ?? record.missions ?? input;
+
+  return {
+    ideas: asArray(source, (entry) => {
+      const idea = asRecord(entry);
+      return {
+        title: toStringValue(idea.title ?? idea.name),
+        description: toStringValue(idea.description ?? idea.summary),
+        objective: toStringValue(idea.objective ?? idea.goal),
+        rewardSuggestion: toStringValue(
+          idea.rewardSuggestion ?? idea.reward ?? idea.suggestedReward
+        ),
+        consequenceSuggestion: toStringValue(
+          idea.consequenceSuggestion ?? idea.consequence ?? idea.suggestedConsequence
+        )
+      };
+    }).slice(0, 3)
+  };
+}
+
+function mapAITraitSuggestion(input: unknown): AITraitSuggestion {
+  if (typeof input === "string") {
+    return { name: input, description: "" };
+  }
+
+  const record = asRecord(input);
+  return {
+    name: toStringValue(record.name ?? record.title ?? record.trait),
+    description: toStringValue(record.description ?? record.effect ?? record.summary)
+  };
+}
+
+function mapAITraits(input: unknown): AITraitsResponse {
+  const record = unwrapEntity(input);
+  const suggestions = asRecord(record.suggestions);
+
+  return {
+    positive: asArray(record.positive ?? suggestions.positive, mapAITraitSuggestion),
+    negative: asArray(record.negative ?? suggestions.negative, mapAITraitSuggestion),
+    neutral: asArray(record.neutral ?? suggestions.neutral, mapAITraitSuggestion)
+  };
+}
+
+function mapAITimelineSummary(input: unknown): AITimelineSummaryResponse {
+  const record = unwrapEntity(input);
+
+  return {
+    suggestedTitle: toStringValue(record.suggestedTitle ?? record.title),
+    suggestedDescription: toStringValue(
+      record.suggestedDescription ?? record.description ?? record.summary
+    )
+  };
+}
+
 function mapAdminEntity(input: unknown): AdminEntity {
   const record = unwrapEntity(input);
   const product = asRecord(record.product ?? record.shopProduct);
@@ -1747,6 +1898,23 @@ export interface TablesApiContract {
   create(input: { name: string }): Promise<Table>;
   join(input: { joinCode: string }): Promise<Table>;
   byId(id: string): Promise<Table>;
+  masterOverview(tableId: string): Promise<MasterOverview>;
+  generateWorldSummary(
+    tableId: string,
+    input: AIInstructionPayload
+  ): Promise<AIWorldSummaryResponse>;
+  generateMissionIdeas(
+    tableId: string,
+    input: AIInstructionPayload
+  ): Promise<AIMissionIdeasResponse>;
+  generateTraitSuggestions(
+    tableId: string,
+    input: AITraitsPayload
+  ): Promise<AITraitsResponse>;
+  generateTimelineSummary(
+    tableId: string,
+    input: AITimelineSummaryPayload
+  ): Promise<AITimelineSummaryResponse>;
   characters(tableId: string): Promise<TableCharacter[]>;
   createCharacter(tableId: string, input: { name: string; classId?: string }): Promise<TableCharacter>;
   characterTraits(tableId: string, characterId: string): Promise<CharacterTrait[]>;
@@ -2070,6 +2238,31 @@ export const apiContracts = {
     create: (input) => request(apiClient.post("/api/v1/tables", input), mapTable),
     join: (input) => request(apiClient.post("/api/v1/tables/join", input), mapTable),
     byId: (id) => request(apiClient.get(`/api/v1/tables/${id}`), mapTable),
+    masterOverview: (tableId) =>
+      request(
+        apiClient.get(`/api/v1/tables/${tableId}/master/overview`),
+        mapMasterOverview
+      ),
+    generateWorldSummary: (tableId, input) =>
+      request(
+        apiClient.post(`/api/v1/tables/${tableId}/ai/world-summary`, input),
+        mapAIWorldSummary
+      ),
+    generateMissionIdeas: (tableId, input) =>
+      request(
+        apiClient.post(`/api/v1/tables/${tableId}/ai/mission-ideas`, input),
+        mapAIMissionIdeas
+      ),
+    generateTraitSuggestions: (tableId, input) =>
+      request(
+        apiClient.post(`/api/v1/tables/${tableId}/ai/traits`, input),
+        mapAITraits
+      ),
+    generateTimelineSummary: (tableId, input) =>
+      request(
+        apiClient.post(`/api/v1/tables/${tableId}/ai/timeline-summary`, input),
+        mapAITimelineSummary
+      ),
     characters: (tableId) =>
       request(
         apiClient.get(`/api/v1/tables/${tableId}/characters`),

@@ -776,6 +776,96 @@ export interface Table {
   timeline: TableTimelineEvent[];
 }
 
+export type MasterPanelSection =
+  | "overview"
+  | "world"
+  | "characters"
+  | "missions"
+  | "submissions"
+  | "timeline"
+  | "assistant";
+
+export interface MasterOverviewChecklistItem {
+  key: string;
+  label: string;
+  completed: boolean;
+  section?: MasterPanelSection;
+  actionLabel?: string;
+}
+
+export interface MasterOverviewSummary {
+  total: number;
+  pending?: number;
+  active?: number;
+  completed?: number;
+}
+
+export interface MasterRecommendedAction {
+  title: string;
+  description: string;
+  actionLabel?: string;
+  section?: MasterPanelSection;
+}
+
+export interface MasterOverview {
+  table: Table;
+  worldStatus: { configured: boolean };
+  membersSummary: MasterOverviewSummary;
+  charactersSummary: MasterOverviewSummary;
+  missionsSummary: MasterOverviewSummary;
+  submissionsSummary: MasterOverviewSummary;
+  timelineSummary: MasterOverviewSummary;
+  onboardingChecklist: MasterOverviewChecklistItem[];
+  nextRecommendedAction: MasterRecommendedAction | null;
+}
+
+export interface AIWorldSummaryResponse {
+  suggestedTitle: string;
+  suggestedSummary: string;
+  suggestedTone: string;
+  suggestedRules: string;
+}
+
+export interface AIMissionIdea {
+  title: string;
+  description: string;
+  objective: string;
+  rewardSuggestion: string;
+  consequenceSuggestion: string;
+}
+
+export interface AIMissionIdeasResponse {
+  ideas: AIMissionIdea[];
+}
+
+export interface AITraitSuggestion {
+  name: string;
+  description: string;
+}
+
+export interface AITraitsResponse {
+  positive: AITraitSuggestion[];
+  negative: AITraitSuggestion[];
+  neutral: AITraitSuggestion[];
+}
+
+export interface AITimelineSummaryResponse {
+  suggestedTitle: string;
+  suggestedDescription: string;
+}
+
+export interface AIInstructionPayload {
+  instruction?: string;
+}
+
+export interface AITraitsPayload extends AIInstructionPayload {
+  characterId?: string;
+}
+
+export interface AITimelineSummaryPayload extends AIInstructionPayload {
+  notes: string;
+}
+
 export interface AdminEntity {
   id: string;
   name: string;
