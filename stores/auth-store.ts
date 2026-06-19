@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { clearTokens, persistTokens } from "@/lib/auth/token-storage";
+import { normalizeAccountRole } from "@/lib/permissions";
 import type { AuthSession, AuthUser } from "@/types/app";
 
 interface AuthState {
@@ -17,6 +18,11 @@ interface AuthState {
   logout: () => void;
 }
 
+function normalizeUser(user: AuthUser): AuthUser {
+  const accountRole = normalizeAccountRole(user.accountRole ?? user.systemRole ?? user.role);
+  return { ...user, accountRole, systemRole: accountRole };
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -27,12 +33,12 @@ export const useAuthStore = create<AuthState>()(
       setSession: (session) => {
         persistTokens(session.accessToken, session.refreshToken);
         set({
-          user: session.user,
+          user: normalizeUser(session.user),
           accessToken: session.accessToken,
           refreshToken: session.refreshToken ?? null
         });
       },
-      setUser: (user) => set({ user }),
+      setUser: (user) => set({ user: normalizeUser(user) }),
       markHydrated: () => set({ hydrated: true }),
       logout: () => {
         clearTokens();
@@ -42,6 +48,7 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "gob-auth",
       onRehydrateStorage: () => (state) => {
+        if (state?.user) state.setUser(state.user);
         state?.markHydrated();
       }
     }

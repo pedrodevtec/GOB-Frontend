@@ -1,10 +1,13 @@
-export type UserRole = "PLAYER" | "ADMIN";
+export type AccountRole = "USER" | "ADMIN";
 
 export interface AuthUser {
   id: string;
   email: string;
   username: string;
-  role: UserRole;
+  accountRole: AccountRole;
+  systemRole?: AccountRole;
+  /** @deprecated Legacy global account role field. Never use this for table permissions. */
+  role?: string;
   theme?: string | null;
 }
 
@@ -51,6 +54,7 @@ export interface CharacterCustomization {
 
 export interface CharacterSummary {
   id: string;
+  tableId?: string | null;
   name: string;
   level: number;
   xp: number;
@@ -61,6 +65,8 @@ export interface CharacterSummary {
   status: CharacterStatus;
   className?: string;
   location?: string;
+  reviewStatus?: CharacterReviewStatus | null;
+  masterFeedback?: string | null;
   customization?: CharacterCustomization;
 }
 
@@ -631,18 +637,24 @@ export interface TransactionRecord {
 }
 
 export type TableRole = "MASTER" | "PLAYER";
-export type TableMemberStatus = "ACTIVE" | "INVITED" | "REMOVED" | "LEFT";
-export type CharacterReviewStatus = "PENDING" | "APPROVED" | "REJECTED" | "CHANGES_REQUESTED";
+export type TableMemberStatus = "ACTIVE" | "INVITED" | "REMOVED";
+export type CharacterReviewStatus = "PENDING" | "APPROVED" | "REJECTED" | "CHANGES_REQUESTED" | "NEEDS_CHANGES";
 export type CharacterTraitTone = "POSITIVE" | "NEGATIVE" | "NEUTRAL";
 export type TableMissionStatus = "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
-export type TableMissionSubmissionStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type TableMissionSubmissionStatus = "PENDING" | "SUBMITTED" | "APPROVED" | "REJECTED" | "NEEDS_CHANGES";
 export type TableTimelineEventKind =
   | "SESSION"
   | "MISSION"
   | "CHARACTER"
   | "WORLD"
   | "REWARD"
-  | "NOTE";
+  | "NOTE"
+  | "STORY"
+  | "MISSION_CREATED"
+  | "MISSION_APPROVED"
+  | "CHARACTER_APPROVED"
+  | "MASTER_NOTE"
+  | "SESSION_SUMMARY";
 
 export interface TableMember {
   id: string;
@@ -691,6 +703,18 @@ export interface CharacterReview {
   reviewedAt?: string | null;
 }
 
+export interface TableCharacter {
+  id: string;
+  tableId?: string | null;
+  userId?: string | null;
+  userName?: string | null;
+  name: string;
+  level: number;
+  className?: string;
+  status?: CharacterStatus;
+  review?: CharacterReview | null;
+}
+
 export interface TableMissionSubmission {
   id: string;
   tableId: string;
@@ -701,6 +725,7 @@ export interface TableMissionSubmission {
   content: string;
   rewardXp?: number;
   rewardCoins?: number;
+  masterNote?: string | null;
   submittedAt?: string;
   reviewedAt?: string | null;
 }
@@ -735,7 +760,12 @@ export interface Table {
   description: string;
   code: string;
   masterId?: string;
-  memberCount: number;
+  currentUserRole?: TableRole | null;
+  isMaster?: boolean;
+  memberStatus?: TableMemberStatus | null;
+  membersCount: number;
+  /** @deprecated Use membersCount. */
+  memberCount?: number;
   currentArc?: string | null;
   createdAt?: string;
   updatedAt?: string;

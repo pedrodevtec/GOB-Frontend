@@ -1,18 +1,19 @@
 "use client";
 
 import { ErrorState } from "@/components/states/error-state";
+import { accountRoleFor } from "@/lib/permissions";
 import { useAuthStore } from "@/stores/auth-store";
 
 export default function AdminLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
-  const role = useAuthStore((state) => state.user?.role);
+  const accountRole = useAuthStore((state) => accountRoleFor(state.user));
 
-  if (role !== "ADMIN") {
+  if (accountRole !== "ADMIN") {
     return (
       <ErrorState
         title="Acesso restrito"
-        description="Esta área é exclusiva para contas com permissão administrativa."
+        description="Esta area e exclusiva para contas com permissao administrativa."
       />
     );
   }

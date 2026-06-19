@@ -6,6 +6,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCharacters, useDeleteCharacter } from "@/features/characters/hooks/use-characters";
@@ -47,7 +48,7 @@ export function CharacterGrid() {
     return (
       <EmptyState
         title="Nenhum personagem encontrado"
-        description="Crie seu primeiro herói para liberar a jornada principal."
+        description="Crie personagens dentro de uma mesa para participar de campanhas."
       />
     );
   }
@@ -76,8 +77,14 @@ export function CharacterGrid() {
                 </p>
                 <p className="text-sm text-primary">{resolveTitleLabel(customization.titleId ?? undefined)}</p>
                 <p className="text-sm text-muted-foreground">
-                  Nível {character.level} • XP {formatCompactNumber(character.xp)}
+                  Nivel {character.level} - XP {formatCompactNumber(character.xp)}
                 </p>
+                {character.tableId ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge variant="secondary">Personagem de campanha</Badge>
+                    {character.reviewStatus ? <Badge>{character.reviewStatus}</Badge> : null}
+                  </div>
+                ) : null}
               </div>
               <Button size="sm" variant="outline" onClick={() => setActiveCharacter(character)}>
                 {activeCharacterId === character.id ? "Ativo" : "Ativar"}
@@ -97,6 +104,11 @@ export function CharacterGrid() {
                 <p className="mt-1 font-semibold">{character.gold}</p>
               </div>
             </div>
+            {character.masterFeedback ? (
+              <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-muted-foreground">
+                Feedback do mestre: {character.masterFeedback}
+              </p>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <Button asChild>
                 <Link href={`/characters/${character.id}`} onClick={() => setActiveCharacter(character)}>

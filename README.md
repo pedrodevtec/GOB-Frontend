@@ -1,55 +1,32 @@
 # Bravantus Frontend
 
-Frontend base em Next.js para um RPG/web game com App Router, Tailwind, React Query, React Hook Form, Zod e Zustand.
+Frontend em Next.js para o RPG/web game Bravantus, com App Router, Tailwind, React Query, React Hook Form, Zod e Zustand.
 
 ## Stack
 
 - Next.js + TypeScript
 - Tailwind CSS
-- shadcn/ui style components
+- Componentes UI locais no estilo shadcn/ui
 - TanStack Query
 - React Hook Form + Zod
 - Zustand
 - Axios
 
-## Estrutura
+## Como Rodar
 
-```text
-app/
-components/
-features/
-hooks/
-lib/
-openapi/
-public/
-stores/
-types/
-```
-
-### Pastas principais
-
-- `app/`: rotas, layouts e composição de páginas.
-- `components/`: UI base, shell autenticado, estados e widgets de jogo.
-- `features/`: serviços, hooks, formulários e componentes por domínio.
-- `lib/api/`: config, cliente HTTP, contratos e erros.
-- `stores/`: autenticação e personagem ativo.
-- `openapi/`: local esperado para a especificação oficial da API.
-
-## Como rodar
-
-1. Instale dependências:
+1. Instale dependencias:
 
 ```bash
 npm install
 ```
 
-2. Configure ambiente:
+2. Configure o ambiente:
 
 ```bash
 cp .env.example .env.local
 ```
 
-3. Ajuste `NEXT_PUBLIC_API_BASE_URL`.
+3. Ajuste `NEXT_PUBLIC_API_BASE_URL` para apontar para o backend.
 
 4. Rode o projeto:
 
@@ -57,32 +34,30 @@ cp .env.example .env.local
 npm run dev
 ```
 
-## Integração OpenAPI
+## Rotas de Mesas RPG
 
-Este repositório foi montado para **não inventar endpoints**.
+- `/tables`: lista mesas do usuario autenticado.
+- `/tables/create`: cria uma mesa e gera um codigo de entrada.
+- `/tables/join`: permite entrar em uma mesa usando `joinCode`.
+- `/tables/[id]`: resumo da mesa, membros, missoes recentes e timeline.
+- `/tables/[id]/master`: painel do mestre para mundo, personagens, traits, missoes, submissoes e timeline.
+- `/tables/[id]/player`: painel do jogador para personagem da mesa, review, traits, missoes ativas e respostas.
 
-Hoje o workspace não contém a spec OpenAPI. Por isso:
+## Fluxo de Uso das Mesas
 
-- a UI, navegação, estado global, autenticação de frontend, guards e módulos já estão estruturados;
-- a camada `lib/api/contracts.ts` marca explicitamente todas as operações necessárias;
-- os serviços por domínio dependem desses contratos;
-- ao conectar a spec, basta substituir os contratos por implementações reais derivadas da documentação.
+1. O mestre cria uma mesa em `/tables/create`.
+2. O mestre compartilha o codigo de entrada exibido na mesa.
+3. O jogador entra em `/tables/join` usando o codigo. O payload enviado ao backend e `{ "joinCode": "CODIGO" }`.
+4. O jogador acessa `/tables/[id]/player` e cria um personagem da mesa.
+5. O mestre acessa `/tables/[id]/master` e aprova o personagem.
+6. O mestre cria uma missao ativa.
+7. O jogador envia uma resposta de missao no painel do jogador.
+8. O mestre aprova a submissao no painel do mestre.
+9. A timeline registra eventos automaticos de criacao de mesa, aprovacao de personagem, criacao de missao e aprovacao de submissao.
 
-### Passos recomendados
+## Rotas Principais
 
-1. Coloque a spec em `openapi/openapi.yaml` ou ajuste o script.
-2. Gere os tipos:
-
-```bash
-npm run generate:api
-```
-
-3. Implemente os contratos reais em `lib/api/contracts.ts` ou extraia para `lib/api/generated/`.
-4. Troque os tipos UI mínimos pelos tipos gerados sempre que o schema estiver explícito.
-
-## Rotas implementadas
-
-### Públicas
+### Publicas
 
 - `/login`
 - `/register`
@@ -97,15 +72,18 @@ npm run generate:api
 - `/characters/[id]/summary`
 - `/characters/[id]/inventory`
 - `/characters/[id]/wallet`
-- `/gameplay/journey`
-- `/gameplay/trainings`
+- `/gameplay`
 - `/gameplay/missions`
 - `/gameplay/bounties`
 - `/gameplay/npcs`
+- `/gameplay/trainings`
 - `/shop`
 - `/shop/orders`
 - `/rewards`
 - `/transactions`
+- `/trades`
+- `/pvp`
+- `/tables`
 
 ### Admin
 
@@ -115,22 +93,13 @@ npm run generate:api
 - `/admin/missions`
 - `/admin/trainings`
 - `/admin/npcs`
+- `/admin/shop-products`
 
-## Observações
+## Verificacao
 
-- O middleware protege rotas privadas por cookie de token.
-- O estado do usuário e do personagem ativo é persistido no frontend.
-- O visual usa dark mode por padrão com shell de game dashboard.
-- As imagens da pasta `Imagens` foram reaproveitadas em `public/images`.
+```bash
+npm run typecheck
+npm run build
+```
 
-## Próximo passo obrigatório
-
-Adicionar a especificação OpenAPI no repositório para ligar:
-
-- login/register/me reais
-- CRUD de personagens
-- inventário e wallet
-- gameplay e rewards
-- shop, orders e transactions
-- endpoints administrativos
-"# GOB-Frontend" 
+Use tambem o checklist manual em [`docs/rpg-tables-mvp-qa.md`](docs/rpg-tables-mvp-qa.md) antes de demonstrar o MVP de mesas.

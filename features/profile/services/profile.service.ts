@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api/client";
+import { normalizeAccountRole } from "@/lib/permissions";
 
 export const profileService = {
   me: async () => {
@@ -8,7 +9,7 @@ export const profileService = {
       id: String(user?.id ?? ""),
       username: String(user?.nome ?? user?.username ?? ""),
       email: String(user?.email ?? ""),
-      role: (String(user?.role ?? "PLAYER") as "PLAYER" | "ADMIN"),
+      accountRole: normalizeAccountRole(user?.accountRole ?? user?.systemRole ?? user?.role),
       theme: typeof user?.theme === "string" ? user.theme : null
     };
   },

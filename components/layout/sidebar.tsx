@@ -5,19 +5,20 @@ import { usePathname } from "next/navigation";
 
 import { Logo } from "@/components/common/logo";
 import { sidebarItems } from "@/lib/navigation";
+import { accountRoleFor } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const role = useAuthStore((state) => state.user?.role);
+  const accountRole = useAuthStore((state) => accountRoleFor(state.user));
 
   return (
     <aside className="glass-panel hidden h-[calc(100vh-2rem)] w-72 shrink-0 flex-col rounded-[1.75rem] p-5 lg:flex">
       <Logo />
       <nav className="mt-8 space-y-1">
         {sidebarItems
-          .filter((item) => !item.adminOnly || role === "ADMIN")
+          .filter((item) => !item.adminOnly || accountRole === "ADMIN")
           .map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 

@@ -5,7 +5,15 @@ import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { useTable } from "@/features/tables/hooks/use-tables";
+import { CopyButton } from "@/components/ui/copy-button";
+import { Button } from "@/components/ui/button";
+import { useTable, useTableMissions, useTableTimeline } from "@/features/tables/hooks/use-tables";
+import {
+  canAccessMasterPanel,
+  canAccessPlayerArea,
+  tableRoleFor
+} from "@/lib/permissions";
+import Link from "next/link";
 
 function formatDate(value?: string | null) {
   if (!value) return "Sem data";
@@ -20,16 +28,27 @@ function formatDate(value?: string | null) {
 
 export function TableOverview({ id }: { id: string }) {
   const table = useTable(id);
+  const missions = useTableMissions(id);
+  const timeline = useTableTimeline(id);
 
-  if (table.isLoading) {
+  if (table.isLoading || missions.isLoading || timeline.isLoading) {
     return <LoadingState label="Carregando mesa..." />;
   }
 
-  if (table.isError) {
+  if (table.isError || missions.isError || timeline.isError) {
     return (
       <ErrorState
-        description={(table.error as Error)?.message || "Falha ao carregar mesa."}
-        onRetry={() => void table.refetch()}
+        description={
+          (table.error as Error)?.message ||
+          (missions.error as Error)?.message ||
+          (timeline.error as Error)?.message ||
+          "Falha ao carregar mesa."
+        }
+        onRetry={() => {
+          void table.refetch();
+          void missions.refetch();
+          void timeline.refetch();
+        }}
       />
     );
   }
@@ -44,8 +63,11 @@ export function TableOverview({ id }: { id: string }) {
   }
 
   const data = table.data;
-  const recentMissions = data.missions.slice(0, 4);
-  const timelinePreview = data.timeline.slice(0, 5);
+  const currentUserRole = tableRoleFor(data);
+  const isMaster = canAccessMasterPanel(data);
+  const canUsePlayerArea = canAccessPlayerArea(data);
+  const recentMissions = (missions.data ?? []).slice(0, 4);
+  const timelinePreview = (timeline.data ?? []).slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -56,27 +78,76 @@ export function TableOverview({ id }: { id: string }) {
             <CardTitle className="text-3xl">{data.name}</CardTitle>
             <CardDescription className="max-w-3xl text-base">{data.description}</CardDescription>
           </div>
-          {data.code ? <Badge>{data.code}</Badge> : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={isMaster ? "success" : "secondary"}>
+              {currentUserRole ?? "ROLE INDISPONIVEL"}
+            </Badge>
+            {isMaster && data.code ? (
+              <>
+                <Badge>{data.code}</Badge>
+                <CopyButton value={data.code} label="Copiar codigo" />
+              </>
+            ) : null}
+          </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs uppercase tracking-wide text-primary">Membros</p>
-            <p className="mt-2 text-2xl font-semibold">{data.memberCount}</p>
+            <p className="mt-2 text-2xl font-semibold">{data.membersCount}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs uppercase tracking-wide text-primary">Missoes</p>
-            <p className="mt-2 text-2xl font-semibold">{data.missions.length}</p>
+            <p className="mt-2 text-2xl font-semibold">{missions.data?.length ?? 0}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-wide text-primary">Reviews</p>
-            <p className="mt-2 text-2xl font-semibold">{data.characterReviews.length}</p>
+            <p className="text-xs uppercase tracking-wide text-primary">Timeline</p>
+            <p className="mt-2 text-2xl font-semibold">{timeline.data?.length ?? 0}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs uppercase tracking-wide text-primary">Arco</p>
             <p className="mt-2 text-sm font-semibold">{data.currentArc || "Sem arco ativo"}</p>
           </div>
         </div>
+      </Card>
+
+      <Card className="space-y-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle>{isMaster ? "Proximos passos do mestre" : "Area da campanha"}</CardTitle>
+            <CardDescription>
+              {isMaster
+                ? "Prepare a mesa, compartilhe o codigo e acompanhe jogadores e timeline."
+                : "Acesse sua area para criar personagem, ver status e responder missoes."}
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {isMaster ? (
+              <Button asChild>
+                <Link href={`/tables/${data.id}/master`}>Painel do Mestre</Link>
+              </Button>
+            ) : canUsePlayerArea ? (
+              <Button asChild>
+                <Link href={`/tables/${data.id}/player`}>Area do Jogador</Link>
+              </Button>
+            ) : null}
+          </div>
+        </div>
+        {isMaster ? (
+          <div className="grid gap-2 text-sm text-muted-foreground md:grid-cols-5">
+            {[
+              "Configure o universo",
+              "Copie o codigo e convide jogadores",
+              "Aguarde personagens para aprovacao",
+              "Crie a primeira missao",
+              "Acompanhe a timeline"
+            ].map((item) => (
+              <div key={item} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                {item}
+              </div>
+            ))}
+          </div>
+        ) : null}
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">

@@ -9,15 +9,15 @@ export default function CharactersPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Characters"
-        title="Personagens"
-        description="Liste, ative e gerencie os herois disponiveis na sua conta."
+        title="Arquivo de personagens"
+        description="Personagens soltos continuam disponiveis, mas o fluxo principal do MVP cria personagens dentro de uma mesa/campanha."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" asChild>
-              <Link href="/characters/rankings">Rankings</Link>
+              <Link href="/tables">Escolher mesa</Link>
             </Button>
             <Button asChild>
-              <Link href="/characters/create">Novo personagem</Link>
+              <Link href="/tables/join">Entrar em campanha</Link>
             </Button>
           </div>
         }

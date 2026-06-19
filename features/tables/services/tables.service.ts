@@ -2,23 +2,32 @@ import { apiContracts } from "@/lib/api/contracts";
 
 export const tablesService = {
   list: () => apiContracts.tables.list(),
-  create: (input: {
-    name: string;
-    description?: string;
-    worldName?: string;
-    worldSummary?: string;
-  }) => apiContracts.tables.create(input),
+  create: (input: { name: string }) => apiContracts.tables.create(input),
   join: (input: { joinCode: string }) => apiContracts.tables.join(input),
   byId: (id: string) => apiContracts.tables.byId(id),
+  characters: (tableId: string) => apiContracts.tables.characters(tableId),
+  createCharacter: (tableId: string, input: { name: string; classId?: string }) =>
+    apiContracts.tables.createCharacter(tableId, input),
+  characterTraits: (tableId: string, characterId: string) =>
+    apiContracts.tables.characterTraits(tableId, characterId),
+  missions: (tableId: string) => apiContracts.tables.missions(tableId),
+  timeline: (tableId: string) => apiContracts.tables.timeline(tableId),
+  missionSubmissions: (tableId: string, missionId: string) =>
+    apiContracts.tables.missionSubmissions(tableId, missionId),
+  createMissionSubmission: (
+    tableId: string,
+    missionId: string,
+    input: { characterId: string; content: string }
+  ) => apiContracts.tables.createMissionSubmission(tableId, missionId, input),
   updateWorld: (
     tableId: string,
     input: { name?: string; summary?: string; currentArc?: string; tone?: string; rules?: string }
   ) => apiContracts.tables.updateWorld(tableId, input),
   reviewCharacter: (
     tableId: string,
-    reviewId: string,
-    input: { status: "APPROVED" | "REJECTED" | "CHANGES_REQUESTED"; notes?: string }
-  ) => apiContracts.tables.reviewCharacter(tableId, reviewId, input),
+    characterId: string,
+    input: { status: "APPROVED" | "REJECTED" | "CHANGES_REQUESTED" | "NEEDS_CHANGES"; notes?: string }
+  ) => apiContracts.tables.reviewCharacter(tableId, characterId, input),
   createTrait: (
     tableId: string,
     characterId: string,
@@ -43,14 +52,15 @@ export const tablesService = {
   ) => apiContracts.tables.createMission(tableId, input),
   reviewMissionSubmission: (
     tableId: string,
+    missionId: string,
     submissionId: string,
     input: {
-      status: "APPROVED" | "REJECTED";
+      status: "APPROVED" | "REJECTED" | "NEEDS_CHANGES";
       notes?: string;
       rewardXp?: number;
       rewardCoins?: number;
     }
-  ) => apiContracts.tables.reviewMissionSubmission(tableId, submissionId, input),
+  ) => apiContracts.tables.reviewMissionSubmission(tableId, missionId, submissionId, input),
   createTimelineEvent: (
     tableId: string,
     input: {

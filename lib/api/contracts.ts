@@ -6,6 +6,7 @@ import {
   ApiRequestError
 } from "@/lib/api/errors";
 import type {
+  AccountRole,
   AdminEntity,
   AuthSession,
   AuthUser,
@@ -44,6 +45,7 @@ import type {
   PresentedStats,
   Reward,
   Table,
+  TableCharacter,
   TableMember,
   TableMission,
   TableMissionSubmission,
@@ -59,6 +61,7 @@ import type {
   TradeStatus,
   WalletSummary
 } from "@/types/app";
+import { normalizeAccountRole } from "@/lib/permissions";
 
 type Dict = Record<string, unknown>;
 
@@ -179,6 +182,10 @@ function toBooleanValue(value: unknown, fallback = false) {
 
 function mapUser(input: unknown): AuthUser {
   const record = unwrapEntity(input);
+  const accountRole = normalizeAccountRole(
+    record.accountRole ?? record.systemRole ?? record.role
+  );
+
   return {
     id: toStringValue(record.id),
     email: toStringValue(record.email),
@@ -186,7 +193,9 @@ function mapUser(input: unknown): AuthUser {
       toStringValue(record.username) ||
       toStringValue(record.nome) ||
       toStringValue(record.name),
-    role: (toStringValue(record.role, "PLAYER") as AuthUser["role"]) ?? "PLAYER",
+    accountRole,
+    systemRole: accountRole,
+    role: toStringValue(record.role) || undefined,
     theme: toStringValue(record.theme) || null
   };
 }
@@ -202,8 +211,10 @@ function mapCharacter(input: unknown): CharacterSummary {
   const record = unwrapEntity(input);
   const inventory = asRecord(record.inventory);
   const customization = asRecord(record.customization);
+  const review = asRecord(record.review);
   return {
     id: toStringValue(record.id),
+    tableId: toStringValue(record.tableId) || null,
     name: toStringValue(record.name ?? record.nome ?? record.title),
     level: toNumberValue(record.level),
     xp: toNumberValue(record.xp),
@@ -214,6 +225,11 @@ function mapCharacter(input: unknown): CharacterSummary {
     status: toStringValue(record.status, "READY") as CharacterSummary["status"],
     className: mapClassName(record.className ?? record.classId ?? record.class),
     location: toStringValue(record.location ?? record.lastCheckpoint),
+    reviewStatus: toStringValue(record.reviewStatus ?? record.tableReviewStatus ?? review.status) as
+      | CharacterSummary["reviewStatus"]
+      | undefined,
+    masterFeedback:
+      toStringValue(record.masterFeedback ?? review.masterFeedback ?? review.notes) || null,
     customization: {
       avatarId: toStringValue(record.avatarId ?? customization.avatarId) || null,
       titleId: toStringValue(record.titleId ?? customization.titleId) || null,
@@ -841,15 +857,28 @@ function mapTableMember(input: unknown): TableMember {
     username:
       toStringValue(record.username) ||
       toStringValue(user.username) ||
+      toStringValue(user.nome) ||
       toStringValue(user.name) ||
       toStringValue(user.email),
-    role: toStringValue(record.role, "PLAYER") as TableMember["role"],
-    status: toStringValue(record.status, "ACTIVE") as TableMember["status"],
+    role: normalizeTableRole(record.role) ?? "PLAYER",
+    status: normalizeTableMemberStatus(record.status) ?? "ACTIVE",
     characterId: toStringValue(record.characterId ?? character.id) || null,
     characterName:
       toStringValue(record.characterName ?? character.name ?? character.title) || null,
     joinedAt: toStringValue(record.joinedAt ?? record.createdAt) || undefined
   };
+}
+
+function normalizeTableRole(value: unknown): Table["currentUserRole"] {
+  const role = toStringValue(value).toUpperCase();
+  return role === "MASTER" || role === "PLAYER" ? role : null;
+}
+
+function normalizeTableMemberStatus(value: unknown): Table["memberStatus"] {
+  const status = toStringValue(value).toUpperCase();
+  if (status === "ACTIVE" || status === "INVITED" || status === "REMOVED") return status;
+  if (status === "LEFT") return "REMOVED";
+  return null;
 }
 
 function mapTableWorld(input: unknown): TableWorld {
@@ -858,7 +887,7 @@ function mapTableWorld(input: unknown): TableWorld {
   return {
     id: toStringValue(record.id),
     tableId: toStringValue(record.tableId),
-    name: toStringValue(record.name ?? record.title, "Mundo da mesa"),
+    name: toStringValue(record.name ?? record.campaignTitle ?? record.title, "Mundo da mesa"),
     summary:
       toStringValue(record.summary) ||
       toStringValue(record.description) ||
@@ -879,8 +908,8 @@ function mapCharacterTrait(input: unknown): CharacterTrait {
     tableId: toStringValue(record.tableId) || undefined,
     name: toStringValue(record.name ?? record.title),
     description: toStringValue(record.description ?? record.effect),
-    tone: toStringValue(record.tone ?? record.alignment, "NEUTRAL") as CharacterTrait["tone"],
-    category: toStringValue(record.category ?? record.type) || undefined,
+    tone: toStringValue(record.tone ?? record.type ?? record.alignment, "NEUTRAL") as CharacterTrait["tone"],
+    category: toStringValue(record.category) || undefined,
     value: toOptionalNumberValue(record.value)
   };
 }
@@ -898,13 +927,38 @@ function mapCharacterReview(input: unknown): CharacterReview {
     submittedBy:
       toStringValue(record.submittedByName) ||
       toStringValue(submitter.username) ||
+      toStringValue(submitter.nome) ||
       toStringValue(submitter.name) ||
       undefined,
     status: toStringValue(record.status, "PENDING") as CharacterReview["status"],
-    notes: toStringValue(record.notes ?? record.message) || null,
+    notes: toStringValue(record.notes ?? record.masterFeedback ?? record.message) || null,
     traits: asArray(record.traits, mapCharacterTrait),
     createdAt: toStringValue(record.createdAt) || undefined,
     reviewedAt: toStringValue(record.reviewedAt) || null
+  };
+}
+
+function mapTableCharacter(input: unknown): TableCharacter {
+  const record = unwrapEntity(input);
+  const user = asRecord(record.user);
+  const reviews = asArray(record.reviews, mapCharacterReview);
+
+  return {
+    id: toStringValue(record.id),
+    tableId: toStringValue(record.tableId) || null,
+    userId: toStringValue(record.userId ?? user.id) || null,
+    userName:
+      toStringValue(record.userName) ||
+      toStringValue(user.username) ||
+      toStringValue(user.nome) ||
+      toStringValue(user.name) ||
+      toStringValue(user.email) ||
+      null,
+    name: toStringValue(record.name ?? record.nome ?? record.title),
+    level: toNumberValue(record.level),
+    className: mapClassName(record.className ?? record.classId ?? record.class),
+    status: toStringValue(record.status, "READY") as TableCharacter["status"],
+    review: reviews[0] ?? null
   };
 }
 
@@ -925,6 +979,7 @@ function mapTableMissionSubmission(input: unknown): TableMissionSubmission {
       toStringValue(record.note),
     rewardXp: toOptionalNumberValue(record.rewardXp),
     rewardCoins: toOptionalNumberValue(record.rewardCoins ?? record.reward),
+    masterNote: toStringValue(record.masterNote ?? record.masterFeedback ?? record.notes) || null,
     submittedAt: toStringValue(record.submittedAt ?? record.createdAt) || undefined,
     reviewedAt: toStringValue(record.reviewedAt) || null
   };
@@ -944,7 +999,7 @@ function mapTableMission(input: unknown): TableMission {
       toStringValue(record.rewardHint) ||
       toStringValue(record.rewardDescription) ||
       undefined,
-    dueAt: toStringValue(record.dueAt ?? record.endsAt) || null,
+    dueAt: toStringValue(record.dueAt ?? record.dueDate ?? record.endsAt) || null,
     submissions: asArray(record.submissions, mapTableMissionSubmission),
     createdAt: toStringValue(record.createdAt) || undefined
   };
@@ -963,10 +1018,7 @@ function mapTableTimelineEvent(input: unknown): TableTimelineEvent {
       toStringValue(record.description) ||
       toStringValue(record.content) ||
       toStringValue(record.message),
-    occurredAt:
-      toStringValue(record.occurredAt) ||
-      toStringValue(record.createdAt) ||
-      toStringValue(record.updatedAt),
+    occurredAt: toStringValue(record.createdAt ?? record.occurredAt ?? record.updatedAt),
     actorName:
       toStringValue(record.actorName) ||
       toStringValue(actor.username) ||
@@ -977,17 +1029,78 @@ function mapTableTimelineEvent(input: unknown): TableTimelineEvent {
 }
 
 function mapTable(input: unknown): Table {
-  const record = unwrapEntity(input);
+  const root = asRecord(input);
+  const unwrapped = unwrapEntity(input);
+  const nestedTable = asRecord(unwrapped.table ?? root.table);
+  const permissionSource = asRecord(
+    unwrapped.permissions ?? unwrapped.membership ?? root.permissions ?? root.membership
+  );
+  const record = Object.keys(nestedTable).length
+    ? {
+        ...nestedTable,
+        currentUserRole:
+          unwrapped.currentUserRole ??
+          root.currentUserRole ??
+          permissionSource.currentUserRole ??
+          nestedTable.currentUserRole,
+        isMaster:
+          unwrapped.isMaster ??
+          root.isMaster ??
+          permissionSource.isMaster ??
+          nestedTable.isMaster,
+        memberStatus:
+          unwrapped.memberStatus ??
+          root.memberStatus ??
+          permissionSource.memberStatus ??
+          nestedTable.memberStatus,
+        membersCount:
+          unwrapped.membersCount ??
+          root.membersCount ??
+          nestedTable.membersCount,
+        joinCode:
+          unwrapped.joinCode ??
+          root.joinCode ??
+          nestedTable.joinCode
+      }
+    : unwrapped;
   const world = record.world ? mapTableWorld(record.world) : null;
   const members = asArray(record.members, mapTableMember);
+  const master = asRecord(record.master);
+  const playerCount = toOptionalNumberValue(record.playerCount);
+  const counts = asRecord(record.counts);
+  const membersCount = toOptionalNumberValue(
+    record.membersCount ?? record.memberCount ?? counts.members
+  );
+  const currentUserRole = normalizeTableRole(record.currentUserRole);
+  const isMaster = toBooleanValue(record.isMaster);
+
+  // TODO(integration): table role must be supplied as currentUserRole/isMaster.
+  // The legacy record.role field is intentionally not used because it is ambiguous.
+  if (process.env.NODE_ENV !== "production" && !currentUserRole && !isMaster) {
+    console.warn("[permission-debug] frontend.table-role.missing", {
+      tableId: toStringValue(record.id),
+      currentUserRole: record.currentUserRole ?? null,
+      isMaster: record.isMaster ?? null,
+      memberStatus: record.memberStatus ?? null,
+      responseKeys: Object.keys(root),
+      unwrappedKeys: Object.keys(unwrapped),
+      nestedTableKeys: Object.keys(nestedTable)
+    });
+  }
 
   return {
     id: toStringValue(record.id),
     name: toStringValue(record.name ?? record.title),
     description: toStringValue(record.description) || "Mesa sem descricao detalhada.",
     code: toStringValue(record.code ?? record.inviteCode ?? record.joinCode),
-    masterId: toStringValue(record.masterId ?? record.ownerId) || undefined,
-    memberCount: toNumberValue(record.memberCount, members.length),
+    masterId: toStringValue(record.masterId ?? record.ownerId ?? master.id) || undefined,
+    currentUserRole,
+    isMaster,
+    memberStatus: normalizeTableMemberStatus(record.memberStatus),
+    membersCount:
+      membersCount ?? (members.length || (playerCount !== undefined ? playerCount + 1 : 0)),
+    memberCount:
+      membersCount ?? (members.length || (playerCount !== undefined ? playerCount + 1 : 0)),
     currentArc: toStringValue(record.currentArc ?? record.arc ?? world?.currentArc) || null,
     createdAt: toStringValue(record.createdAt) || undefined,
     updatedAt: toStringValue(record.updatedAt) || undefined,
@@ -1631,18 +1744,29 @@ export interface PvpApiContract {
 
 export interface TablesApiContract {
   list(): Promise<Table[]>;
-  create(input: { name: string; description?: string; worldName?: string; worldSummary?: string }): Promise<Table>;
+  create(input: { name: string }): Promise<Table>;
   join(input: { joinCode: string }): Promise<Table>;
   byId(id: string): Promise<Table>;
+  characters(tableId: string): Promise<TableCharacter[]>;
+  createCharacter(tableId: string, input: { name: string; classId?: string }): Promise<TableCharacter>;
+  characterTraits(tableId: string, characterId: string): Promise<CharacterTrait[]>;
   updateWorld(
     tableId: string,
     input: { name?: string; summary?: string; currentArc?: string; tone?: string; rules?: string }
-  ): Promise<Table>;
+  ): Promise<TableWorld>;
+  missions(tableId: string): Promise<TableMission[]>;
+  timeline(tableId: string): Promise<TableTimelineEvent[]>;
+  missionSubmissions(tableId: string, missionId: string): Promise<TableMissionSubmission[]>;
+  createMissionSubmission(
+    tableId: string,
+    missionId: string,
+    input: { characterId: string; content: string }
+  ): Promise<TableMissionSubmission>;
   reviewCharacter(
     tableId: string,
-    reviewId: string,
+    characterId: string,
     input: { status: CharacterReview["status"]; notes?: string }
-  ): Promise<Table>;
+  ): Promise<CharacterReview>;
   createTrait(
     tableId: string,
     characterId: string,
@@ -1661,9 +1785,10 @@ export interface TablesApiContract {
   ): Promise<TableMission>;
   reviewMissionSubmission(
     tableId: string,
+    missionId: string,
     submissionId: string,
     input: { status: TableMissionSubmission["status"]; notes?: string; rewardXp?: number; rewardCoins?: number }
-  ): Promise<Table>;
+  ): Promise<TableMissionSubmission>;
   createTimelineEvent(
     tableId: string,
     input: {
@@ -1945,31 +2070,94 @@ export const apiContracts = {
     create: (input) => request(apiClient.post("/api/v1/tables", input), mapTable),
     join: (input) => request(apiClient.post("/api/v1/tables/join", input), mapTable),
     byId: (id) => request(apiClient.get(`/api/v1/tables/${id}`), mapTable),
+    characters: (tableId) =>
+      request(
+        apiClient.get(`/api/v1/tables/${tableId}/characters`),
+        (data) => asArray(data, mapTableCharacter)
+      ),
+    createCharacter: (tableId, input) =>
+      request(apiClient.post(`/api/v1/tables/${tableId}/characters`, input), (data) => {
+        const record = unwrapEntity(data);
+        return mapTableCharacter(record.character ?? record);
+      }),
+    characterTraits: (tableId, characterId) =>
+      request(
+        apiClient.get(`/api/v1/tables/${tableId}/characters/${characterId}/traits`),
+        (data) => asArray(data, mapCharacterTrait)
+      ),
     updateWorld: (tableId, input) =>
-      request(apiClient.patch(`/api/v1/tables/${tableId}/world`, input), mapTable),
+      request(
+        apiClient.put(`/api/v1/tables/${tableId}/world`, {
+          campaignTitle: input.name,
+          summary: input.summary || "Resumo ainda nao informado.",
+          tone: input.tone || undefined
+        }),
+        mapTableWorld
+      ),
+    missions: (tableId) =>
+      request(
+        apiClient.get(`/api/v1/tables/${tableId}/missions`),
+        (data) => asArray(data, mapTableMission)
+      ),
+    timeline: (tableId) =>
+      request(
+        apiClient.get(`/api/v1/tables/${tableId}/timeline`),
+        (data) => asArray(data, mapTableTimelineEvent)
+      ),
+    missionSubmissions: (tableId, missionId) =>
+      request(
+        apiClient.get(`/api/v1/tables/${tableId}/missions/${missionId}/submissions`),
+        (data) => asArray(data, mapTableMissionSubmission)
+      ),
+    createMissionSubmission: (tableId, missionId, input) =>
+      request(
+        apiClient.post(`/api/v1/tables/${tableId}/missions/${missionId}/submissions`, input),
+        mapTableMissionSubmission
+      ),
     reviewCharacter: (tableId, reviewId, input) =>
       request(
-        apiClient.post(`/api/v1/tables/${tableId}/character-reviews/${reviewId}/review`, input),
-        mapTable
+        apiClient.patch(`/api/v1/tables/${tableId}/characters/${reviewId}/review`, {
+          status: input.status === "CHANGES_REQUESTED" ? "NEEDS_CHANGES" : input.status,
+          masterFeedback: input.notes
+        }),
+        mapCharacterReview
       ),
     createTrait: (tableId, characterId, input) =>
       request(
-        apiClient.post(`/api/v1/tables/${tableId}/characters/${characterId}/traits`, input),
+        apiClient.post(`/api/v1/tables/${tableId}/characters/${characterId}/traits`, {
+          type: input.tone,
+          name: input.name,
+          description: input.description
+        }),
         mapCharacterTrait
       ),
     createMission: (tableId, input) =>
-      request(apiClient.post(`/api/v1/tables/${tableId}/missions`, input), mapTableMission),
-    reviewMissionSubmission: (tableId, submissionId, input) =>
       request(
-        apiClient.post(
-          `/api/v1/tables/${tableId}/mission-submissions/${submissionId}/review`,
-          input
+        apiClient.post(`/api/v1/tables/${tableId}/missions`, {
+          title: input.title,
+          description: input.description || "Sem descricao detalhada.",
+          dueDate: input.dueAt
+        }),
+        mapTableMission
+      ),
+    reviewMissionSubmission: (tableId, missionId, submissionId, input) =>
+      request(
+        apiClient.patch(
+          `/api/v1/tables/${tableId}/missions/${missionId}/submissions/${submissionId}/review`,
+          {
+            status: input.status === "PENDING" ? "SUBMITTED" : input.status,
+            masterNote: input.notes
+          }
         ),
-        mapTable
+        mapTableMissionSubmission
       ),
     createTimelineEvent: (tableId, input) =>
       request(
-        apiClient.post(`/api/v1/tables/${tableId}/timeline`, input),
+        apiClient.post(`/api/v1/tables/${tableId}/timeline`, {
+          type: input.kind === "NOTE" ? "MASTER_NOTE" : input.kind,
+          title: input.title,
+          description: input.description || "Sem descricao detalhada."
+        }),
         mapTableTimelineEvent
       )
   } satisfies TablesApiContract,

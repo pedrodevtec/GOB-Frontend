@@ -1,89 +1,51 @@
 "use client";
 
 import Link from "next/link";
-import { Coins, LogOut, Shield, Sparkles, User } from "lucide-react";
+import { LogOut, Shield, Table2, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useLogout } from "@/features/auth/hooks/use-auth";
-import { ActiveCharacterSync } from "@/features/characters/components/active-character-sync";
-import { useActiveCharacterSummary } from "@/hooks/use-active-character-summary";
-import { resolveAvatarGlyph, resolveTitleLabel } from "@/lib/personalization";
-import { formatCurrency } from "@/lib/utils";
+import { accountRoleFor } from "@/lib/permissions";
 import { useAuthStore } from "@/stores/auth-store";
-import { useCharacterStore } from "@/stores/character-store";
-import {
-  getCharacterCustomization,
-  useProfileCustomizationStore
-} from "@/stores/profile-customization-store";
 
 export function Topbar() {
   const logout = useLogout();
   const user = useAuthStore((state) => state.user);
-  const activeCharacter = useCharacterStore((state) => state.activeCharacter);
-  const characters = useProfileCustomizationStore((state) => state.characters);
-  const summaryQuery = useActiveCharacterSummary();
-  const gold = summaryQuery.data?.inventory.coins ?? activeCharacter?.gold ?? 0;
-  const status = summaryQuery.data?.status ?? activeCharacter?.status ?? "READY";
-  const customization = {
-    ...getCharacterCustomization(characters, activeCharacter?.id),
-    ...activeCharacter?.customization,
-    ...summaryQuery.data?.customization
-  };
+  const accountRole = accountRoleFor(user);
 
   return (
-    <>
-      <ActiveCharacterSync />
-      <header className="glass-panel flex flex-col gap-4 rounded-[1.75rem] p-5 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.32em] text-primary">Active Session</p>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-2">
-              <User className="h-4 w-4" />
-              {user?.username ?? "Adventurer"}
+    <header className="glass-panel flex flex-col gap-4 rounded-[1.75rem] p-5 md:flex-row md:items-center md:justify-between">
+      <div className="space-y-1">
+        <p className="text-xs uppercase tracking-[0.32em] text-primary">Campaign Manager</p>
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-2">
+            <User className="h-4 w-4" />
+            {user?.username ?? "Aventureiro"}
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Table2 className="h-4 w-4" />
+            Mesas, personagens, missoes e timeline
+          </span>
+          {accountRole === "ADMIN" ? (
+            <span className="inline-flex items-center gap-2 text-primary">
+              <Shield className="h-4 w-4" />
+              ADMIN
             </span>
-            <span className="inline-flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              {resolveAvatarGlyph(customization.avatarId ?? undefined)} {activeCharacter?.name ?? "Sem personagem ativo"}
-            </span>
-            {activeCharacter?.id ? (
-              <span className="text-primary">{resolveTitleLabel(customization.titleId ?? undefined)}</span>
-            ) : null}
-            <span className="inline-flex items-center gap-2">
-              <Coins className="h-4 w-4" />
-              {formatCurrency(gold)}
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              {status}
-            </span>
-            {user?.role === "ADMIN" ? (
-              <span className="inline-flex items-center gap-2 text-primary">
-                <Shield className="h-4 w-4" />
-                ADMIN
-              </span>
-            ) : null}
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {activeCharacter?.id ? (
-            <>
-              <Button variant="outline" asChild>
-                <Link href={`/characters/${activeCharacter.id}/summary`}>Personagem</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href={`/characters/${activeCharacter.id}/inventory`}>Inventario</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href={`/characters/${activeCharacter.id}/wallet`}>Carteira</Link>
-              </Button>
-            </>
           ) : null}
-          <Button variant="outline" onClick={logout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
         </div>
-      </header>
-    </>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button asChild>
+          <Link href="/tables/create">Criar mesa</Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/tables/join">Entrar com codigo</Link>
+        </Button>
+        <Button variant="outline" onClick={logout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Logout
+        </Button>
+      </div>
+    </header>
   );
 }

@@ -12,16 +12,13 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 
-const UPDATE_VERSION = "2026-04-12-trades-pvp-and-ui-refresh";
+const UPDATE_VERSION = "2026-06-12-tables-campaign-mvp";
 const STORAGE_KEY = "gob-last-seen-update";
 
 const updateNotes = [
-  "PvP chegou: libera no nivel 45, tem cooldown de 30 min e ranking proprio.",
-  "Trade entre jogadores ja esta rolando: voce pode enviar oferta com coins, itens e equipamentos.",
-  "Stats ficaram mais faceis de ler: agora o jogo mostra CRIT em porcentagem, tipo 8%, em vez de 0.08.",
-  "Awaken foi reorganizado por tier: level 25 para ir pro tier 2 e level 45 para chegar no tier 3.",
-  "Missoes agora mostram melhor o risco: antes de entrar voce ja ve a penalidade em caso de derrota.",
-  "Level cap atual e 60. Quando bater o maximo, a interface mostra isso de forma mais clara."
+  "Mesas agora sao o fluxo principal: mestre cria campanha, compartilha codigo e convida jogadores.",
+  "Jogadores entram por codigo, criam personagens dentro da mesa e aguardam aprovacao do mestre.",
+  "Mestres podem revisar personagens, criar missoes, validar respostas e acompanhar a timeline."
 ];
 
 export function UpdateAnnouncementModal() {
@@ -48,17 +45,17 @@ export function UpdateAnnouncementModal() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Megaphone className="h-5 w-5 text-primary" />
-            O que chegou no jogo
+            Mesas de RPG em foco
           </DialogTitle>
           <DialogDescription>
-            Resumo rapido da update, sem enrolacao.
+            O MVP agora prioriza campanhas assincronas de mesa.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
             <p className="text-sm font-medium text-primary">Build {UPDATE_VERSION}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Tem sistema novo, ajuste de interface e mais clareza no progresso.
+              A experiencia principal agora gira em torno de mesas, personagens de campanha, missoes e timeline.
             </p>
           </div>
           <div className="space-y-3">
@@ -69,7 +66,7 @@ export function UpdateAnnouncementModal() {
             ))}
           </div>
           <Button className="w-full" onClick={() => handleClose(false)}>
-            Bora jogar
+            Entendi
           </Button>
         </div>
       </DialogContent>

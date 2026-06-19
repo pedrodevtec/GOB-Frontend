@@ -26,7 +26,9 @@ export function useUpdateProfile() {
         id: current?.id ?? "",
         email: String(variables.email ?? current?.email ?? ""),
         username: String(variables.username ?? current?.username ?? ""),
-        role: current?.role ?? "PLAYER",
+        accountRole: current?.accountRole ?? "USER",
+        systemRole: current?.systemRole,
+        role: current?.role,
         theme: typeof variables.theme === "string" ? variables.theme : current?.theme ?? null
       });
       toast.success("Perfil atualizado.");

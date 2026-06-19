@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { tablesService } from "@/features/tables/services/tables.service";
 import { ApiRequestError } from "@/lib/api/errors";
+import { canAccessMasterPanel } from "@/lib/permissions";
 
 export function useTables() {
   return useQuery({
@@ -22,6 +23,46 @@ export function useTable(id: string) {
   });
 }
 
+export function useTableCharacters(tableId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["tables", tableId, "characters"],
+    queryFn: () => tablesService.characters(tableId),
+    enabled: Boolean(tableId && enabled)
+  });
+}
+
+export function useTableCharacterTraits(tableId: string, characterId?: string) {
+  return useQuery({
+    queryKey: ["tables", tableId, "characters", characterId, "traits"],
+    queryFn: () => tablesService.characterTraits(tableId, characterId ?? ""),
+    enabled: Boolean(tableId && characterId)
+  });
+}
+
+export function useTableMissions(tableId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["tables", tableId, "missions"],
+    queryFn: () => tablesService.missions(tableId),
+    enabled: Boolean(tableId && enabled)
+  });
+}
+
+export function useTableMissionSubmissions(tableId: string, missionId?: string) {
+  return useQuery({
+    queryKey: ["tables", tableId, "missions", missionId, "submissions"],
+    queryFn: () => tablesService.missionSubmissions(tableId, missionId ?? ""),
+    enabled: Boolean(tableId && missionId)
+  });
+}
+
+export function useTableTimeline(tableId: string) {
+  return useQuery({
+    queryKey: ["tables", tableId, "timeline"],
+    queryFn: () => tablesService.timeline(tableId),
+    enabled: Boolean(tableId)
+  });
+}
+
 export function useCreateTable() {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -30,8 +71,8 @@ export function useCreateTable() {
     mutationFn: tablesService.create,
     onSuccess: (table) => {
       queryClient.invalidateQueries({ queryKey: ["tables"] });
-      toast.success("Mesa criada.");
-      router.push(`/tables/${table.id}`);
+      toast.success(table.code ? `Mesa criada. Codigo: ${table.code}` : "Mesa criada.");
+      router.push(canAccessMasterPanel(table) ? `/tables/${table.id}/master` : `/tables/${table.id}`);
     },
     onError: (error: Error) => toast.error(error.message)
   });
@@ -46,7 +87,7 @@ export function useJoinTable() {
     onSuccess: (table) => {
       queryClient.invalidateQueries({ queryKey: ["tables"] });
       toast.success("Voce entrou na mesa.");
-      router.push(`/tables/${table.id}`);
+      router.push(`/tables/${table.id}/player`);
     },
     onError: (error: Error) => {
       if (error instanceof ApiRequestError && error.code === "TABLE_NOT_FOUND") {
@@ -56,6 +97,43 @@ export function useJoinTable() {
 
       toast.error(error.message);
     }
+  });
+}
+
+export function useCreateTableCharacter(tableId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { name: string; classId?: string }) =>
+      tablesService.createCharacter(tableId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tables", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "characters"] });
+      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["characters"] });
+      toast.success("Personagem enviado para revisao.");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useCreateMissionSubmission(tableId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { missionId: string; characterId: string; content: string }) => {
+      const { missionId, ...payload } = input;
+      return tablesService.createMissionSubmission(tableId, missionId, payload);
+    },
+    onSuccess: (_submission, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "missions"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tables", tableId, "missions", variables.missionId, "submissions"]
+      });
+      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "timeline"] });
+      toast.success("Resposta enviada.");
+    },
+    onError: (error: Error) => toast.error(error.message)
   });
 }
 
@@ -75,6 +153,9 @@ function useTableMutation<TInput>({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tables"] });
       queryClient.invalidateQueries({ queryKey: ["tables", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "characters"] });
+      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "missions"] });
+      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "timeline"] });
       toast.success(successMessage);
     },
     onError: (error: Error) => toast.error(error.message)
@@ -99,12 +180,12 @@ export function useReviewCharacter(tableId: string) {
   return useTableMutation({
     tableId,
     mutationFn: (input: {
-      reviewId: string;
-      status: "APPROVED" | "REJECTED" | "CHANGES_REQUESTED";
+      characterId: string;
+      status: "APPROVED" | "REJECTED" | "CHANGES_REQUESTED" | "NEEDS_CHANGES";
       notes?: string;
     }) => {
-      const { reviewId, ...payload } = input;
-      return tablesService.reviewCharacter(tableId, reviewId, payload);
+      const { characterId, ...payload } = input;
+      return tablesService.reviewCharacter(tableId, characterId, payload);
     },
     successMessage: "Personagem revisado."
   });
@@ -147,14 +228,15 @@ export function useReviewMissionSubmission(tableId: string) {
   return useTableMutation({
     tableId,
     mutationFn: (input: {
+      missionId: string;
       submissionId: string;
-      status: "APPROVED" | "REJECTED";
+      status: "APPROVED" | "REJECTED" | "NEEDS_CHANGES";
       notes?: string;
       rewardXp?: number;
       rewardCoins?: number;
     }) => {
-      const { submissionId, ...payload } = input;
-      return tablesService.reviewMissionSubmission(tableId, submissionId, payload);
+      const { missionId, submissionId, ...payload } = input;
+      return tablesService.reviewMissionSubmission(tableId, missionId, submissionId, payload);
     },
     successMessage: "Submissao revisada."
   });

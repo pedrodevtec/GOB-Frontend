@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useTables } from "@/features/tables/hooks/use-tables";
+import { canAccessMasterPanel, tableRoleFor } from "@/lib/permissions";
 
 export function TablesList() {
   const tables = useTables();
@@ -44,13 +45,15 @@ export function TablesList() {
               <CardTitle>{table.name}</CardTitle>
               <CardDescription>{table.description}</CardDescription>
             </div>
-            {table.code ? <Badge>{table.code}</Badge> : null}
+            <Badge variant={canAccessMasterPanel(table) ? "success" : "secondary"}>
+              {tableRoleFor(table) ?? "ROLE INDISPONIVEL"}
+            </Badge>
           </div>
 
           <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-3">
             <div>
               <p className="text-xs uppercase tracking-wide text-primary">Membros</p>
-              <p className="mt-1 text-foreground">{table.memberCount}</p>
+              <p className="mt-1 text-foreground">{table.membersCount}</p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-primary">Missoes</p>

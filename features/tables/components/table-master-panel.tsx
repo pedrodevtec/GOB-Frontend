@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueries } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -11,6 +12,7 @@ import { LoadingState } from "@/components/states/loading-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -20,9 +22,12 @@ import {
   useReviewCharacter,
   useReviewMissionSubmission,
   useTable,
+  useTableCharacters,
+  useTableMissions,
   useUpdateTableWorld
 } from "@/features/tables/hooks/use-tables";
-import { useAuthStore } from "@/stores/auth-store";
+import { tablesService } from "@/features/tables/services/tables.service";
+import { canAccessMasterPanel, tableMemberStatusFor } from "@/lib/permissions";
 
 const optionalNumber = z.preprocess(
   (value) => (value === "" || value === null ? undefined : value),
@@ -49,7 +54,7 @@ const traitSchema = z.object({
 const missionSchema = z.object({
   title: z.string().min(2, "Informe o titulo da missao."),
   description: z.string().optional(),
-  status: z.enum(["DRAFT", "ACTIVE", "COMPLETED", "ARCHIVED"]),
+  status: z.enum(["ACTIVE", "COMPLETED", "ARCHIVED"]),
   recommendedLevel: optionalNumber,
   rewardHint: z.string().optional(),
   dueAt: z.string().optional()
@@ -82,8 +87,13 @@ function toIsoDateTime(value?: string) {
 }
 
 export function TableMasterPanel({ id }: { id: string }) {
-  const user = useAuthStore((state) => state.user);
   const table = useTable(id);
+  const memberStatus = tableMemberStatusFor(table.data);
+  const isMaster =
+    canAccessMasterPanel(table.data) &&
+    (!memberStatus || memberStatus === "ACTIVE");
+  const characters = useTableCharacters(id, isMaster);
+  const missions = useTableMissions(id, isMaster);
   const updateWorld = useUpdateTableWorld(id);
   const reviewCharacter = useReviewCharacter(id);
   const createTrait = useCreateCharacterTrait(id);
@@ -147,49 +157,50 @@ export function TableMasterPanel({ id }: { id: string }) {
     });
   }, [table.data, worldForm]);
 
-  const isMaster = useMemo(() => {
-    if (!table.data || !user) return false;
-    if (table.data.masterId && table.data.masterId === user.id) return true;
-    return table.data.members.some(
-      (member) => member.userId === user.id && member.role === "MASTER" && member.status === "ACTIVE"
-    );
-  }, [table.data, user]);
-
-  const pendingCharacters = table.data?.characterReviews.filter(
-    (review) => review.status === "PENDING"
-  ) ?? [];
-  const pendingSubmissions =
-    table.data?.missions.flatMap((mission) =>
-      mission.submissions
-        .filter((submission) => submission.status === "PENDING")
-        .map((submission) => ({ mission, submission }))
-    ) ?? [];
+  const pendingCharacters = (characters.data ?? []).filter(
+    (character) => character.review?.status === "PENDING"
+  );
+  const allMissions = missions.data ?? [];
+  const submissionQueries = useQueries({
+    queries: allMissions.map((mission) => ({
+      queryKey: ["tables", id, "missions", mission.id, "submissions"],
+      queryFn: () => tablesService.missionSubmissions(id, mission.id),
+      enabled: Boolean(id && mission.id && isMaster)
+    }))
+  });
+  const pendingSubmissions = allMissions.flatMap((mission, index) =>
+    (submissionQueries[index]?.data ?? [])
+      .filter((submission) => submission.status === "SUBMITTED" || submission.status === "PENDING")
+      .map((submission) => ({ mission, submission }))
+  );
   const characterOptions = useMemo(() => {
     const options = new Map<string, string>();
 
-    table.data?.characterReviews.forEach((review) => {
-      if (review.characterId) {
-        options.set(review.characterId, review.characterName || review.characterId);
-      }
-    });
-    table.data?.members.forEach((member) => {
-      if (member.characterId) {
-        options.set(member.characterId, member.characterName || member.username || member.characterId);
-      }
+    characters.data?.forEach((character) => {
+      options.set(character.id, character.name || character.id);
     });
 
     return Array.from(options.entries()).map(([value, label]) => ({ value, label }));
-  }, [table.data]);
+  }, [characters.data]);
 
-  if (table.isLoading) {
+  if (table.isLoading || (isMaster && (characters.isLoading || missions.isLoading))) {
     return <LoadingState label="Carregando painel do mestre..." />;
   }
 
-  if (table.isError) {
+  if (table.isError || (isMaster && (characters.isError || missions.isError))) {
     return (
       <ErrorState
-        description={(table.error as Error)?.message || "Falha ao carregar a mesa."}
-        onRetry={() => void table.refetch()}
+        description={
+          (table.error as Error)?.message ||
+          (characters.error as Error)?.message ||
+          (missions.error as Error)?.message ||
+          "Falha ao carregar a mesa."
+        }
+        onRetry={() => {
+          void table.refetch();
+          void characters.refetch();
+          void missions.refetch();
+        }}
       />
     );
   }
@@ -204,6 +215,16 @@ export function TableMasterPanel({ id }: { id: string }) {
   }
 
   if (!isMaster) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[permission-debug] frontend.master-panel.denied", {
+        tableId: table.data.id,
+        currentUserRole: table.data.currentUserRole ?? null,
+        isMaster: table.data.isMaster ?? null,
+        memberStatus: table.data.memberStatus ?? null,
+        normalizedMemberStatus: memberStatus
+      });
+    }
+
     return (
       <ErrorState
         title="Acesso negado"
@@ -223,12 +244,17 @@ export function TableMasterPanel({ id }: { id: string }) {
               {table.data.description}
             </CardDescription>
           </div>
-          {table.data.code ? <Badge>{table.data.code}</Badge> : null}
+          {table.data.code ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge>{table.data.code}</Badge>
+              <CopyButton value={table.data.code} label="Copiar codigo" />
+            </div>
+          ) : null}
         </div>
         <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs uppercase tracking-wide text-primary">Membros</p>
-            <p className="mt-2 text-2xl font-semibold">{table.data.memberCount}</p>
+            <p className="mt-2 text-2xl font-semibold">{table.data.membersCount}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs uppercase tracking-wide text-primary">Pendentes</p>
@@ -240,8 +266,28 @@ export function TableMasterPanel({ id }: { id: string }) {
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs uppercase tracking-wide text-primary">Missoes</p>
-            <p className="mt-2 text-2xl font-semibold">{table.data.missions.length}</p>
+            <p className="mt-2 text-2xl font-semibold">{allMissions.length}</p>
           </div>
+        </div>
+      </Card>
+
+      <Card className="space-y-4">
+        <div>
+          <CardTitle>Checklist de abertura</CardTitle>
+          <CardDescription>Use esta sequencia para deixar a mesa pronta para a primeira rodada.</CardDescription>
+        </div>
+        <div className="grid gap-2 text-sm text-muted-foreground md:grid-cols-5">
+          {[
+            "Configure o universo",
+            "Copie o codigo e convide jogadores",
+            "Aguarde personagens para aprovacao",
+            "Crie a primeira missao",
+            "Acompanhe a timeline"
+          ].map((item) => (
+            <div key={item} className="rounded-xl border border-white/10 bg-white/5 p-3">
+              {item}
+            </div>
+          ))}
         </div>
       </Card>
 
@@ -370,22 +416,13 @@ export function TableMasterPanel({ id }: { id: string }) {
               <div key={review.id} className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <p className="font-semibold">{review.characterName || review.characterId}</p>
+                    <p className="font-semibold">{review.name || review.id}</p>
                     <p className="text-sm text-muted-foreground">
-                      Enviado por {review.submittedBy || "jogador"}.
+                      Enviado por {review.userName || "jogador"}.
                     </p>
                   </div>
-                  <Badge variant="warning">{review.status}</Badge>
+                  <Badge variant="warning">{review.review?.status}</Badge>
                 </div>
-                {review.traits.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {review.traits.map((trait) => (
-                      <Badge key={trait.id} variant="secondary">
-                        {trait.name}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : null}
                 <Textarea
                   placeholder="Notas opcionais para o jogador."
                   value={reviewNotes[review.id] ?? ""}
@@ -401,7 +438,7 @@ export function TableMasterPanel({ id }: { id: string }) {
                     type="button"
                     onClick={() =>
                       reviewCharacter.mutate({
-                        reviewId: review.id,
+                        characterId: review.id,
                         status: "APPROVED",
                         notes: reviewNotes[review.id]
                       })
@@ -415,8 +452,8 @@ export function TableMasterPanel({ id }: { id: string }) {
                     variant="outline"
                     onClick={() =>
                       reviewCharacter.mutate({
-                        reviewId: review.id,
-                        status: "CHANGES_REQUESTED",
+                        characterId: review.id,
+                        status: "NEEDS_CHANGES",
                         notes: reviewNotes[review.id]
                       })
                     }
@@ -429,7 +466,7 @@ export function TableMasterPanel({ id }: { id: string }) {
                     variant="destructive"
                     onClick={() =>
                       reviewCharacter.mutate({
-                        reviewId: review.id,
+                        characterId: review.id,
                         status: "REJECTED",
                         notes: reviewNotes[review.id]
                       })
@@ -494,7 +531,6 @@ export function TableMasterPanel({ id }: { id: string }) {
                   className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
                   {...missionForm.register("status")}
                 >
-                  <option value="DRAFT">Rascunho</option>
                   <option value="ACTIVE">Ativa</option>
                   <option value="COMPLETED">Concluida</option>
                   <option value="ARCHIVED">Arquivada</option>
@@ -553,6 +589,7 @@ export function TableMasterPanel({ id }: { id: string }) {
                       type="button"
                       onClick={() =>
                         reviewSubmission.mutate({
+                          missionId: mission.id,
                           submissionId: submission.id,
                           status: "APPROVED",
                           notes: submissionNotes[submission.id]
@@ -567,6 +604,7 @@ export function TableMasterPanel({ id }: { id: string }) {
                       variant="destructive"
                       onClick={() =>
                         reviewSubmission.mutate({
+                          missionId: mission.id,
                           submissionId: submission.id,
                           status: "REJECTED",
                           notes: submissionNotes[submission.id]

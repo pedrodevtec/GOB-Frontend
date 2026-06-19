@@ -83,7 +83,7 @@ export const openApiDocument = {
           id: { type: "string" },
           nome: { type: "string" },
           email: { type: "string", format: "email" },
-          role: { type: "string", enum: ["PLAYER", "ADMIN"] },
+          accountRole: { type: "string", enum: ["USER", "ADMIN"] },
           theme: { type: "string", nullable: true },
         },
       },
