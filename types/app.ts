@@ -676,6 +676,7 @@ export interface TableWorld {
   currentArc?: string | null;
   tone?: string | null;
   rules?: string | null;
+  characterCreationCriteria?: string | null;
   updatedAt?: string;
 }
 
@@ -776,6 +777,124 @@ export interface Table {
   timeline: TableTimelineEvent[];
 }
 
+export interface TableDashboardSummary {
+  totalTables: number;
+  masterTables: number;
+  playerTables: number;
+  pendingCharacterReviews: number;
+  activePlayerMissions: number;
+}
+
+export interface DashboardTableItem {
+  id: string;
+  name: string;
+  description: string;
+  status?: string;
+  currentUserRole: TableRole;
+  isMaster: boolean;
+  memberStatus: TableMemberStatus;
+  membersCount: number;
+  worldTitle?: string | null;
+  latestTimelineEvent?: TableTimelineEvent | null;
+}
+
+export interface TableDashboardCharacterReview {
+  id: string;
+  status: CharacterReviewStatus;
+  masterFeedback?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  table: {
+    id: string;
+    name: string;
+  };
+  character: {
+    id: string;
+    name: string;
+    level: number;
+    class?: {
+      id: string;
+      name: string;
+    } | null;
+    user: {
+      id: string;
+      name: string;
+      email?: string;
+    };
+  };
+}
+
+export interface TableDashboardMission {
+  id: string;
+  title: string;
+  description: string;
+  objective?: string | null;
+  isRequired?: boolean;
+  status: TableMissionStatus;
+  dueAt?: string | null;
+  createdAt?: string;
+  table: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface TableDashboardTimelineItem extends TableTimelineEvent {
+  table: {
+    id: string;
+    name: string;
+  };
+  character?: {
+    id: string;
+    name: string;
+  } | null;
+  createdBy?: {
+    id: string;
+    name: string;
+    email?: string;
+  };
+}
+
+export interface TableDashboardResponse {
+  summary: TableDashboardSummary;
+  tables: DashboardTableItem[];
+  pendingCharacterReviews: TableDashboardCharacterReview[];
+  activePlayerMissions: TableDashboardMission[];
+  recentTimeline: TableDashboardTimelineItem[];
+}
+
+export interface TableSubmissionListItem {
+  id: string;
+  status: TableMissionSubmissionStatus;
+  content: string;
+  masterNote?: string | null;
+  createdAt?: string;
+  mission: {
+    id: string;
+    title: string;
+  };
+  character: {
+    id: string;
+    name: string;
+  };
+  user: {
+    id: string;
+    name: string;
+    email?: string;
+  };
+}
+
+export interface TableSubmissionListResponse {
+  items: TableSubmissionListItem[];
+  nextCursor: string | null;
+}
+
+export interface TableSubmissionFilters {
+  status?: TableMissionSubmissionStatus;
+  cursor?: string;
+  limit?: number;
+}
+
 export type MasterPanelSection =
   | "overview"
   | "world"
@@ -824,6 +943,7 @@ export interface AIWorldSummaryResponse {
   suggestedSummary: string;
   suggestedTone: string;
   suggestedRules: string;
+  suggestedCharacterCreationCriteria: string;
 }
 
 export interface AIMissionIdea {
@@ -859,7 +979,7 @@ export interface AIInstructionPayload {
 }
 
 export interface AITraitsPayload extends AIInstructionPayload {
-  characterId?: string;
+  characterId: string;
 }
 
 export interface AITimelineSummaryPayload extends AIInstructionPayload {

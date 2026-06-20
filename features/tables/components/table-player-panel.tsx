@@ -1,7 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueries } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -19,15 +18,15 @@ import { isBaseCharacterClass } from "@/features/characters/lib/class-presentati
 import {
   useCreateMissionSubmission,
   useCreateTableCharacter,
+  useMyTableSubmissions,
   useTable,
   useTableCharacters,
   useTableCharacterTraits,
   useTableMissions
 } from "@/features/tables/hooks/use-tables";
-import { tablesService } from "@/features/tables/services/tables.service";
 import { canAccessPlayerArea } from "@/lib/permissions";
 import { useAuthStore } from "@/stores/auth-store";
-import type { CharacterReviewStatus, TableMissionSubmission } from "@/types/app";
+import type { CharacterReviewStatus, TableSubmissionListItem } from "@/types/app";
 
 const characterSchema = z.object({
   name: z.string().min(2, "Informe um nome para o personagem."),
@@ -76,6 +75,11 @@ export function TablePlayerPanel({ id }: { id: string }) {
   const canUsePlayerArea = canAccessPlayerArea(table.data);
   const characters = useTableCharacters(id, canUsePlayerArea);
   const missions = useTableMissions(id, canUsePlayerArea);
+  const submissions = useMyTableSubmissions(
+    id,
+    { limit: 50 },
+    canUsePlayerArea
+  );
   const classes = useCharacterClasses();
   const createCharacter = useCreateTableCharacter(id);
   const submitMission = useCreateMissionSubmission(id);
@@ -91,13 +95,6 @@ export function TablePlayerPanel({ id }: { id: string }) {
     () => (missions.data ?? []).filter((mission) => mission.status === "ACTIVE"),
     [missions.data]
   );
-  const submissionQueries = useQueries({
-    queries: activeMissions.map((mission) => ({
-      queryKey: ["tables", id, "missions", mission.id, "submissions"],
-      queryFn: () => tablesService.missionSubmissions(id, mission.id),
-      enabled: Boolean(id && mission.id && playerCharacter)
-    }))
-  });
 
   const form = useForm<CharacterInput>({
     resolver: zodResolver(characterSchema),
@@ -109,34 +106,40 @@ export function TablePlayerPanel({ id }: { id: string }) {
   const visibleClasses = (classes.data ?? []).filter((entry) => isBaseCharacterClass(entry));
   const positiveTraits = (traits.data ?? []).filter((trait) => trait.tone === "POSITIVE");
   const negativeTraits = (traits.data ?? []).filter((trait) => trait.tone === "NEGATIVE");
-  const submissionsByMission = new Map<string, TableMissionSubmission[]>();
-
-  activeMissions.forEach((mission, index) => {
-    submissionsByMission.set(
-      mission.id,
-      (submissionQueries[index]?.data ?? []).filter(
-        (submission) => !playerCharacter || submission.characterId === playerCharacter.id
-      )
-    );
+  const submissionsByMission = new Map<string, TableSubmissionListItem[]>();
+  (submissions.data?.items ?? []).forEach((submission) => {
+    const current = submissionsByMission.get(submission.mission.id) ?? [];
+    current.push(submission);
+    submissionsByMission.set(submission.mission.id, current);
   });
 
-  if (table.isLoading || (canUsePlayerArea && (characters.isLoading || missions.isLoading))) {
+  if (
+    table.isLoading ||
+    (canUsePlayerArea &&
+      (characters.isLoading || missions.isLoading || submissions.isLoading))
+  ) {
     return <LoadingState label="Carregando painel do jogador..." />;
   }
 
-  if (table.isError || (canUsePlayerArea && (characters.isError || missions.isError))) {
+  if (
+    table.isError ||
+    (canUsePlayerArea &&
+      (characters.isError || missions.isError || submissions.isError))
+  ) {
     return (
       <ErrorState
         description={
           (table.error as Error)?.message ||
           (characters.error as Error)?.message ||
           (missions.error as Error)?.message ||
+          (submissions.error as Error)?.message ||
           "Falha ao carregar painel do jogador."
         }
         onRetry={() => {
           void table.refetch();
           void characters.refetch();
           void missions.refetch();
+          void submissions.refetch();
         }}
       />
     );

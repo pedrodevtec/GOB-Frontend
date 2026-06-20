@@ -57,9 +57,14 @@ import type {
   Reward,
   Table,
   TableCharacter,
+  TableDashboardResponse,
+  TableDashboardTimelineItem,
   TableMember,
   TableMission,
   TableMissionSubmission,
+  TableSubmissionFilters,
+  TableSubmissionListItem,
+  TableSubmissionListResponse,
   TableTimelineEvent,
   TableWorld,
   CharacterReview,
@@ -177,6 +182,13 @@ function unwrapEntity(value: unknown): Dict {
 
 function toStringValue(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback;
+}
+
+function toJsonTextValue(value: unknown): string {
+  if (typeof value === "string") return value;
+
+  const record = asRecord(value);
+  return toStringValue(record.text);
 }
 
 function toNumberValue(value: unknown, fallback = 0) {
@@ -905,7 +917,11 @@ function mapTableWorld(input: unknown): TableWorld {
       "Resumo de mundo ainda nao informado.",
     currentArc: toStringValue(record.currentArc ?? record.arc) || null,
     tone: toStringValue(record.tone) || null,
-    rules: toStringValue(record.rules ?? record.houseRules) || null,
+    rules: toJsonTextValue(record.rules ?? record.houseRules) || null,
+    characterCreationCriteria:
+      toJsonTextValue(
+        record.characterCreationCriteria ?? record.characterCriteria
+      ) || null,
     updatedAt: toStringValue(record.updatedAt) || undefined
   };
 }
@@ -950,7 +966,9 @@ function mapCharacterReview(input: unknown): CharacterReview {
 }
 
 function mapTableCharacter(input: unknown): TableCharacter {
-  const record = unwrapEntity(input);
+  // Character list items contain a nested `user`. Using unwrapEntity here
+  // incorrectly unwraps that user and drops the character reviews.
+  const record = asRecord(input);
   const user = asRecord(record.user);
   const reviews = asArray(record.reviews, mapCharacterReview);
 
@@ -1036,6 +1054,168 @@ function mapTableTimelineEvent(input: unknown): TableTimelineEvent {
       toStringValue(actor.name) ||
       undefined,
     metadata: isObject(record.metadata) ? record.metadata : undefined
+  };
+}
+
+function mapDashboardTimelineItem(input: unknown): TableDashboardTimelineItem {
+  const record = asRecord(input);
+  const table = asRecord(record.table);
+  const character = asRecord(record.character);
+  const createdBy = asRecord(record.createdBy);
+
+  return {
+    id: toStringValue(record.id),
+    tableId: toStringValue(record.tableId ?? table.id),
+    kind: toStringValue(record.kind ?? record.type, "NOTE") as TableTimelineEvent["kind"],
+    title: toStringValue(record.title),
+    description: toStringValue(record.description),
+    occurredAt: toStringValue(record.occurredAt ?? record.createdAt),
+    actorName: toStringValue(createdBy.name ?? createdBy.nome) || undefined,
+    metadata: isObject(record.metadata) ? record.metadata : undefined,
+    table: {
+      id: toStringValue(table.id),
+      name: toStringValue(table.name)
+    },
+    character: Object.keys(character).length
+      ? {
+          id: toStringValue(character.id),
+          name: toStringValue(character.name)
+        }
+      : null,
+    createdBy: Object.keys(createdBy).length
+      ? {
+          id: toStringValue(createdBy.id),
+          name: toStringValue(createdBy.name ?? createdBy.nome),
+          email: toStringValue(createdBy.email) || undefined
+        }
+      : undefined
+  };
+}
+
+function mapTablesDashboard(input: unknown): TableDashboardResponse {
+  const record = asRecord(input);
+  const summary = asRecord(record.summary);
+
+  return {
+    summary: {
+      totalTables: toNumberValue(summary.totalTables),
+      masterTables: toNumberValue(summary.masterTables),
+      playerTables: toNumberValue(summary.playerTables),
+      pendingCharacterReviews: toNumberValue(summary.pendingCharacterReviews),
+      activePlayerMissions: toNumberValue(summary.activePlayerMissions)
+    },
+    tables: asArray(record.tables, (entry) => {
+      const table = asRecord(entry);
+      const latestTimelineEvent = table.latestTimelineEvent;
+
+      return {
+        id: toStringValue(table.id),
+        name: toStringValue(table.name),
+        description: toStringValue(table.description) || "Mesa sem descricao detalhada.",
+        status: toStringValue(table.status) || undefined,
+        currentUserRole: normalizeTableRole(table.currentUserRole) ?? "PLAYER",
+        isMaster: toBooleanValue(table.isMaster),
+        memberStatus: normalizeTableMemberStatus(table.memberStatus) ?? "ACTIVE",
+        membersCount: toNumberValue(table.membersCount),
+        worldTitle: toStringValue(table.worldTitle) || null,
+        latestTimelineEvent: isObject(latestTimelineEvent)
+          ? mapTableTimelineEvent(latestTimelineEvent)
+          : null
+      };
+    }),
+    pendingCharacterReviews: asArray(record.pendingCharacterReviews, (entry) => {
+      const review = asRecord(entry);
+      const table = asRecord(review.table);
+      const character = asRecord(review.character);
+      const characterClass = asRecord(character.class);
+      const user = asRecord(character.user);
+
+      return {
+        id: toStringValue(review.id),
+        status: toStringValue(review.status, "PENDING") as CharacterReview["status"],
+        masterFeedback: toStringValue(review.masterFeedback) || null,
+        createdAt: toStringValue(review.createdAt) || undefined,
+        updatedAt: toStringValue(review.updatedAt) || undefined,
+        table: {
+          id: toStringValue(table.id),
+          name: toStringValue(table.name)
+        },
+        character: {
+          id: toStringValue(character.id),
+          name: toStringValue(character.name),
+          level: toNumberValue(character.level),
+          class: Object.keys(characterClass).length
+            ? {
+                id: toStringValue(characterClass.id),
+                name: toStringValue(characterClass.name)
+              }
+            : null,
+          user: {
+            id: toStringValue(user.id),
+            name: toStringValue(user.name ?? user.nome),
+            email: toStringValue(user.email) || undefined
+          }
+        }
+      };
+    }),
+    activePlayerMissions: asArray(record.activePlayerMissions, (entry) => {
+      const mission = asRecord(entry);
+      const table = asRecord(mission.table);
+
+      return {
+        id: toStringValue(mission.id),
+        title: toStringValue(mission.title),
+        description: toStringValue(mission.description),
+        objective: toStringValue(mission.objective) || null,
+        isRequired:
+          typeof mission.isRequired === "boolean" ? mission.isRequired : undefined,
+        status: toStringValue(mission.status, "ACTIVE") as TableMission["status"],
+        dueAt: toStringValue(mission.dueAt ?? mission.dueDate) || null,
+        createdAt: toStringValue(mission.createdAt) || undefined,
+        table: {
+          id: toStringValue(table.id),
+          name: toStringValue(table.name)
+        }
+      };
+    }),
+    recentTimeline: asArray(record.recentTimeline, mapDashboardTimelineItem)
+  };
+}
+
+function mapTableSubmissionListItem(input: unknown): TableSubmissionListItem {
+  const record = asRecord(input);
+  const mission = asRecord(record.mission);
+  const character = asRecord(record.character);
+  const user = asRecord(record.user);
+
+  return {
+    id: toStringValue(record.id),
+    status: toStringValue(record.status, "SUBMITTED") as TableMissionSubmission["status"],
+    content: toStringValue(record.content),
+    masterNote: toStringValue(record.masterNote) || null,
+    createdAt: toStringValue(record.createdAt) || undefined,
+    mission: {
+      id: toStringValue(mission.id),
+      title: toStringValue(mission.title)
+    },
+    character: {
+      id: toStringValue(character.id),
+      name: toStringValue(character.name)
+    },
+    user: {
+      id: toStringValue(user.id),
+      name: toStringValue(user.name ?? user.nome),
+      email: toStringValue(user.email) || undefined
+    }
+  };
+}
+
+function mapTableSubmissionList(input: unknown): TableSubmissionListResponse {
+  const record = asRecord(input);
+
+  return {
+    items: asArray(record.items, mapTableSubmissionListItem),
+    nextCursor: toStringValue(record.nextCursor) || null
   };
 }
 
@@ -1125,14 +1305,15 @@ function mapTable(input: unknown): Table {
 
 function mapMasterOverview(input: unknown): MasterOverview {
   const root = asRecord(input);
-  const record = unwrapEntity(input);
+  const nestedOverview = asRecord(root.overview);
+  const record = Object.keys(nestedOverview).length ? nestedOverview : unwrapEntity(input);
   const table = mapTable(record.table ?? root.table ?? record);
-  const worldStatus = asRecord(record.worldStatus);
-  const membersSummary = asRecord(record.membersSummary);
-  const charactersSummary = asRecord(record.charactersSummary);
-  const missionsSummary = asRecord(record.missionsSummary);
-  const submissionsSummary = asRecord(record.submissionsSummary);
-  const timelineSummary = asRecord(record.timelineSummary);
+  const worldStatus = asRecord(record.worldStatus ?? record.world);
+  const membersSummary = asRecord(record.membersSummary ?? record.members);
+  const charactersSummary = asRecord(record.charactersSummary ?? record.characters);
+  const missionsSummary = asRecord(record.missionsSummary ?? record.missions);
+  const submissionsSummary = asRecord(record.submissionsSummary ?? record.submissions);
+  const timelineSummary = asRecord(record.timelineSummary ?? record.timeline);
   const recommendedAction = asRecord(record.nextRecommendedAction);
   const onboardingChecklist = asArray(
     record.onboardingChecklist,
@@ -1158,27 +1339,51 @@ function mapMasterOverview(input: unknown): MasterOverview {
   return {
     table,
     worldStatus: {
-      configured: toBooleanValue(worldStatus.configured ?? worldStatus.completed)
+      configured: toBooleanValue(
+        worldStatus.configured ?? worldStatus.completed ?? worldStatus.hasWorld
+      )
     },
     membersSummary: {
-      total: toNumberValue(membersSummary.total ?? membersSummary.count, table.membersCount),
+      total: toNumberValue(
+        membersSummary.total ?? membersSummary.count ?? membersSummary.totalMembers,
+        table.membersCount
+      ),
       pending: toOptionalNumberValue(membersSummary.pending)
     },
     charactersSummary: {
-      total: toNumberValue(charactersSummary.total ?? charactersSummary.count),
-      pending: toOptionalNumberValue(charactersSummary.pending)
+      total: toNumberValue(
+        charactersSummary.total ?? charactersSummary.count ?? charactersSummary.totalCharacters
+      ),
+      pending: toOptionalNumberValue(
+        charactersSummary.pending ?? charactersSummary.pendingCharacters
+      )
     },
     missionsSummary: {
-      total: toNumberValue(missionsSummary.total ?? missionsSummary.count),
-      active: toOptionalNumberValue(missionsSummary.active),
+      total: toNumberValue(
+        missionsSummary.total ?? missionsSummary.count ?? missionsSummary.totalMissions
+      ),
+      active: toOptionalNumberValue(
+        missionsSummary.active ?? missionsSummary.activeMissions
+      ),
       completed: toOptionalNumberValue(missionsSummary.completed)
     },
     submissionsSummary: {
-      total: toNumberValue(submissionsSummary.total ?? submissionsSummary.count),
-      pending: toOptionalNumberValue(submissionsSummary.pending)
+      total: toNumberValue(
+        submissionsSummary.total ??
+          submissionsSummary.count ??
+          (typeof submissionsSummary.pendingSubmissions === "number" &&
+          typeof submissionsSummary.reviewedSubmissions === "number"
+            ? submissionsSummary.pendingSubmissions + submissionsSummary.reviewedSubmissions
+            : undefined)
+      ),
+      pending: toOptionalNumberValue(
+        submissionsSummary.pending ?? submissionsSummary.pendingSubmissions
+      )
     },
     timelineSummary: {
-      total: toNumberValue(timelineSummary.total ?? timelineSummary.count)
+      total: toNumberValue(
+        timelineSummary.total ?? timelineSummary.count ?? timelineSummary.totalEvents
+      )
     },
     onboardingChecklist,
     nextRecommendedAction: Object.keys(recommendedAction).length
@@ -1203,7 +1408,13 @@ function mapAIWorldSummary(input: unknown): AIWorldSummaryResponse {
     suggestedTitle: toStringValue(record.suggestedTitle ?? record.title),
     suggestedSummary: toStringValue(record.suggestedSummary ?? record.summary),
     suggestedTone: toStringValue(record.suggestedTone ?? record.tone),
-    suggestedRules: toStringValue(record.suggestedRules ?? record.rules)
+    suggestedRules: toJsonTextValue(record.suggestedRules ?? record.rules),
+    suggestedCharacterCreationCriteria: toJsonTextValue(
+      record.suggestedCharacterCreationCriteria ??
+        record.suggestedCharacterCriteria ??
+        record.characterCreationCriteria ??
+        record.characterCriteria
+    )
   };
 }
 
@@ -1895,6 +2106,7 @@ export interface PvpApiContract {
 
 export interface TablesApiContract {
   list(): Promise<Table[]>;
+  getTablesDashboard(): Promise<TableDashboardResponse>;
   create(input: { name: string }): Promise<Table>;
   join(input: { joinCode: string }): Promise<Table>;
   byId(id: string): Promise<Table>;
@@ -1920,11 +2132,27 @@ export interface TablesApiContract {
   characterTraits(tableId: string, characterId: string): Promise<CharacterTrait[]>;
   updateWorld(
     tableId: string,
-    input: { name?: string; summary?: string; currentArc?: string; tone?: string; rules?: string }
+    input: {
+      name?: string;
+      summary?: string;
+      currentArc?: string;
+      tone?: string;
+      rules?: string | Record<string, unknown>;
+      characterCreationCriteria?: string | Record<string, unknown>;
+      characterCriteria?: string | Record<string, unknown>;
+    }
   ): Promise<TableWorld>;
   missions(tableId: string): Promise<TableMission[]>;
   timeline(tableId: string): Promise<TableTimelineEvent[]>;
   missionSubmissions(tableId: string, missionId: string): Promise<TableMissionSubmission[]>;
+  getTableSubmissions(
+    tableId: string,
+    filters?: TableSubmissionFilters
+  ): Promise<TableSubmissionListResponse>;
+  getMyTableSubmissions(
+    tableId: string,
+    filters?: TableSubmissionFilters
+  ): Promise<TableSubmissionListResponse>;
   createMissionSubmission(
     tableId: string,
     missionId: string,
@@ -2235,6 +2463,8 @@ export const apiContracts = {
   } satisfies PvpApiContract,
   tables: {
     list: () => request(apiClient.get("/api/v1/tables"), (data) => asArray(data, mapTable)),
+    getTablesDashboard: () =>
+      request(apiClient.get("/api/v1/tables/dashboard"), mapTablesDashboard),
     create: (input) => request(apiClient.post("/api/v1/tables", input), mapTable),
     join: (input) => request(apiClient.post("/api/v1/tables/join", input), mapTable),
     byId: (id) => request(apiClient.get(`/api/v1/tables/${id}`), mapTable),
@@ -2253,11 +2483,16 @@ export const apiContracts = {
         apiClient.post(`/api/v1/tables/${tableId}/ai/mission-ideas`, input),
         mapAIMissionIdeas
       ),
-    generateTraitSuggestions: (tableId, input) =>
-      request(
+    generateTraitSuggestions: (tableId, input) => {
+      if (!input.characterId.trim()) {
+        return Promise.reject(new Error("Selecione um personagem válido da mesa."));
+      }
+
+      return request(
         apiClient.post(`/api/v1/tables/${tableId}/ai/traits`, input),
         mapAITraits
-      ),
+      );
+    },
     generateTimelineSummary: (tableId, input) =>
       request(
         apiClient.post(`/api/v1/tables/${tableId}/ai/timeline-summary`, input),
@@ -2283,7 +2518,18 @@ export const apiContracts = {
         apiClient.put(`/api/v1/tables/${tableId}/world`, {
           campaignTitle: input.name,
           summary: input.summary || "Resumo ainda nao informado.",
-          tone: input.tone || undefined
+          currentArc: input.currentArc || undefined,
+          tone: input.tone || undefined,
+          rules:
+            typeof input.rules === "string"
+              ? { text: input.rules }
+              : input.rules,
+          characterCreationCriteria:
+            typeof (input.characterCreationCriteria ?? input.characterCriteria) === "string"
+              ? {
+                  text: input.characterCreationCriteria ?? input.characterCriteria
+                }
+              : input.characterCreationCriteria ?? input.characterCriteria
         }),
         mapTableWorld
       ),
@@ -2301,6 +2547,16 @@ export const apiContracts = {
       request(
         apiClient.get(`/api/v1/tables/${tableId}/missions/${missionId}/submissions`),
         (data) => asArray(data, mapTableMissionSubmission)
+      ),
+    getTableSubmissions: (tableId, filters) =>
+      request(
+        apiClient.get(`/api/v1/tables/${tableId}/submissions`, { params: filters }),
+        mapTableSubmissionList
+      ),
+    getMyTableSubmissions: (tableId, filters) =>
+      request(
+        apiClient.get(`/api/v1/tables/${tableId}/submissions/me`, { params: filters }),
+        mapTableSubmissionList
       ),
     createMissionSubmission: (tableId, missionId, input) =>
       request(

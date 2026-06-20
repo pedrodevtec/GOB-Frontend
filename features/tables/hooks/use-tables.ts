@@ -4,25 +4,41 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { tableKeys } from "@/features/tables/query-keys";
 import { tablesService } from "@/features/tables/services/tables.service";
 import { ApiRequestError } from "@/lib/api/errors";
 import { canAccessMasterPanel } from "@/lib/permissions";
 import type {
   AIInstructionPayload,
   AITimelineSummaryPayload,
-  AITraitsPayload
+  AITraitsPayload,
+  CharacterReview,
+  CharacterTrait,
+  Table,
+  TableCharacter,
+  TableMission,
+  TableSubmissionFilters,
+  TableSubmissionListResponse,
+  TableTimelineEvent
 } from "@/types/app";
 
 export function useTables() {
   return useQuery({
-    queryKey: ["tables"],
+    queryKey: tableKeys.list,
     queryFn: tablesService.list
+  });
+}
+
+export function useTablesDashboard() {
+  return useQuery({
+    queryKey: tableKeys.dashboard,
+    queryFn: tablesService.getTablesDashboard
   });
 }
 
 export function useTable(id: string) {
   return useQuery({
-    queryKey: ["tables", id],
+    queryKey: tableKeys.detail(id),
     queryFn: () => tablesService.byId(id),
     enabled: Boolean(id)
   });
@@ -30,7 +46,7 @@ export function useTable(id: string) {
 
 export function useTableMasterOverview(tableId: string, enabled = true) {
   return useQuery({
-    queryKey: ["tables", tableId, "master", "overview"],
+    queryKey: tableKeys.masterOverview(tableId),
     queryFn: () => tablesService.getTableMasterOverview(tableId),
     enabled: Boolean(tableId && enabled),
     retry: false
@@ -67,15 +83,16 @@ export function useGenerateTimelineSummary(tableId: string) {
 
 export function useTableCharacters(tableId: string, enabled = true) {
   return useQuery({
-    queryKey: ["tables", tableId, "characters"],
+    queryKey: tableKeys.characters(tableId),
     queryFn: () => tablesService.characters(tableId),
-    enabled: Boolean(tableId && enabled)
+    enabled: Boolean(tableId && enabled),
+    refetchOnMount: "always"
   });
 }
 
 export function useTableCharacterTraits(tableId: string, characterId?: string) {
   return useQuery({
-    queryKey: ["tables", tableId, "characters", characterId, "traits"],
+    queryKey: tableKeys.characterTraits(tableId, characterId ?? ""),
     queryFn: () => tablesService.characterTraits(tableId, characterId ?? ""),
     enabled: Boolean(tableId && characterId)
   });
@@ -83,23 +100,49 @@ export function useTableCharacterTraits(tableId: string, characterId?: string) {
 
 export function useTableMissions(tableId: string, enabled = true) {
   return useQuery({
-    queryKey: ["tables", tableId, "missions"],
+    queryKey: tableKeys.missions(tableId),
     queryFn: () => tablesService.missions(tableId),
     enabled: Boolean(tableId && enabled)
   });
 }
 
+// Legacy per-mission endpoint. Prefer useTableSubmissions/useMyTableSubmissions
+// for table-level screens to avoid N+1 requests.
 export function useTableMissionSubmissions(tableId: string, missionId?: string) {
   return useQuery({
-    queryKey: ["tables", tableId, "missions", missionId, "submissions"],
+    queryKey: tableKeys.missionSubmissions(tableId, missionId ?? ""),
     queryFn: () => tablesService.missionSubmissions(tableId, missionId ?? ""),
     enabled: Boolean(tableId && missionId)
   });
 }
 
+export function useTableSubmissions(
+  tableId: string,
+  filters?: TableSubmissionFilters,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: tableKeys.submissions(tableId, filters),
+    queryFn: () => tablesService.getTableSubmissions(tableId, filters),
+    enabled: Boolean(tableId && enabled)
+  });
+}
+
+export function useMyTableSubmissions(
+  tableId: string,
+  filters?: TableSubmissionFilters,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: tableKeys.mySubmissions(tableId, filters),
+    queryFn: () => tablesService.getMyTableSubmissions(tableId, filters),
+    enabled: Boolean(tableId && enabled)
+  });
+}
+
 export function useTableTimeline(tableId: string, enabled = true) {
   return useQuery({
-    queryKey: ["tables", tableId, "timeline"],
+    queryKey: tableKeys.timeline(tableId),
     queryFn: () => tablesService.timeline(tableId),
     enabled: Boolean(tableId && enabled)
   });
@@ -112,7 +155,12 @@ export function useCreateTable() {
   return useMutation({
     mutationFn: tablesService.create,
     onSuccess: (table) => {
-      queryClient.invalidateQueries({ queryKey: ["tables"] });
+      queryClient.setQueryData<Table[]>(tableKeys.list, (current) =>
+        current ? [table, ...current.filter((entry) => entry.id !== table.id)] : current
+      );
+      queryClient.setQueryData(tableKeys.detail(table.id), table);
+      queryClient.invalidateQueries({ queryKey: tableKeys.list, exact: true });
+      queryClient.invalidateQueries({ queryKey: tableKeys.dashboard, exact: true });
       toast.success(table.code ? `Mesa criada. Codigo: ${table.code}` : "Mesa criada.");
       router.push(canAccessMasterPanel(table) ? `/tables/${table.id}/master` : `/tables/${table.id}`);
     },
@@ -127,7 +175,12 @@ export function useJoinTable() {
   return useMutation({
     mutationFn: tablesService.join,
     onSuccess: (table) => {
-      queryClient.invalidateQueries({ queryKey: ["tables"] });
+      queryClient.setQueryData<Table[]>(tableKeys.list, (current) =>
+        current ? [table, ...current.filter((entry) => entry.id !== table.id)] : current
+      );
+      queryClient.setQueryData(tableKeys.detail(table.id), table);
+      queryClient.invalidateQueries({ queryKey: tableKeys.list, exact: true });
+      queryClient.invalidateQueries({ queryKey: tableKeys.dashboard, exact: true });
       toast.success("Voce entrou na mesa.");
       router.push(`/tables/${table.id}/player`);
     },
@@ -148,11 +201,21 @@ export function useCreateTableCharacter(tableId: string) {
   return useMutation({
     mutationFn: (input: { name: string; classId?: string }) =>
       tablesService.createCharacter(tableId, input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId] });
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "master", "overview"] });
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "characters"] });
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "timeline"] });
+    onSuccess: (character) => {
+      queryClient.setQueryData<TableCharacter[]>(
+        tableKeys.characters(tableId),
+        (current) =>
+          current
+            ? [...current.filter((entry) => entry.id !== character.id), character]
+            : current
+      );
+      queryClient.invalidateQueries({ queryKey: tableKeys.characters(tableId), exact: true });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.masterOverview(tableId),
+        exact: true
+      });
+      queryClient.invalidateQueries({ queryKey: tableKeys.timeline(tableId), exact: true });
+      queryClient.invalidateQueries({ queryKey: tableKeys.dashboard, exact: true });
       queryClient.invalidateQueries({ queryKey: ["characters"] });
       toast.success("Personagem enviado para revisao.");
     },
@@ -169,61 +232,54 @@ export function useCreateMissionSubmission(tableId: string) {
       return tablesService.createMissionSubmission(tableId, missionId, payload);
     },
     onSuccess: (_submission, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "master", "overview"] });
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "missions"] });
       queryClient.invalidateQueries({
-        queryKey: ["tables", tableId, "missions", variables.missionId, "submissions"]
+        queryKey: tableKeys.masterOverview(tableId),
+        exact: true
       });
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "timeline"] });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.missionSubmissions(tableId, variables.missionId),
+        exact: true
+      });
+      queryClient.invalidateQueries({ queryKey: tableKeys.submissionsRoot(tableId) });
+      queryClient.invalidateQueries({ queryKey: tableKeys.mySubmissionsRoot(tableId) });
       toast.success("Resposta enviada.");
     },
     onError: (error: Error) => toast.error(error.message)
   });
 }
 
-function useTableMutation<TInput>({
-  tableId,
-  mutationFn,
-  successMessage
-}: {
-  tableId: string;
-  mutationFn: (input: TInput) => Promise<unknown>;
-  successMessage: string;
-}) {
+export function useUpdateTableWorld(tableId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tables"] });
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId] });
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "master", "overview"] });
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "characters"] });
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "missions"] });
-      queryClient.invalidateQueries({ queryKey: ["tables", tableId, "timeline"] });
-      toast.success(successMessage);
-    },
-    onError: (error: Error) => toast.error(error.message)
-  });
-}
-
-export function useUpdateTableWorld(tableId: string) {
-  return useTableMutation({
-    tableId,
     mutationFn: (input: {
       name?: string;
       summary?: string;
       currentArc?: string;
       tone?: string;
-      rules?: string;
+      rules?: string | Record<string, unknown>;
+      characterCreationCriteria?: string | Record<string, unknown>;
+      characterCriteria?: string | Record<string, unknown>;
     }) => tablesService.updateWorld(tableId, input),
-    successMessage: "Mundo atualizado."
+    onSuccess: (world) => {
+      queryClient.setQueryData<Table>(tableKeys.detail(tableId), (current) =>
+        current ? { ...current, world } : current
+      );
+      queryClient.invalidateQueries({ queryKey: tableKeys.detail(tableId), exact: true });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.masterOverview(tableId),
+        exact: true
+      });
+      toast.success("Mundo atualizado.");
+    },
+    onError: (error: Error) => toast.error(error.message)
   });
 }
 
 export function useReviewCharacter(tableId: string) {
-  return useTableMutation({
-    tableId,
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: (input: {
       characterId: string;
       status: "APPROVED" | "REJECTED" | "CHANGES_REQUESTED" | "NEEDS_CHANGES";
@@ -232,13 +288,33 @@ export function useReviewCharacter(tableId: string) {
       const { characterId, ...payload } = input;
       return tablesService.reviewCharacter(tableId, characterId, payload);
     },
-    successMessage: "Personagem revisado."
+    onSuccess: (review, variables) => {
+      queryClient.setQueryData<TableCharacter[]>(
+        tableKeys.characters(tableId),
+        (current) =>
+          current?.map((character) =>
+            character.id === variables.characterId
+              ? { ...character, review: review as CharacterReview }
+              : character
+          )
+      );
+      queryClient.invalidateQueries({ queryKey: tableKeys.characters(tableId), exact: true });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.masterOverview(tableId),
+        exact: true
+      });
+      queryClient.invalidateQueries({ queryKey: tableKeys.timeline(tableId), exact: true });
+      queryClient.invalidateQueries({ queryKey: tableKeys.dashboard, exact: true });
+      toast.success("Personagem revisado.");
+    },
+    onError: (error: Error) => toast.error(error.message)
   });
 }
 
 export function useCreateCharacterTrait(tableId: string) {
-  return useTableMutation({
-    tableId,
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: (input: {
       characterId: string;
       name: string;
@@ -250,13 +326,30 @@ export function useCreateCharacterTrait(tableId: string) {
       const { characterId, ...payload } = input;
       return tablesService.createTrait(tableId, characterId, payload);
     },
-    successMessage: "Trait criada."
+    onSuccess: (trait, variables) => {
+      queryClient.setQueryData<CharacterTrait[]>(
+        tableKeys.characterTraits(tableId, variables.characterId),
+        (current) => (current ? [...current, trait] : current)
+      );
+      queryClient.invalidateQueries({ queryKey: tableKeys.characters(tableId), exact: true });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.characterTraits(tableId, variables.characterId),
+        exact: true
+      });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.masterOverview(tableId),
+        exact: true
+      });
+      toast.success("Trait criada.");
+    },
+    onError: (error: Error) => toast.error(error.message)
   });
 }
 
 export function useCreateTableMission(tableId: string) {
-  return useTableMutation({
-    tableId,
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: (input: {
       title: string;
       description?: string;
@@ -265,13 +358,27 @@ export function useCreateTableMission(tableId: string) {
       rewardHint?: string;
       dueAt?: string;
     }) => tablesService.createMission(tableId, input),
-    successMessage: "Missao criada."
+    onSuccess: (mission) => {
+      queryClient.setQueryData<TableMission[]>(tableKeys.missions(tableId), (current) =>
+        current ? [mission, ...current.filter((entry) => entry.id !== mission.id)] : current
+      );
+      queryClient.invalidateQueries({ queryKey: tableKeys.missions(tableId), exact: true });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.masterOverview(tableId),
+        exact: true
+      });
+      queryClient.invalidateQueries({ queryKey: tableKeys.timeline(tableId), exact: true });
+      queryClient.invalidateQueries({ queryKey: tableKeys.dashboard, exact: true });
+      toast.success("Missao criada.");
+    },
+    onError: (error: Error) => toast.error(error.message)
   });
 }
 
 export function useReviewMissionSubmission(tableId: string) {
-  return useTableMutation({
-    tableId,
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: (input: {
       missionId: string;
       submissionId: string;
@@ -283,19 +390,67 @@ export function useReviewMissionSubmission(tableId: string) {
       const { missionId, submissionId, ...payload } = input;
       return tablesService.reviewMissionSubmission(tableId, missionId, submissionId, payload);
     },
-    successMessage: "Submissao revisada."
+    onSuccess: (submission, variables) => {
+      const updateSubmissionPage = (current?: TableSubmissionListResponse) => {
+        if (!current) return current;
+        return {
+          ...current,
+          items: current.items.map((item) =>
+            item.id === variables.submissionId
+              ? {
+                  ...item,
+                  status: submission.status,
+                  masterNote: submission.masterNote
+                }
+              : item
+          )
+        };
+      };
+
+      queryClient.setQueriesData<TableSubmissionListResponse>(
+        { queryKey: tableKeys.submissionsRoot(tableId) },
+        updateSubmissionPage
+      );
+      queryClient.setQueriesData<TableSubmissionListResponse>(
+        { queryKey: tableKeys.mySubmissionsRoot(tableId) },
+        updateSubmissionPage
+      );
+      queryClient.invalidateQueries({ queryKey: tableKeys.submissionsRoot(tableId) });
+      queryClient.invalidateQueries({ queryKey: tableKeys.mySubmissionsRoot(tableId) });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.masterOverview(tableId),
+        exact: true
+      });
+      queryClient.invalidateQueries({ queryKey: tableKeys.timeline(tableId), exact: true });
+      toast.success("Submissao revisada.");
+    },
+    onError: (error: Error) => toast.error(error.message)
   });
 }
 
 export function useCreateTimelineEvent(tableId: string) {
-  return useTableMutation({
-    tableId,
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: (input: {
       kind: "SESSION" | "MISSION" | "CHARACTER" | "WORLD" | "REWARD" | "NOTE";
       title: string;
       description?: string;
       occurredAt?: string;
     }) => tablesService.createTimelineEvent(tableId, input),
-    successMessage: "Evento criado."
+    onSuccess: (event) => {
+      queryClient.setQueryData<TableTimelineEvent[]>(
+        tableKeys.timeline(tableId),
+        (current) => (current ? [...current, event] : current)
+      );
+      queryClient.invalidateQueries({ queryKey: tableKeys.timeline(tableId), exact: true });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.masterOverview(tableId),
+        exact: true
+      });
+      queryClient.invalidateQueries({ queryKey: tableKeys.dashboard, exact: true });
+      toast.success("Evento criado.");
+    },
+    onError: (error: Error) => toast.error(error.message)
   });
 }

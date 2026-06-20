@@ -2,11 +2,13 @@ import { apiContracts } from "@/lib/api/contracts";
 import type {
   AIInstructionPayload,
   AITimelineSummaryPayload,
-  AITraitsPayload
+  AITraitsPayload,
+  TableSubmissionFilters
 } from "@/types/app";
 
 export const tablesService = {
   list: () => apiContracts.tables.list(),
+  getTablesDashboard: () => apiContracts.tables.getTablesDashboard(),
   create: (input: { name: string }) => apiContracts.tables.create(input),
   join: (input: { joinCode: string }) => apiContracts.tables.join(input),
   byId: (id: string) => apiContracts.tables.byId(id),
@@ -28,6 +30,10 @@ export const tablesService = {
   timeline: (tableId: string) => apiContracts.tables.timeline(tableId),
   missionSubmissions: (tableId: string, missionId: string) =>
     apiContracts.tables.missionSubmissions(tableId, missionId),
+  getTableSubmissions: (tableId: string, filters?: TableSubmissionFilters) =>
+    apiContracts.tables.getTableSubmissions(tableId, filters),
+  getMyTableSubmissions: (tableId: string, filters?: TableSubmissionFilters) =>
+    apiContracts.tables.getMyTableSubmissions(tableId, filters),
   createMissionSubmission: (
     tableId: string,
     missionId: string,
@@ -35,7 +41,15 @@ export const tablesService = {
   ) => apiContracts.tables.createMissionSubmission(tableId, missionId, input),
   updateWorld: (
     tableId: string,
-    input: { name?: string; summary?: string; currentArc?: string; tone?: string; rules?: string }
+    input: {
+      name?: string;
+      summary?: string;
+      currentArc?: string;
+      tone?: string;
+      rules?: string | Record<string, unknown>;
+      characterCreationCriteria?: string | Record<string, unknown>;
+      characterCriteria?: string | Record<string, unknown>;
+    }
   ) => apiContracts.tables.updateWorld(tableId, input),
   reviewCharacter: (
     tableId: string,

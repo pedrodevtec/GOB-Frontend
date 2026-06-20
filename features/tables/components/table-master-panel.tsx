@@ -1,7 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueries } from "@tanstack/react-query";
 import { CheckCircle2, Circle, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -37,10 +36,10 @@ import {
   useTableCharacters,
   useTableMasterOverview,
   useTableMissions,
+  useTableSubmissions,
   useTableTimeline,
   useUpdateTableWorld
 } from "@/features/tables/hooks/use-tables";
-import { tablesService } from "@/features/tables/services/tables.service";
 import { AIAssistantActionCard } from "@/features/tables/components/ai-assistant-action-card";
 import { ApiRequestError } from "@/lib/api/errors";
 import { canAccessMasterPanel, tableMemberStatusFor } from "@/lib/permissions";
@@ -124,7 +123,8 @@ const worldSchema = z.object({
   summary: z.string().optional(),
   currentArc: z.string().optional(),
   tone: z.string().optional(),
-  rules: z.string().optional()
+  rules: z.string().optional(),
+  characterCreationCriteria: z.string().optional()
 });
 
 const traitSchema = z.object({
@@ -198,6 +198,11 @@ function missionIdeaText(idea: AIMissionIdea) {
 
 function traitSuggestionText(suggestion: AITraitSuggestion) {
   return [suggestion.name, suggestion.description].filter(Boolean).join("\n\n");
+}
+
+function jsonFieldText(value: string | Record<string, unknown> | null | undefined) {
+  if (typeof value === "string") return value;
+  return typeof value?.text === "string" ? value.text : "";
 }
 
 function nextFallbackAction(
@@ -277,7 +282,10 @@ function AIAssistantResult({
       world.data.suggestedTitle,
       world.data.suggestedSummary,
       world.data.suggestedTone ? `Tom: ${world.data.suggestedTone}` : "",
-      world.data.suggestedRules ? `Regras: ${world.data.suggestedRules}` : ""
+      world.data.suggestedRules ? `Regras: ${world.data.suggestedRules}` : "",
+      world.data.suggestedCharacterCreationCriteria
+        ? `Criação de personagens: ${world.data.suggestedCharacterCreationCriteria}`
+        : ""
     ]
       .filter(Boolean)
       .join("\n\n");
@@ -305,6 +313,14 @@ function AIAssistantResult({
               {world.data.suggestedRules}
             </p>
           </div>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-wide text-primary">
+            Critérios para criação de personagens
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+            {world.data.suggestedCharacterCreationCriteria}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" onClick={onApplyWorld}>Aplicar no formulário</Button>
@@ -412,14 +428,18 @@ export function TableMasterPanel({ id }: { id: string }) {
     isMaster &&
     (useLegacyOverview ||
       activeTab === "characters" ||
-      activeTab === "submissions" ||
       activeTab === "assistant");
   const needsMissions =
     isMaster &&
-    (useLegacyOverview || activeTab === "missions" || activeTab === "submissions");
+    (useLegacyOverview || activeTab === "missions");
   const needsTimeline = isMaster && (useLegacyOverview || activeTab === "timeline");
   const characters = useTableCharacters(id, needsCharacters);
   const missions = useTableMissions(id, needsMissions);
+  const submissions = useTableSubmissions(
+    id,
+    { status: "SUBMITTED", limit: 50 },
+    isMaster && activeTab === "submissions"
+  );
   const timeline = useTableTimeline(id, needsTimeline);
   const updateWorld = useUpdateTableWorld(id);
   const reviewCharacter = useReviewCharacter(id);
@@ -441,7 +461,8 @@ export function TableMasterPanel({ id }: { id: string }) {
       summary: "",
       currentArc: "",
       tone: "",
-      rules: ""
+      rules: "",
+      characterCreationCriteria: ""
     }
   });
   const traitForm = useForm<TraitInput>({
@@ -484,7 +505,10 @@ export function TableMasterPanel({ id }: { id: string }) {
       summary: table.data.world?.summary ?? "",
       currentArc: table.data.world?.currentArc ?? table.data.currentArc ?? "",
       tone: table.data.world?.tone ?? "",
-      rules: table.data.world?.rules ?? ""
+      rules: jsonFieldText(table.data.world?.rules),
+      characterCreationCriteria: jsonFieldText(
+        table.data.world?.characterCreationCriteria
+      )
     });
   }, [table.data, worldForm]);
 
@@ -492,20 +516,7 @@ export function TableMasterPanel({ id }: { id: string }) {
     (character) => character.review?.status === "PENDING"
   );
   const allMissions = missions.data ?? [];
-  const submissionQueries = useQueries({
-    queries: allMissions.map((mission) => ({
-      queryKey: ["tables", id, "missions", mission.id, "submissions"],
-      queryFn: () => tablesService.missionSubmissions(id, mission.id),
-      enabled: Boolean(
-        id && mission.id && isMaster && (activeTab === "submissions" || useLegacyOverview)
-      )
-    }))
-  });
-  const pendingSubmissions = allMissions.flatMap((mission, index) =>
-    (submissionQueries[index]?.data ?? [])
-      .filter((submission) => submission.status === "SUBMITTED" || submission.status === "PENDING")
-      .map((submission) => ({ mission, submission }))
-  );
+  const pendingSubmissions = submissions.data?.items ?? [];
   const characterOptions = useMemo(() => {
     const options = new Map<string, string>();
 
@@ -515,6 +526,13 @@ export function TableMasterPanel({ id }: { id: string }) {
 
     return Array.from(options.entries()).map(([value, label]) => ({ value, label }));
   }, [characters.data]);
+  const hasApprovedCharacter = (characters.data ?? []).some(
+    (character) => character.review?.status === "APPROVED"
+  );
+  const selectedTraitCharacterId = traitForm.watch("characterId");
+  const hasValidSelectedTraitCharacter = characterOptions.some(
+    (option) => option.value === selectedTraitCharacterId
+  );
 
   function openAssistantAction(action: AIAssistantAction) {
     generateWorldSummary.reset();
@@ -546,9 +564,20 @@ export function TableMasterPanel({ id }: { id: string }) {
     }
 
     if (selectedAssistantAction.kind === "traits") {
+      const characterId = traitForm.getValues("characterId");
+      const characterBelongsToTable = characterOptions.some(
+        (option) => option.value === characterId
+      );
+      if (!characterId || !characterBelongsToTable) {
+        traitForm.setError("characterId", {
+          message: "Selecione um personagem válido da mesa."
+        });
+        return;
+      }
+
       generateTraitSuggestions.mutate({
         instruction: aiInstruction || undefined,
-        characterId: traitForm.getValues("characterId") || undefined
+        characterId
       });
       return;
     }
@@ -566,6 +595,10 @@ export function TableMasterPanel({ id }: { id: string }) {
     worldForm.setValue("summary", suggestion.suggestedSummary);
     worldForm.setValue("tone", suggestion.suggestedTone);
     worldForm.setValue("rules", suggestion.suggestedRules);
+    worldForm.setValue(
+      "characterCreationCriteria",
+      suggestion.suggestedCharacterCreationCriteria
+    );
     closeAssistantAction();
     setActiveTab("world");
   }
@@ -654,41 +687,55 @@ export function TableMasterPanel({ id }: { id: string }) {
     activeTab === "overview" &&
     useLegacyOverview &&
     (characters.isLoading || missions.isLoading || timeline.isLoading);
-  const activeSectionLoading =
-    (needsCharacters && characters.isLoading) ||
-    (needsMissions && missions.isLoading) ||
-    (needsTimeline && timeline.isLoading);
+  const sectionLoading =
+    (activeTab === "overview" && (overview.isLoading || overviewFallbackLoading)) ||
+    (activeTab === "characters" && characters.isLoading) ||
+    (activeTab === "missions" && missions.isLoading) ||
+    (activeTab === "submissions" && submissions.isLoading) ||
+    (activeTab === "timeline" && timeline.isLoading) ||
+    (activeTab === "assistant" && characters.isLoading);
+  const sectionError =
+    (activeTab === "characters" && characters.isError && !characters.data) ||
+    (activeTab === "missions" && missions.isError && !missions.data) ||
+    (activeTab === "submissions" && submissions.isError && !submissions.data) ||
+    (activeTab === "timeline" && timeline.isError && !timeline.data) ||
+    (activeTab === "assistant" && characters.isError && !characters.data);
+  const sectionErrorMessage =
+    (activeTab === "characters" || activeTab === "assistant"
+      ? (characters.error as Error)?.message
+      : activeTab === "missions"
+        ? (missions.error as Error)?.message
+        : activeTab === "submissions"
+          ? (submissions.error as Error)?.message
+          : activeTab === "timeline"
+            ? (timeline.error as Error)?.message
+            : undefined) ?? "Falha ao carregar esta seção.";
+  const sectionRefreshing =
+    !sectionLoading &&
+    ((activeTab === "overview" && overview.isFetching) ||
+      (activeTab === "characters" && characters.isFetching) ||
+      (activeTab === "missions" && missions.isFetching) ||
+      (activeTab === "submissions" && submissions.isFetching) ||
+      (activeTab === "timeline" && timeline.isFetching) ||
+      (activeTab === "assistant" && characters.isFetching));
 
-  if (
-    table.isLoading ||
-    (activeTab === "overview" && overview.isLoading) ||
-    overviewFallbackLoading ||
-    activeSectionLoading
-  ) {
+  function refetchActiveSection() {
+    if (activeTab === "overview") void overview.refetch();
+    if (activeTab === "characters" || activeTab === "assistant") void characters.refetch();
+    if (activeTab === "missions") void missions.refetch();
+    if (activeTab === "submissions") void submissions.refetch();
+    if (activeTab === "timeline") void timeline.refetch();
+  }
+
+  if (table.isLoading) {
     return <LoadingState label="Carregando painel do mestre..." />;
   }
 
-  if (
-    table.isError ||
-    (needsCharacters && characters.isError) ||
-    (needsMissions && missions.isError) ||
-    (needsTimeline && timeline.isError)
-  ) {
+  if (table.isError) {
     return (
       <ErrorState
-        description={
-          (table.error as Error)?.message ||
-          (characters.error as Error)?.message ||
-          (missions.error as Error)?.message ||
-          (timeline.error as Error)?.message ||
-          "Falha ao carregar a mesa."
-        }
-        onRetry={() => {
-          void table.refetch();
-          void characters.refetch();
-          void missions.refetch();
-          void timeline.refetch();
-        }}
+        description={(table.error as Error)?.message || "Falha ao carregar a mesa."}
+        onRetry={() => void table.refetch()}
       />
     );
   }
@@ -796,6 +843,16 @@ export function TableMasterPanel({ id }: { id: string }) {
         ))}
       </div>
 
+      {sectionRefreshing ? (
+        <p className="text-right text-xs text-muted-foreground">Atualizando seção...</p>
+      ) : null}
+
+      {sectionLoading ? (
+        <LoadingState label="Carregando esta seção..." />
+      ) : sectionError ? (
+        <ErrorState description={sectionErrorMessage} onRetry={refetchActiveSection} />
+      ) : (
+        <>
       {activeTab === "overview" ? (
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <Card className="space-y-4">
@@ -909,6 +966,12 @@ export function TableMasterPanel({ id }: { id: string }) {
               <label className="text-sm font-medium">Regras da mesa</label>
               <Textarea {...worldForm.register("rules")} />
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Critérios para criação de personagens
+              </label>
+              <Textarea {...worldForm.register("characterCreationCriteria")} />
+            </div>
             <Button type="submit" disabled={updateWorld.isPending}>
               {updateWorld.isPending ? "Salvando..." : "Salvar mundo"}
             </Button>
@@ -953,6 +1016,15 @@ export function TableMasterPanel({ id }: { id: string }) {
               <p className="text-xs text-rose-300">
                 {traitForm.formState.errors.characterId?.message}
               </p>
+              {!characterOptions.length ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum personagem criado nesta mesa ainda.
+                </p>
+              ) : !hasApprovedCharacter ? (
+                <p className="text-sm text-amber-200">
+                  A IA pode sugerir traits, mas o ideal é aprovar o personagem antes de aplicar.
+                </p>
+              ) : null}
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -1185,12 +1257,15 @@ export function TableMasterPanel({ id }: { id: string }) {
           </div>
           {pendingSubmissions.length ? (
             <div className="grid gap-4">
-              {pendingSubmissions.map(({ mission, submission }) => (
+              {pendingSubmissions.map((submission) => (
                 <div key={submission.id} className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <p className="font-semibold">{submission.characterName || submission.characterId}</p>
-                      <p className="text-sm text-muted-foreground">{mission.title}</p>
+                      <p className="font-semibold">{submission.character.name}</p>
+                      <p className="text-sm text-muted-foreground">{submission.mission.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Jogador: {submission.user.name}
+                      </p>
                     </div>
                     <Badge variant="warning">{submission.status}</Badge>
                   </div>
@@ -1210,7 +1285,7 @@ export function TableMasterPanel({ id }: { id: string }) {
                       type="button"
                       onClick={() =>
                         reviewSubmission.mutate({
-                          missionId: mission.id,
+                          missionId: submission.mission.id,
                           submissionId: submission.id,
                           status: "APPROVED",
                           notes: submissionNotes[submission.id]
@@ -1225,7 +1300,7 @@ export function TableMasterPanel({ id }: { id: string }) {
                       variant="destructive"
                       onClick={() =>
                         reviewSubmission.mutate({
-                          missionId: mission.id,
+                          missionId: submission.mission.id,
                           submissionId: submission.id,
                           status: "REJECTED",
                           notes: submissionNotes[submission.id]
@@ -1396,18 +1471,40 @@ export function TableMasterPanel({ id }: { id: string }) {
                 {selectedAssistantAction?.kind === "traits" ? (
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Personagem</label>
-                    <select
-                      className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
-                      value={traitForm.watch("characterId")}
-                      onChange={(event) => traitForm.setValue("characterId", event.target.value)}
-                    >
-                      <option value="">Contexto geral da mesa</option>
-                      {characterOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    {characters.isLoading ? (
+                      <LoadingState label="Carregando personagens..." />
+                    ) : characterOptions.length ? (
+                      <>
+                        <select
+                          className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                          value={selectedTraitCharacterId}
+                          onChange={(event) => {
+                            traitForm.clearErrors("characterId");
+                            traitForm.setValue("characterId", event.target.value);
+                          }}
+                        >
+                          <option value="">Selecione um personagem</option>
+                          {characterOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        {!hasApprovedCharacter ? (
+                          <p className="text-sm text-amber-200">
+                            A IA pode sugerir traits, mas o ideal é aprovar o personagem antes de aplicar.
+                          </p>
+                        ) : null}
+                        <p className="text-xs text-rose-300">
+                          {traitForm.formState.errors.characterId?.message}
+                        </p>
+                      </>
+                    ) : (
+                      <EmptyState
+                        title="Nenhum personagem criado nesta mesa ainda."
+                        description="Um membro precisa criar um personagem vinculado à mesa."
+                      />
+                    )}
                   </div>
                 ) : null}
 
@@ -1441,6 +1538,8 @@ export function TableMasterPanel({ id }: { id: string }) {
                     generateMissionIdeas.isPending ||
                     generateTraitSuggestions.isPending ||
                     generateTimelineSummary.isPending ||
+                    (selectedAssistantAction?.kind === "traits" &&
+                      !hasValidSelectedTraitCharacter) ||
                     (selectedAssistantAction?.kind === "timeline" && !timelineNotes.trim())
                   }
                 >
@@ -1468,6 +1567,8 @@ export function TableMasterPanel({ id }: { id: string }) {
           </Dialog>
         </div>
       ) : null}
+        </>
+      )}
     </div>
   );
 }

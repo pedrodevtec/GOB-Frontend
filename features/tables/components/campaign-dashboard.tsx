@@ -1,100 +1,81 @@
 "use client";
 
 import Link from "next/link";
-import { useQueries } from "@tanstack/react-query";
 
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
-import { LoadingState } from "@/components/states/loading-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { tablesService } from "@/features/tables/services/tables.service";
-import { useTables } from "@/features/tables/hooks/use-tables";
-import { tableRoleFor } from "@/lib/permissions";
-import type { Table, TableCharacter, TableMission, TableTimelineEvent } from "@/types/app";
+import { useTablesDashboard } from "@/features/tables/hooks/use-tables";
 
-function userRoleFor(table: Table) {
-  return tableRoleFor(table);
+function DashboardLoadingSkeleton() {
+  return (
+    <div className="space-y-6" aria-label="Carregando campanhas">
+      <div className="grid gap-4 md:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-36 animate-pulse rounded-2xl border border-white/10 bg-white/5"
+          />
+        ))}
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-32 animate-pulse rounded-2xl border border-white/10 bg-white/5"
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function CampaignDashboard() {
-  const tables = useTables();
-  const tableList = tables.data ?? [];
+  const dashboard = useTablesDashboard();
 
-  const characterQueries = useQueries({
-    queries: tableList.map((table) => ({
-      queryKey: ["tables", table.id, "characters"],
-      queryFn: () => tablesService.characters(table.id),
-      enabled: Boolean(table.id)
-    }))
-  });
-  const missionQueries = useQueries({
-    queries: tableList.map((table) => ({
-      queryKey: ["tables", table.id, "missions"],
-      queryFn: () => tablesService.missions(table.id),
-      enabled: Boolean(table.id)
-    }))
-  });
-  const timelineQueries = useQueries({
-    queries: tableList.map((table) => ({
-      queryKey: ["tables", table.id, "timeline"],
-      queryFn: () => tablesService.timeline(table.id),
-      enabled: Boolean(table.id)
-    }))
-  });
-
-  if (tables.isLoading) {
-    return <LoadingState label="Carregando campanhas..." />;
+  if (dashboard.isLoading) {
+    return <DashboardLoadingSkeleton />;
   }
 
-  if (tables.isError) {
+  if (dashboard.isError) {
     return (
       <ErrorState
-        description={(tables.error as Error)?.message || "Falha ao carregar campanhas."}
-        onRetry={() => void tables.refetch()}
+        description={(dashboard.error as Error)?.message || "Falha ao carregar campanhas."}
+        onRetry={() => void dashboard.refetch()}
       />
     );
   }
 
-  const masterTables = tableList.filter((table) => userRoleFor(table) === "MASTER");
-  const playerTables = tableList.filter((table) => userRoleFor(table) === "PLAYER");
-  const pendingReviews = tableList.flatMap((table, index) => {
-    if (userRoleFor(table) !== "MASTER") return [];
-    return ((characterQueries[index]?.data ?? []) as TableCharacter[])
-      .filter((character) => character.review?.status === "PENDING")
-      .map((character) => ({ table, character }));
-  });
-  const pendingMissions = tableList.flatMap((table, index) => {
-    if (userRoleFor(table) !== "PLAYER") return [];
-    return ((missionQueries[index]?.data ?? []) as TableMission[])
-      .filter((mission) => mission.status === "ACTIVE")
-      .slice(0, 3)
-      .map((mission) => ({ table, mission }));
-  });
-  const recentTimeline = tableList
-    .flatMap((table, index) =>
-      ((timelineQueries[index]?.data ?? []) as TableTimelineEvent[]).map((event) => ({ table, event }))
-    )
-    .sort((left, right) => Date.parse(right.event.occurredAt) - Date.parse(left.event.occurredAt))
-    .slice(0, 5);
+  const data = dashboard.data;
+  const tableList = data?.tables ?? [];
+  const pendingReviews = data?.pendingCharacterReviews ?? [];
+  const pendingMissions = data?.activePlayerMissions ?? [];
+  const recentTimeline = data?.recentTimeline ?? [];
 
   return (
     <div className="space-y-6">
+      {dashboard.isFetching ? (
+        <p className="text-right text-xs text-muted-foreground">Atualizando dashboard...</p>
+      ) : null}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-primary">Campanhas</p>
-          <CardTitle className="text-3xl">{tableList.length}</CardTitle>
+          <CardTitle className="text-3xl">{data?.summary.totalTables ?? 0}</CardTitle>
           <CardDescription>Mesas onde voce participa como mestre ou jogador.</CardDescription>
         </Card>
         <Card className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-primary">Como mestre</p>
-          <CardTitle className="text-3xl">{masterTables.length}</CardTitle>
+          <CardTitle className="text-3xl">{data?.summary.masterTables ?? 0}</CardTitle>
           <CardDescription>Campanhas sob sua organizacao.</CardDescription>
         </Card>
         <Card className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-primary">Pendencias</p>
-          <CardTitle className="text-3xl">{pendingReviews.length + pendingMissions.length}</CardTitle>
+          <CardTitle className="text-3xl">
+            {(data?.summary.pendingCharacterReviews ?? 0) +
+              (data?.summary.activePlayerMissions ?? 0)}
+          </CardTitle>
           <CardDescription>Personagens para revisar ou missoes ativas para responder.</CardDescription>
         </Card>
       </div>
@@ -121,7 +102,7 @@ export function CampaignDashboard() {
         {tableList.length ? (
           <div className="grid gap-3 md:grid-cols-2">
             {tableList.slice(0, 4).map((table) => {
-              const role = userRoleFor(table);
+              const role = table.currentUserRole;
 
               return (
                 <div key={table.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -183,14 +164,14 @@ export function CampaignDashboard() {
           <CardTitle>Missoes de jogador</CardTitle>
           {pendingMissions.length ? (
             <div className="grid gap-3">
-              {pendingMissions.slice(0, 5).map(({ table, mission }) => (
+              {pendingMissions.slice(0, 5).map((mission) => (
                 <Link
-                  key={`${table.id}-${mission.id}`}
-                  href={`/tables/${table.id}/player`}
+                  key={`${mission.table.id}-${mission.id}`}
+                  href={`/tables/${mission.table.id}/player`}
                   className="rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:border-primary/40"
                 >
                   <p className="font-semibold">{mission.title}</p>
-                  <p className="text-sm text-muted-foreground">{table.name}</p>
+                  <p className="text-sm text-muted-foreground">{mission.table.name}</p>
                 </Link>
               ))}
             </div>
@@ -204,13 +185,13 @@ export function CampaignDashboard() {
         <CardTitle>Atualizacoes recentes</CardTitle>
         {recentTimeline.length ? (
           <div className="grid gap-3">
-            {recentTimeline.map(({ table, event }) => (
+            {recentTimeline.map((event) => (
               <div key={event.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-semibold">{event.title}</p>
                   <Badge variant="secondary">{event.kind}</Badge>
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">{table.name}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{event.table.name}</p>
                 <p className="mt-2 text-sm text-muted-foreground">{event.description}</p>
               </div>
             ))}
