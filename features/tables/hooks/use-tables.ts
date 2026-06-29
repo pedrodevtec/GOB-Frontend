@@ -53,6 +53,15 @@ export function useTableMasterOverview(tableId: string, enabled = true) {
   });
 }
 
+export function useTablePlayerOverview(tableId: string, enabled = true) {
+  return useQuery({
+    queryKey: tableKeys.playerOverview(tableId),
+    queryFn: () => tablesService.getTablePlayerOverview(tableId),
+    enabled: Boolean(tableId && enabled),
+    retry: false
+  });
+}
+
 export function useGenerateWorldSummary(tableId: string) {
   return useMutation({
     mutationFn: (input: AIInstructionPayload) =>
@@ -90,11 +99,29 @@ export function useTableCharacters(tableId: string, enabled = true) {
   });
 }
 
+export function useMyTableCharacter(tableId: string, enabled = true) {
+  return useQuery({
+    queryKey: tableKeys.myCharacter(tableId),
+    queryFn: () => tablesService.getMyTableCharacter(tableId),
+    enabled: Boolean(tableId && enabled),
+    retry: false
+  });
+}
+
 export function useTableCharacterTraits(tableId: string, characterId?: string) {
   return useQuery({
     queryKey: tableKeys.characterTraits(tableId, characterId ?? ""),
     queryFn: () => tablesService.characterTraits(tableId, characterId ?? ""),
     enabled: Boolean(tableId && characterId)
+  });
+}
+
+export function useCharacterTraitSuggestions(tableId: string, characterId?: string) {
+  return useQuery({
+    queryKey: tableKeys.traitSuggestions(tableId, characterId ?? ""),
+    queryFn: () => tablesService.getCharacterTraitSuggestions(tableId, characterId ?? ""),
+    enabled: Boolean(tableId && characterId),
+    retry: false
   });
 }
 
@@ -210,13 +237,14 @@ export function useCreateTableCharacter(tableId: string) {
             : current
       );
       queryClient.invalidateQueries({ queryKey: tableKeys.characters(tableId), exact: true });
+      queryClient.invalidateQueries({ queryKey: tableKeys.playerOverview(tableId), exact: true });
+      queryClient.invalidateQueries({ queryKey: tableKeys.myCharacter(tableId), exact: true });
       queryClient.invalidateQueries({
         queryKey: tableKeys.masterOverview(tableId),
         exact: true
       });
       queryClient.invalidateQueries({ queryKey: tableKeys.timeline(tableId), exact: true });
       queryClient.invalidateQueries({ queryKey: tableKeys.dashboard, exact: true });
-      queryClient.invalidateQueries({ queryKey: ["characters"] });
       toast.success("Personagem enviado para revisao.");
     },
     onError: (error: Error) => toast.error(error.message)
@@ -232,6 +260,9 @@ export function useCreateMissionSubmission(tableId: string) {
       return tablesService.createMissionSubmission(tableId, missionId, payload);
     },
     onSuccess: (_submission, variables) => {
+      queryClient.invalidateQueries({ queryKey: tableKeys.playerOverview(tableId), exact: true });
+      queryClient.invalidateQueries({ queryKey: tableKeys.mySubmissions(tableId, { limit: 50 }), exact: true });
+      queryClient.invalidateQueries({ queryKey: tableKeys.missions(tableId), exact: true });
       queryClient.invalidateQueries({
         queryKey: tableKeys.masterOverview(tableId),
         exact: true
@@ -243,6 +274,46 @@ export function useCreateMissionSubmission(tableId: string) {
       queryClient.invalidateQueries({ queryKey: tableKeys.submissionsRoot(tableId) });
       queryClient.invalidateQueries({ queryKey: tableKeys.mySubmissionsRoot(tableId) });
       toast.success("Resposta enviada.");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useApplyTraitSuggestion(tableId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { characterId: string; suggestionId: string }) =>
+      tablesService.applyTraitSuggestion(tableId, input.characterId, input.suggestionId),
+    onSuccess: (_suggestion, variables) => {
+      queryClient.invalidateQueries({ queryKey: tableKeys.playerOverview(tableId), exact: true });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.traitSuggestions(tableId, variables.characterId),
+        exact: true
+      });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.characterTraits(tableId, variables.characterId),
+        exact: true
+      });
+      toast.success("Sugestao aplicada.");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useDismissTraitSuggestion(tableId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { characterId: string; suggestionId: string }) =>
+      tablesService.dismissTraitSuggestion(tableId, input.characterId, input.suggestionId),
+    onSuccess: (_suggestion, variables) => {
+      queryClient.invalidateQueries({ queryKey: tableKeys.playerOverview(tableId), exact: true });
+      queryClient.invalidateQueries({
+        queryKey: tableKeys.traitSuggestions(tableId, variables.characterId),
+        exact: true
+      });
+      toast.success("Sugestao dispensada.");
     },
     onError: (error: Error) => toast.error(error.message)
   });

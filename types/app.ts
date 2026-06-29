@@ -640,6 +640,8 @@ export type TableRole = "MASTER" | "PLAYER";
 export type TableMemberStatus = "ACTIVE" | "INVITED" | "REMOVED";
 export type CharacterReviewStatus = "PENDING" | "APPROVED" | "REJECTED" | "CHANGES_REQUESTED" | "NEEDS_CHANGES";
 export type CharacterTraitTone = "POSITIVE" | "NEGATIVE" | "NEUTRAL";
+export type CharacterTraitSuggestionSource = "AI" | "MASTER";
+export type CharacterTraitSuggestionStatus = "SUGGESTED" | "APPLIED" | "DISMISSED";
 export type TableMissionStatus = "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
 export type TableMissionSubmissionStatus = "PENDING" | "SUBMITTED" | "APPROVED" | "REJECTED" | "NEEDS_CHANGES";
 export type TableTimelineEventKind =
@@ -691,6 +693,18 @@ export interface CharacterTrait {
   value?: number;
 }
 
+export interface CharacterTraitSuggestion {
+  id: string;
+  characterId: string;
+  tableId?: string;
+  type: CharacterTraitTone;
+  name: string;
+  description: string;
+  source: CharacterTraitSuggestionSource;
+  status: CharacterTraitSuggestionStatus;
+  createdAt?: string;
+}
+
 export interface CharacterReview {
   id: string;
   tableId: string;
@@ -714,6 +728,18 @@ export interface TableCharacter {
   className?: string;
   status?: CharacterStatus;
   review?: CharacterReview | null;
+}
+
+export interface PlayerTableCharacter {
+  id: string;
+  tableId?: string | null;
+  name: string;
+  level: number;
+  className?: string;
+  status?: CharacterStatus;
+  reviewStatus: CharacterReviewStatus;
+  masterFeedback?: string | null;
+  traits: CharacterTrait[];
 }
 
 export interface TableMissionSubmission {
@@ -744,6 +770,30 @@ export interface TableMission {
   createdAt?: string;
 }
 
+export interface TableSubmissionForPlayer {
+  id: string;
+  missionId: string;
+  missionTitle: string;
+  characterId: string;
+  status: TableMissionSubmissionStatus;
+  content: string;
+  masterNote?: string | null;
+  submittedAt?: string;
+  updatedAt?: string;
+}
+
+export interface TableMissionForPlayer {
+  id: string;
+  tableId: string;
+  title: string;
+  description: string;
+  objective?: string | null;
+  status: TableMissionStatus;
+  dueAt?: string | null;
+  rewardHint?: string;
+  submission?: TableSubmissionForPlayer | null;
+}
+
 export interface TableTimelineEvent {
   id: string;
   tableId: string;
@@ -753,6 +803,32 @@ export interface TableTimelineEvent {
   occurredAt: string;
   actorName?: string;
   metadata?: Record<string, unknown>;
+}
+
+export interface TimelineEventPreview {
+  id: string;
+  tableId: string;
+  kind: TableTimelineEventKind;
+  title: string;
+  description: string;
+  occurredAt: string;
+  actorName?: string;
+}
+
+export type NextRecommendedActionKind =
+  | "CREATE_CHARACTER"
+  | "WAIT_FOR_APPROVAL"
+  | "UPDATE_CHARACTER"
+  | "START_MISSION"
+  | "WAIT_FOR_REVIEW"
+  | "READ_TIMELINE";
+
+export interface NextRecommendedAction {
+  kind: NextRecommendedActionKind;
+  title: string;
+  description: string;
+  ctaLabel?: string;
+  targetMissionId?: string;
 }
 
 export interface Table {
@@ -895,6 +971,19 @@ export interface TableSubmissionFilters {
   limit?: number;
 }
 
+export interface TablePlayerOverview {
+  table: Table;
+  currentUserRole: TableRole | null;
+  worldSummary: string;
+  character: PlayerTableCharacter | null;
+  appliedTraits: CharacterTrait[];
+  suggestedTraits: CharacterTraitSuggestion[];
+  activeMissions: TableMissionForPlayer[];
+  recentSubmissions: TableSubmissionForPlayer[];
+  timeline: TimelineEventPreview[];
+  nextRecommendedAction: NextRecommendedAction | null;
+}
+
 export type MasterPanelSection =
   | "overview"
   | "world"
@@ -974,8 +1063,44 @@ export interface AITimelineSummaryResponse {
   suggestedDescription: string;
 }
 
+export interface AITableCharacterContext {
+  id: string;
+  name: string;
+  status?: CharacterReviewStatus | CharacterStatus;
+  className?: string;
+}
+
+export interface AITableMissionContext {
+  id: string;
+  title: string;
+  description?: string;
+  status?: TableMissionStatus;
+}
+
+export interface AITableTimelineContext {
+  id: string;
+  title: string;
+  description?: string;
+  kind?: TableTimelineEventKind;
+}
+
+export interface AITableWorldContext {
+  name?: string;
+  summary?: string;
+  currentArc?: string | null;
+  tone?: string | null;
+}
+
 export interface AIInstructionPayload {
   instruction?: string;
+  tableName?: string;
+  worldSummary?: string;
+  currentArc?: string | null;
+  tone?: string | null;
+  world?: AITableWorldContext;
+  characters?: AITableCharacterContext[];
+  missions?: AITableMissionContext[];
+  timeline?: AITableTimelineContext[];
 }
 
 export interface AITraitsPayload extends AIInstructionPayload {
@@ -984,6 +1109,7 @@ export interface AITraitsPayload extends AIInstructionPayload {
 
 export interface AITimelineSummaryPayload extends AIInstructionPayload {
   notes: string;
+  eventType?: TableTimelineEventKind | string;
 }
 
 export interface AdminEntity {

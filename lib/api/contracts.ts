@@ -69,12 +69,19 @@ import type {
   TableWorld,
   CharacterReview,
   CharacterTrait,
+  CharacterTraitSuggestion,
   TransactionRecord,
   TradeAction,
   TradeAsset,
   TradeList,
   TradeRecord,
   TradeStatus,
+  NextRecommendedAction,
+  PlayerTableCharacter,
+  TableMissionForPlayer,
+  TablePlayerOverview,
+  TableSubmissionForPlayer,
+  TimelineEventPreview,
   WalletSummary
 } from "@/types/app";
 import { normalizeAccountRole } from "@/lib/permissions";
@@ -942,14 +949,17 @@ function mapCharacterTrait(input: unknown): CharacterTrait {
 }
 
 function mapCharacterReview(input: unknown): CharacterReview {
-  const record = unwrapEntity(input);
+  const root = asRecord(input);
+  const record =
+    pickRecord(root, ["data", "item", "result", "review", "characterReview"]) ?? root;
   const character = asRecord(record.character);
   const submitter = asRecord(record.submittedBy ?? record.user);
+  const characterId = toStringValue(record.characterId ?? character.id);
 
   return {
-    id: toStringValue(record.id),
+    id: toStringValue(record.id) || characterId,
     tableId: toStringValue(record.tableId),
-    characterId: toStringValue(record.characterId ?? character.id),
+    characterId,
     characterName: toStringValue(record.characterName ?? character.name) || undefined,
     submittedBy:
       toStringValue(record.submittedByName) ||
@@ -970,7 +980,30 @@ function mapTableCharacter(input: unknown): TableCharacter {
   // incorrectly unwraps that user and drops the character reviews.
   const record = asRecord(input);
   const user = asRecord(record.user);
-  const reviews = asArray(record.reviews, mapCharacterReview);
+  const reviewRecord = asRecord(record.review ?? record.characterReview);
+  const reviews = asArray(record.reviews ?? record.characterReviews, mapCharacterReview);
+  const directReviewStatus = toStringValue(
+    record.reviewStatus ?? record.tableReviewStatus ?? record.approvalStatus
+  );
+  const directReview =
+    Object.keys(reviewRecord).length > 0
+      ? mapCharacterReview({
+          ...reviewRecord,
+          tableId: reviewRecord.tableId ?? record.tableId,
+          characterId: reviewRecord.characterId ?? record.id,
+          characterName: reviewRecord.characterName ?? record.name
+        })
+      : directReviewStatus
+        ? mapCharacterReview({
+            id: toStringValue(record.reviewId) || toStringValue(record.id),
+            tableId: record.tableId,
+            characterId: record.id,
+            characterName: record.name,
+            submittedByName: record.userName ?? user.username ?? user.nome ?? user.name,
+            status: directReviewStatus,
+            notes: record.masterFeedback ?? record.reviewNotes
+          })
+        : null;
 
   return {
     id: toStringValue(record.id),
@@ -987,7 +1020,7 @@ function mapTableCharacter(input: unknown): TableCharacter {
     level: toNumberValue(record.level),
     className: mapClassName(record.className ?? record.classId ?? record.class),
     status: toStringValue(record.status, "READY") as TableCharacter["status"],
-    review: reviews[0] ?? null
+    review: directReview ?? reviews[0] ?? null
   };
 }
 
@@ -1054,6 +1087,168 @@ function mapTableTimelineEvent(input: unknown): TableTimelineEvent {
       toStringValue(actor.name) ||
       undefined,
     metadata: isObject(record.metadata) ? record.metadata : undefined
+  };
+}
+
+function mapPlayerTableCharacter(input: unknown): PlayerTableCharacter {
+  const record = asRecord(unwrapEntity(input));
+  const review = asRecord(record.review);
+  const reviews = asArray(record.reviews, mapCharacterReview);
+  const latestReview = reviews[0];
+  const reviewStatus = toStringValue(
+    record.reviewStatus ?? review.status ?? latestReview?.status,
+    "PENDING"
+  ) as PlayerTableCharacter["reviewStatus"];
+
+  return {
+    id: toStringValue(record.id),
+    tableId: toStringValue(record.tableId) || null,
+    name: toStringValue(record.name ?? record.nome ?? record.title),
+    level: toNumberValue(record.level),
+    className: mapClassName(record.className ?? record.classId ?? record.class),
+    status: toStringValue(record.status, "READY") as PlayerTableCharacter["status"],
+    reviewStatus,
+    masterFeedback:
+      toStringValue(
+        record.masterFeedback ??
+          record.feedback ??
+          review.masterFeedback ??
+          review.notes ??
+          latestReview?.notes
+      ) || null,
+    traits: asArray(record.traits, mapCharacterTrait)
+  };
+}
+
+function hasCharacterId(input: unknown) {
+  const record = asRecord(input);
+  return Boolean(toStringValue(record.id));
+}
+
+function mapCharacterTraitSuggestion(input: unknown): CharacterTraitSuggestion {
+  const record = unwrapEntity(input);
+
+  return {
+    id: toStringValue(record.id),
+    characterId: toStringValue(record.characterId),
+    tableId: toStringValue(record.tableId) || undefined,
+    type: toStringValue(record.type ?? record.tone ?? record.alignment, "NEUTRAL").toUpperCase() as CharacterTraitSuggestion["type"],
+    name: toStringValue(record.name ?? record.title),
+    description: toStringValue(record.description ?? record.effect),
+    source: toStringValue(record.source, "AI").toUpperCase() === "MASTER" ? "MASTER" : "AI",
+    status: toStringValue(record.status, "SUGGESTED").toUpperCase() as CharacterTraitSuggestion["status"],
+    createdAt: toStringValue(record.createdAt) || undefined
+  };
+}
+
+function mapTableSubmissionForPlayer(input: unknown): TableSubmissionForPlayer {
+  const record = unwrapEntity(input);
+  const mission = asRecord(record.mission);
+  const character = asRecord(record.character);
+
+  return {
+    id: toStringValue(record.id),
+    missionId: toStringValue(record.missionId ?? mission.id),
+    missionTitle: toStringValue(record.missionTitle ?? mission.title),
+    characterId: toStringValue(record.characterId ?? character.id),
+    status: toStringValue(record.status, "SUBMITTED") as TableSubmissionForPlayer["status"],
+    content: toStringValue(record.content),
+    masterNote: toStringValue(record.masterNote ?? record.masterFeedback ?? record.notes) || null,
+    submittedAt: toStringValue(record.submittedAt ?? record.createdAt) || undefined,
+    updatedAt: toStringValue(record.updatedAt ?? record.reviewedAt ?? record.createdAt) || undefined
+  };
+}
+
+function mapTableMissionForPlayer(input: unknown): TableMissionForPlayer {
+  const record = unwrapEntity(input);
+
+  return {
+    id: toStringValue(record.id),
+    tableId: toStringValue(record.tableId),
+    title: toStringValue(record.title ?? record.name),
+    description: toStringValue(record.description) || "Missao sem descricao detalhada.",
+    objective: toStringValue(record.objective) || null,
+    status: toStringValue(record.status, "ACTIVE") as TableMissionForPlayer["status"],
+    dueAt: toStringValue(record.dueAt ?? record.dueDate ?? record.endsAt) || null,
+    rewardHint:
+      toStringValue(record.rewardHint) ||
+      toStringValue(record.rewardDescription) ||
+      toStringValue(record.reward) ||
+      undefined,
+    submission: record.submission ? mapTableSubmissionForPlayer(record.submission) : null
+  };
+}
+
+function mapTimelineEventPreview(input: unknown): TimelineEventPreview {
+  const event = mapTableTimelineEvent(input);
+
+  return {
+    id: event.id,
+    tableId: event.tableId,
+    kind: event.kind,
+    title: event.title,
+    description: event.description,
+    occurredAt: event.occurredAt,
+    actorName: event.actorName
+  };
+}
+
+function mapNextRecommendedAction(input: unknown): NextRecommendedAction | null {
+  if (!isObject(input)) return null;
+  const record = asRecord(input);
+  const kind = toStringValue(record.kind ?? record.type ?? record.action, "READ_TIMELINE").toUpperCase();
+
+  return {
+    kind: kind as NextRecommendedAction["kind"],
+    title: toStringValue(record.title, "Proximo passo"),
+    description: toStringValue(record.description),
+    ctaLabel: toStringValue(record.ctaLabel ?? record.actionLabel ?? record.buttonLabel) || undefined,
+    targetMissionId: toStringValue(record.targetMissionId ?? record.missionId) || undefined
+  };
+}
+
+function mapTablePlayerOverview(input: unknown): TablePlayerOverview {
+  const root = asRecord(input);
+  const nestedOverview = asRecord(root.overview);
+  const record = Object.keys(nestedOverview).length ? nestedOverview : unwrapEntity(input);
+  const table = mapTable(record.table ?? root.table ?? record);
+  const characterRecord = record.character ?? record.myCharacter ?? record.playerCharacter;
+  const character =
+    isObject(characterRecord) && hasCharacterId(characterRecord)
+      ? mapPlayerTableCharacter(characterRecord)
+      : null;
+  const appliedTraits = asArray(
+    record.appliedTraits ?? record.traits ?? character?.traits,
+    mapCharacterTrait
+  );
+
+  return {
+    table,
+    currentUserRole: normalizeTableRole(record.currentUserRole ?? table.currentUserRole) ?? null,
+    worldSummary:
+      toStringValue(record.worldSummary) ||
+      table.world?.summary ||
+      table.description ||
+      "Resumo de mundo ainda nao informado.",
+    character: character ? { ...character, traits: appliedTraits } : null,
+    appliedTraits,
+    suggestedTraits: asArray(
+      record.suggestedTraits ?? record.traitSuggestions ?? record.suggestedPerks,
+      mapCharacterTraitSuggestion
+    ),
+    activeMissions: asArray(
+      record.activeMissions ?? record.missions,
+      mapTableMissionForPlayer
+    ).filter((mission) => mission.status === "ACTIVE"),
+    recentSubmissions: asArray(
+      record.recentSubmissions ?? record.submissions ?? record.mySubmissions,
+      mapTableSubmissionForPlayer
+    ),
+    timeline: asArray(
+      record.timeline ?? record.recentTimeline ?? record.timelineEvents,
+      mapTimelineEventPreview
+    ),
+    nextRecommendedAction: mapNextRecommendedAction(record.nextRecommendedAction)
   };
 }
 
@@ -1471,6 +1666,48 @@ function mapAITimelineSummary(input: unknown): AITimelineSummaryResponse {
     suggestedDescription: toStringValue(
       record.suggestedDescription ?? record.description ?? record.summary
     )
+  };
+}
+
+function normalizeAIInstructionPayload(input: AIInstructionPayload) {
+  const world = isObject(input.world) ? input.world : {};
+  const tableName = toStringValue(input.tableName ?? world.name);
+  const worldSummary = toStringValue(input.worldSummary ?? world.summary);
+  const currentArc = toStringValue(input.currentArc ?? world.currentArc) || null;
+  const tone = toStringValue(input.tone ?? world.tone) || null;
+
+  return {
+    ...input,
+    instruction: input.instruction || undefined,
+    tableName,
+    worldSummary,
+    currentArc,
+    tone,
+    world: {
+      ...world,
+      name: tableName || toStringValue(world.name) || undefined,
+      summary: worldSummary,
+      currentArc,
+      tone
+    },
+    characters: Array.isArray(input.characters) ? input.characters : [],
+    missions: Array.isArray(input.missions) ? input.missions : [],
+    timeline: Array.isArray(input.timeline) ? input.timeline : []
+  };
+}
+
+function normalizeAITraitsPayload(input: AITraitsPayload) {
+  return {
+    ...normalizeAIInstructionPayload(input),
+    characterId: input.characterId
+  };
+}
+
+function normalizeAITimelinePayload(input: AITimelineSummaryPayload) {
+  return {
+    ...normalizeAIInstructionPayload(input),
+    notes: toStringValue(input.notes),
+    eventType: toStringValue(input.eventType, "NOTE")
   };
 }
 
@@ -2111,6 +2348,7 @@ export interface TablesApiContract {
   join(input: { joinCode: string }): Promise<Table>;
   byId(id: string): Promise<Table>;
   masterOverview(tableId: string): Promise<MasterOverview>;
+  playerOverview(tableId: string): Promise<TablePlayerOverview>;
   generateWorldSummary(
     tableId: string,
     input: AIInstructionPayload
@@ -2129,7 +2367,20 @@ export interface TablesApiContract {
   ): Promise<AITimelineSummaryResponse>;
   characters(tableId: string): Promise<TableCharacter[]>;
   createCharacter(tableId: string, input: { name: string; classId?: string }): Promise<TableCharacter>;
+  createTableCharacter(tableId: string, input: { name: string; classId?: string }): Promise<TableCharacter>;
+  getMyTableCharacter(tableId: string): Promise<PlayerTableCharacter | null>;
   characterTraits(tableId: string, characterId: string): Promise<CharacterTrait[]>;
+  getCharacterTraitSuggestions(tableId: string, characterId: string): Promise<CharacterTraitSuggestion[]>;
+  applyTraitSuggestion(
+    tableId: string,
+    characterId: string,
+    suggestionId: string
+  ): Promise<CharacterTraitSuggestion>;
+  dismissTraitSuggestion(
+    tableId: string,
+    characterId: string,
+    suggestionId: string
+  ): Promise<CharacterTraitSuggestion>;
   updateWorld(
     tableId: string,
     input: {
@@ -2473,14 +2724,25 @@ export const apiContracts = {
         apiClient.get(`/api/v1/tables/${tableId}/master/overview`),
         mapMasterOverview
       ),
+    playerOverview: (tableId) =>
+      request(
+        apiClient.get(`/api/v1/tables/${tableId}/player/overview`),
+        mapTablePlayerOverview
+      ),
     generateWorldSummary: (tableId, input) =>
       request(
-        apiClient.post(`/api/v1/tables/${tableId}/ai/world-summary`, input),
+        apiClient.post(
+          `/api/v1/tables/${tableId}/ai/world-summary`,
+          normalizeAIInstructionPayload(input)
+        ),
         mapAIWorldSummary
       ),
     generateMissionIdeas: (tableId, input) =>
       request(
-        apiClient.post(`/api/v1/tables/${tableId}/ai/mission-ideas`, input),
+        apiClient.post(
+          `/api/v1/tables/${tableId}/ai/mission-ideas`,
+          normalizeAIInstructionPayload(input)
+        ),
         mapAIMissionIdeas
       ),
     generateTraitSuggestions: (tableId, input) => {
@@ -2489,13 +2751,19 @@ export const apiContracts = {
       }
 
       return request(
-        apiClient.post(`/api/v1/tables/${tableId}/ai/traits`, input),
+        apiClient.post(
+          `/api/v1/tables/${tableId}/ai/traits`,
+          normalizeAITraitsPayload(input)
+        ),
         mapAITraits
       );
     },
     generateTimelineSummary: (tableId, input) =>
       request(
-        apiClient.post(`/api/v1/tables/${tableId}/ai/timeline-summary`, input),
+        apiClient.post(
+          `/api/v1/tables/${tableId}/ai/timeline-summary`,
+          normalizeAITimelinePayload(input)
+        ),
         mapAITimelineSummary
       ),
     characters: (tableId) =>
@@ -2508,10 +2776,65 @@ export const apiContracts = {
         const record = unwrapEntity(data);
         return mapTableCharacter(record.character ?? record);
       }),
+    createTableCharacter: (tableId, input) =>
+      request(apiClient.post(`/api/v1/tables/${tableId}/characters`, input), (data) => {
+        const record = unwrapEntity(data);
+        return mapTableCharacter(record.character ?? record);
+      }),
+    getMyTableCharacter: (tableId) =>
+      request(apiClient.get(`/api/v1/tables/${tableId}/characters/me`), (data) => {
+        const record = unwrapEntity(data);
+        const character = record.character ?? record.myCharacter ?? record;
+        return isObject(character) && hasCharacterId(character)
+          ? mapPlayerTableCharacter(character)
+          : null;
+      }),
     characterTraits: (tableId, characterId) =>
       request(
         apiClient.get(`/api/v1/tables/${tableId}/characters/${characterId}/traits`),
         (data) => asArray(data, mapCharacterTrait)
+      ),
+    getCharacterTraitSuggestions: async (tableId, characterId) => {
+      try {
+        return await request(
+          apiClient.get(`/api/v1/tables/${tableId}/characters/${characterId}/trait-suggestions`),
+          (data) => asArray(data, mapCharacterTraitSuggestion)
+        );
+      } catch (error) {
+        const firstError = apiRequestError(error, "Falha ao carregar sugestoes de traits.");
+
+        try {
+          return await request(
+            apiClient.get(`/api/v1/tables/${tableId}/characters/${characterId}/traits/suggestions`),
+            (data) => asArray(data, mapCharacterTraitSuggestion)
+          );
+        } catch (fallbackError) {
+          const finalError = apiRequestError(
+            fallbackError,
+            "Falha ao carregar sugestoes de traits."
+          );
+          const missingOptionalEndpoint =
+            finalError instanceof ApiRequestError &&
+            (finalError.statusCode === 404 || finalError.statusCode === 501);
+
+          if (missingOptionalEndpoint) return [];
+          throw firstError;
+        }
+      }
+    },
+    applyTraitSuggestion: (tableId, characterId, suggestionId) =>
+      request(
+        apiClient.post(
+          `/api/v1/tables/${tableId}/characters/${characterId}/trait-suggestions/${suggestionId}/apply`
+        ),
+        mapCharacterTraitSuggestion
+      ),
+    dismissTraitSuggestion: (tableId, characterId, suggestionId) =>
+      request(
+        apiClient.post(
+          `/api/v1/tables/${tableId}/characters/${characterId}/trait-suggestions/${suggestionId}/dismiss`
+        ),
+        mapCharacterTraitSuggestion
       ),
     updateWorld: (tableId, input) =>
       request(

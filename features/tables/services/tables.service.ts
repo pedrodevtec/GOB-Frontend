@@ -13,6 +13,7 @@ export const tablesService = {
   join: (input: { joinCode: string }) => apiContracts.tables.join(input),
   byId: (id: string) => apiContracts.tables.byId(id),
   getTableMasterOverview: (tableId: string) => apiContracts.tables.masterOverview(tableId),
+  getTablePlayerOverview: (tableId: string) => apiContracts.tables.playerOverview(tableId),
   generateWorldSummary: (tableId: string, input: AIInstructionPayload) =>
     apiContracts.tables.generateWorldSummary(tableId, input),
   generateMissionIdeas: (tableId: string, input: AIInstructionPayload) =>
@@ -24,8 +25,18 @@ export const tablesService = {
   characters: (tableId: string) => apiContracts.tables.characters(tableId),
   createCharacter: (tableId: string, input: { name: string; classId?: string }) =>
     apiContracts.tables.createCharacter(tableId, input),
+  createTableCharacter: (tableId: string, input: { name: string; classId?: string }) =>
+    apiContracts.tables.createTableCharacter(tableId, input),
+  getMyTableCharacter: (tableId: string) =>
+    apiContracts.tables.getMyTableCharacter(tableId),
   characterTraits: (tableId: string, characterId: string) =>
     apiContracts.tables.characterTraits(tableId, characterId),
+  getCharacterTraitSuggestions: (tableId: string, characterId: string) =>
+    apiContracts.tables.getCharacterTraitSuggestions(tableId, characterId),
+  applyTraitSuggestion: (tableId: string, characterId: string, suggestionId: string) =>
+    apiContracts.tables.applyTraitSuggestion(tableId, characterId, suggestionId),
+  dismissTraitSuggestion: (tableId: string, characterId: string, suggestionId: string) =>
+    apiContracts.tables.dismissTraitSuggestion(tableId, characterId, suggestionId),
   missions: (tableId: string) => apiContracts.tables.missions(tableId),
   timeline: (tableId: string) => apiContracts.tables.timeline(tableId),
   missionSubmissions: (tableId: string, missionId: string) =>

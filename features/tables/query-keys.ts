@@ -7,10 +7,16 @@ export const tableKeys = {
   detail: (tableId: string) => ["tables", "detail", tableId] as const,
   masterOverview: (tableId: string) =>
     ["tables", "detail", tableId, "master", "overview"] as const,
+  playerOverview: (tableId: string) =>
+    ["tables", "detail", tableId, "player", "overview"] as const,
+  myCharacter: (tableId: string) =>
+    ["tables", "detail", tableId, "player", "character"] as const,
   characters: (tableId: string) =>
     ["tables", "detail", tableId, "characters"] as const,
   characterTraits: (tableId: string, characterId: string) =>
     ["tables", "detail", tableId, "characters", characterId, "traits"] as const,
+  traitSuggestions: (tableId: string, characterId: string) =>
+    ["tables", "detail", tableId, "characters", characterId, "trait-suggestions"] as const,
   missions: (tableId: string) =>
     ["tables", "detail", tableId, "missions"] as const,
   missionSubmissions: (tableId: string, missionId: string) =>

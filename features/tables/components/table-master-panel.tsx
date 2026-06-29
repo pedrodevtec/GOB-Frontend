@@ -47,6 +47,8 @@ import { cn } from "@/lib/utils";
 import type {
   AIMissionIdea,
   AITraitSuggestion,
+  CharacterReviewStatus,
+  CharacterStatus,
   MasterOverviewChecklistItem,
   MasterPanelSection,
   MasterRecommendedAction
@@ -59,6 +61,7 @@ interface AIAssistantAction {
   description: string;
   kind: AIAssistantActionKind;
   instruction: string;
+  eventType?: TimelineInput["kind"];
 }
 
 const masterTabs: Array<{ id: MasterPanelSection; label: string }> = [
@@ -106,9 +109,9 @@ const assistantGroups = [
     category: "Timeline",
     description: "Ajuda para consolidar acontecimentos e manter a continuidade.",
     actions: [
-      { title: "Transformar notas em resumo", description: "Organiza anotações soltas em um registro legível.", kind: "timeline", instruction: "Transforme as notas em um resumo objetivo para a linha do tempo." },
-      { title: "Criar recap da sessão", description: "Prepara um resumo para abrir a próxima sessão.", kind: "timeline", instruction: "Crie um recap envolvente da sessão a partir das notas." },
-      { title: "Registrar consequência da missão", description: "Cria um rascunho do impacto narrativo das decisões do grupo.", kind: "timeline", instruction: "Destaque as consequências da missão e das decisões dos jogadores." }
+      { title: "Transformar notas em resumo", description: "Organiza anotações soltas em um registro legível.", kind: "timeline", eventType: "NOTE", instruction: "Transforme as notas em um resumo objetivo para a linha do tempo." },
+      { title: "Criar recap da sessão", description: "Prepara um resumo para abrir a próxima sessão.", kind: "timeline", eventType: "SESSION", instruction: "Crie um recap envolvente da sessão a partir das notas." },
+      { title: "Registrar consequência da missão", description: "Cria um rascunho do impacto narrativo das decisões do grupo.", kind: "timeline", eventType: "MISSION", instruction: "Destaque as consequências da missão e das decisões dos jogadores." }
     ] satisfies AIAssistantAction[]
   }
 ] as const;
@@ -203,6 +206,19 @@ function traitSuggestionText(suggestion: AITraitSuggestion) {
 function jsonFieldText(value: string | Record<string, unknown> | null | undefined) {
   if (typeof value === "string") return value;
   return typeof value?.text === "string" ? value.text : "";
+}
+
+function compactText(value?: string | null) {
+  return value?.trim() || undefined;
+}
+
+function tableCharacterReviewStatus(
+  character: {
+    review?: { status?: CharacterReviewStatus } | null;
+    status?: CharacterStatus;
+  }
+) {
+  return character.review?.status ?? character.status;
 }
 
 function nextFallbackAction(
@@ -513,7 +529,7 @@ export function TableMasterPanel({ id }: { id: string }) {
   }, [table.data, worldForm]);
 
   const pendingCharacters = (characters.data ?? []).filter(
-    (character) => character.review?.status === "PENDING"
+    (character) => tableCharacterReviewStatus(character) === "PENDING"
   );
   const allMissions = missions.data ?? [];
   const pendingSubmissions = submissions.data?.items ?? [];
@@ -527,11 +543,62 @@ export function TableMasterPanel({ id }: { id: string }) {
     return Array.from(options.entries()).map(([value, label]) => ({ value, label }));
   }, [characters.data]);
   const hasApprovedCharacter = (characters.data ?? []).some(
-    (character) => character.review?.status === "APPROVED"
+    (character) => tableCharacterReviewStatus(character) === "APPROVED"
   );
   const selectedTraitCharacterId = traitForm.watch("characterId");
   const hasValidSelectedTraitCharacter = characterOptions.some(
     (option) => option.value === selectedTraitCharacterId
+  );
+  const aiContext = useMemo(
+    () => {
+      const tableName = compactText(table.data?.world?.name ?? table.data?.name);
+      const worldSummary = compactText(table.data?.world?.summary ?? table.data?.description) ?? "";
+      const currentArc = table.data?.world?.currentArc ?? table.data?.currentArc ?? null;
+      const tone = table.data?.world?.tone ?? null;
+
+      return {
+        tableName,
+        worldSummary,
+        currentArc,
+        tone,
+        world: {
+          name: tableName,
+          summary: worldSummary,
+          currentArc,
+          tone
+        },
+        characters: (characters.data ?? []).map((character) => ({
+          id: character.id,
+          name: character.name,
+          status: tableCharacterReviewStatus(character),
+          className: character.className
+        })),
+        missions: (missions.data ?? []).map((mission) => ({
+          id: mission.id,
+          title: mission.title,
+          description: compactText(mission.description),
+          status: mission.status
+        })),
+        timeline: (timeline.data ?? []).slice(0, 20).map((event) => ({
+          id: event.id,
+          title: event.title,
+          description: compactText(event.description),
+          kind: event.kind
+        }))
+      };
+    },
+    [
+      characters.data,
+      missions.data,
+      table.data?.currentArc,
+      table.data?.description,
+      table.data?.name,
+      table.data?.world?.currentArc,
+      table.data?.world?.name,
+      table.data?.world?.summary,
+      table.data?.world?.tone,
+      timeline.data
+    ]
   );
 
   function openAssistantAction(action: AIAssistantAction) {
@@ -554,12 +621,18 @@ export function TableMasterPanel({ id }: { id: string }) {
     if (!selectedAssistantAction) return;
 
     if (selectedAssistantAction.kind === "world") {
-      generateWorldSummary.mutate({ instruction: aiInstruction || undefined });
+      generateWorldSummary.mutate({
+        instruction: aiInstruction || undefined,
+        ...aiContext
+      });
       return;
     }
 
     if (selectedAssistantAction.kind === "missions") {
-      generateMissionIdeas.mutate({ instruction: aiInstruction || undefined });
+      generateMissionIdeas.mutate({
+        instruction: aiInstruction || undefined,
+        ...aiContext
+      });
       return;
     }
 
@@ -577,6 +650,7 @@ export function TableMasterPanel({ id }: { id: string }) {
 
       generateTraitSuggestions.mutate({
         instruction: aiInstruction || undefined,
+        ...aiContext,
         characterId
       });
       return;
@@ -584,7 +658,9 @@ export function TableMasterPanel({ id }: { id: string }) {
 
     generateTimelineSummary.mutate({
       instruction: aiInstruction || undefined,
-      notes: timelineNotes
+      ...aiContext,
+      notes: timelineNotes,
+      eventType: selectedAssistantAction.eventType ?? "NOTE"
     });
   }
 
@@ -1073,7 +1149,10 @@ export function TableMasterPanel({ id }: { id: string }) {
         </div>
         {pendingCharacters.length ? (
           <div className="grid gap-4">
-            {pendingCharacters.map((review) => (
+            {pendingCharacters.map((review) => {
+              const status = tableCharacterReviewStatus(review);
+
+              return (
               <div key={review.id} className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                   <div>
@@ -1082,7 +1161,7 @@ export function TableMasterPanel({ id }: { id: string }) {
                       Enviado por {review.userName || "jogador"}.
                     </p>
                   </div>
-                  <Badge variant="warning">{review.review?.status}</Badge>
+                  <Badge variant="warning">{status}</Badge>
                 </div>
                 <Textarea
                   placeholder="Notas opcionais para o jogador."
@@ -1138,7 +1217,8 @@ export function TableMasterPanel({ id }: { id: string }) {
                   </Button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <EmptyState
