@@ -363,13 +363,9 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
 
             saveCharacter.mutate({
               name: creativeDossier.characterName,
-              archetypeKey:
-                creativeDossier.soulLegacy === "CUSTOM"
-                  ? creativeDossier.soulLegacyCustom
-                  : creativeDossier.soulLegacy,
               positiveTrait: creativeDossier.positiveEcho,
               negativeTrait: creativeDossier.burden,
-              bond: creativeDossier.protects,
+              narrativeBond: creativeDossier.protects,
               creativeDossier
             });
           }}

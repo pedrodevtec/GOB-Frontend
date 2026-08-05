@@ -226,7 +226,7 @@ function mapMvpCharacter(input: unknown): MvpTableCharacter {
     trainings: Array.isArray(source.trainings) ? source.trainings.map(String) : [],
     positiveTrait: text(source.positiveTrait) || undefined,
     negativeTrait: text(source.negativeTrait) || undefined,
-    bond: text(source.bond) || undefined,
+    narrativeBond: text(source.narrativeBond ?? source.bond) || undefined,
     equipment: Array.isArray(source.equipment)
       ? source.equipment.map((item) => {
           const entry = record(item);

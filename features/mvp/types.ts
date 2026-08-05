@@ -151,7 +151,7 @@ export interface MvpTableCharacter {
   trainings?: string[];
   positiveTrait?: string;
   negativeTrait?: string;
-  bond?: string;
+  narrativeBond?: string;
   equipment?: Array<{ slot?: string; name?: string; description?: string }>;
   creativeDossier?: PlaytestCreativeDossier;
   submittedRevision?: number;
