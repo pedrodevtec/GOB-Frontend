@@ -2,15 +2,25 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 import { useLogin } from "@/features/auth/hooks/use-auth";
 import { type LoginInput, loginSchema } from "@/features/auth/schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  authPathWithReturnTo,
+  RETURN_TO_PARAM
+} from "@/lib/routing/auth-redirects";
 
 export function LoginForm() {
   const login = useLogin();
+  const searchParams = useSearchParams();
+  const registerHref = authPathWithReturnTo(
+    "/register",
+    searchParams.get(RETURN_TO_PARAM)
+  );
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" }
@@ -36,7 +46,7 @@ export function LoginForm() {
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Novo no reino?{" "}
-        <Link href="/register" className="text-primary hover:text-primary/80">
+        <Link href={registerHref} className="text-primary hover:text-primary/80">
           Criar conta
         </Link>
       </p>

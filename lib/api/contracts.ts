@@ -225,6 +225,7 @@ function mapUser(input: unknown): AuthUser {
       toStringValue(record.name),
     accountRole,
     systemRole: accountRole,
+    emailVerifiedAt: toStringValue(record.emailVerifiedAt) || null,
     role: toStringValue(record.role) || undefined,
     theme: toStringValue(record.theme) || null
   };

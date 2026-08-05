@@ -2,15 +2,22 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 import { useRegister } from "@/features/auth/hooks/use-auth";
 import { registerSchema, type RegisterInput } from "@/features/auth/schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  authPathWithReturnTo,
+  RETURN_TO_PARAM
+} from "@/lib/routing/auth-redirects";
 
 export function RegisterForm() {
   const register = useRegister();
+  const searchParams = useSearchParams();
+  const loginHref = authPathWithReturnTo("/login", searchParams.get(RETURN_TO_PARAM));
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -59,7 +66,7 @@ export function RegisterForm() {
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Já tem acesso?{" "}
-        <Link href="/login" className="text-primary hover:text-primary/80">
+        <Link href={loginHref} className="text-primary hover:text-primary/80">
           Fazer login
         </Link>
       </p>

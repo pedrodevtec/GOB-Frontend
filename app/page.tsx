@@ -6,10 +6,10 @@ import {
   ArrowRight,
   BookOpen,
   Castle,
-  ScrollText,
+  Sparkles,
   ShieldCheck,
-  Swords,
-  UsersRound
+  UserRound,
+  WandSparkles
 } from "lucide-react";
 
 import { Logo } from "@/components/common/logo";
@@ -18,29 +18,29 @@ import { appConfig } from "@/lib/api/config";
 
 const highlights = [
   {
-    title: "Lobby para campanhas",
+    title: "Entrada guiada",
     description:
-      "Centralize jogadores, personagens e atividades em um espaco preparado para mesas de RPG.",
-    icon: UsersRound
+      "Conheca a proposta do piloto e avance pelas etapas iniciais com clareza.",
+    icon: Sparkles
   },
   {
-    title: "Personagens em destaque",
+    title: "Criacao de personagem",
     description:
-      "Cada aventureiro ganha perfil, inventario, progresso e historico para acompanhar a jornada.",
+      "Prepare uma ficha para o Episodio 1 usando apenas os dados oficiais do Builder.",
+    icon: UserRound
+  },
+  {
+    title: "IA sob seu controle",
+    description:
+      "Receba sugestoes opcionais, revise cada escolha e decida o que entra na ficha.",
     icon: ShieldCheck
-  },
-  {
-    title: "Rotina de jogo",
-    description:
-      "Missao, treino, recompensa e mercado ficam reunidos para apoiar a mesa entre uma sessao e outra.",
-    icon: ScrollText
   }
 ];
 
 const flows = [
-  "Crie sua conta e monte seu primeiro personagem.",
-  "Entre no lobby da sua campanha e acompanhe o grupo.",
-  "Use missoes, recompensas e progresso para manter a aventura viva."
+  "Conheca Bravantus e o contexto publico do Episodio 1.",
+  "Crie seu personagem com orientacao opcional da IA.",
+  "Revise suas escolhas, envie a ficha e compartilhe sua experiencia."
 ];
 
 export default async function HomePage() {
@@ -79,21 +79,24 @@ export default async function HomePage() {
           <div className="grid flex-1 items-center gap-10 py-20 lg:grid-cols-[minmax(0,1.02fr)_minmax(340px,0.68fr)] lg:py-28">
             <div className="max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary">
-                Lobby digital para RPG de mesa
+                Piloto de criacao de personagem
               </p>
               <h1 className="mt-5 font-display text-5xl font-semibold leading-tight text-white sm:text-6xl lg:text-7xl">
-                {appConfig.appName}
+                Entre no mundo de {appConfig.appName}
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200 sm:text-xl">
-                Um ponto de encontro para transformar sua mesa em uma experiencia
-                continua: personagens, progresso, missoes, recompensas e interacoes
-                do grupo reunidos em um unico lobby.
+                Conheca o contexto do Episodio 1, crie seu personagem e prepare sua
+                entrada na historia. Durante a jornada, voce podera receber sugestoes
+                da IA, revisar cada escolha e decidir o que fara parte da sua ficha.
+              </p>
+              <p className="mt-5 text-sm font-medium text-primary">
+                A IA sugere. Voce decide. A plataforma registra suas escolhas.
               </p>
 
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="gap-2">
                   <Link href="/register">
-                    Comecar aventura
+                    Participar do piloto
                     <ArrowRight className="h-5 w-5" />
                   </Link>
                 </Button>
@@ -110,14 +113,14 @@ export default async function HomePage() {
               <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.28em] text-primary">
-                    Mesa ativa
+                    Sua jornada no piloto
                   </p>
                   <h2 className="mt-2 font-display text-2xl font-semibold">
-                    Sala de campanha
+                    Prepare seu personagem
                   </h2>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary/30 bg-primary/15 text-primary">
-                  <Swords className="h-6 w-6" />
+                  <WandSparkles className="h-6 w-6" />
                 </div>
               </div>
 
@@ -168,15 +171,15 @@ export default async function HomePage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
-              Pronto para reunir o grupo?
+              Pronto para entrar no piloto?
             </p>
             <h2 className="mt-3 font-display text-3xl font-semibold">
-              Leve sua campanha para um lobby vivo entre as sessoes.
+              Crie sua conta e prepare seu personagem para o Episodio 1.
             </h2>
           </div>
           <Button asChild size="lg" className="w-full gap-2 sm:w-auto">
             <Link href="/register">
-              Criar meu acesso
+              Participar do piloto
               <BookOpen className="h-5 w-5" />
             </Link>
           </Button>

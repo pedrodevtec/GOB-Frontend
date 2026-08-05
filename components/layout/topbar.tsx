@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Shield, Table2, User } from "lucide-react";
+import { ClipboardList, LogOut, Shield, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useLogout } from "@/features/auth/hooks/use-auth";
@@ -16,15 +16,15 @@ export function Topbar() {
   return (
     <header className="glass-panel flex flex-col gap-4 rounded-[1.75rem] p-5 md:flex-row md:items-center md:justify-between">
       <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.32em] text-primary">Campaign Manager</p>
+        <p className="text-xs uppercase tracking-[0.32em] text-primary">Playtest Bravantus</p>
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-2">
             <User className="h-4 w-4" />
             {user?.username ?? "Aventureiro"}
           </span>
           <span className="inline-flex items-center gap-2">
-            <Table2 className="h-4 w-4" />
-            Mesas, personagens, missoes e timeline
+            <ClipboardList className="h-4 w-4" />
+            Chamado aos Marcados e dossie criativo
           </span>
           {accountRole === "ADMIN" ? (
             <span className="inline-flex items-center gap-2 text-primary">
@@ -36,10 +36,10 @@ export function Topbar() {
       </div>
       <div className="flex flex-wrap gap-2">
         <Button asChild>
-          <Link href="/tables/create">Criar mesa</Link>
+          <Link href="/campanhas/pilot-v1/personagem">Dossie criativo</Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link href="/tables/join">Entrar com codigo</Link>
+          <Link href="/campanhas/pilot-v1">Campanha piloto</Link>
         </Button>
         <Button variant="outline" onClick={logout}>
           <LogOut className="mr-2 h-4 w-4" />

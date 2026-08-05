@@ -1,21 +1,32 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { authService } from "@/features/auth/services/auth.service";
+import {
+  DEFAULT_LOGIN_REDIRECT,
+  DEFAULT_REGISTER_REDIRECT,
+  RETURN_TO_PARAM,
+  authPathWithReturnTo,
+  safeReturnPath
+} from "@/lib/routing/auth-redirects";
+import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { useAuthStore } from "@/stores/auth-store";
 
 export function useLogin() {
   const setSession = useAuthStore((state) => state.setSession);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   return useMutation({
     mutationFn: authService.login,
     onSuccess: (session) => {
       setSession(session);
-      router.replace("/dashboard");
+      router.replace(
+        safeReturnPath(searchParams.get(RETURN_TO_PARAM), DEFAULT_LOGIN_REDIRECT)
+      );
       toast.success("Sessão iniciada.");
     },
     onError: (error: Error) => toast.error(error.message)
@@ -25,12 +36,22 @@ export function useLogin() {
 export function useRegister() {
   const setSession = useAuthStore((state) => state.setSession);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   return useMutation({
     mutationFn: authService.register,
     onSuccess: (session) => {
-      setSession(session);
-      router.replace("/characters/create");
+      const returnTo = safeReturnPath(
+        searchParams.get(RETURN_TO_PARAM),
+        DEFAULT_REGISTER_REDIRECT
+      );
+
+      if (session.accessToken) {
+        setSession(session);
+        router.replace(returnTo);
+      } else {
+        router.replace(authPathWithReturnTo("/confirmar-email", returnTo));
+      }
       toast.success("Conta criada com sucesso.");
     },
     onError: (error: Error) => toast.error(error.message)
@@ -39,6 +60,7 @@ export function useRegister() {
 
 export function useAuthUser(enabled = true) {
   const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
   const setUser = useAuthStore((state) => state.setUser);
 
   return useQuery({
@@ -48,7 +70,8 @@ export function useAuthUser(enabled = true) {
       setUser(result);
       return result;
     },
-    enabled: enabled && !user
+    enabled: enabled && !user && hasUsableAccessToken(accessToken),
+    retry: false
   });
 }
 

@@ -8,6 +8,9 @@ export class ApiContractNotConfiguredError extends Error {
 }
 
 export class UnauthorizedApiError extends Error {
+  statusCode = 401;
+  code = "UNAUTHORIZED";
+
   constructor() {
     super("Sua sessao expirou. Faca login novamente.");
     this.name = "UnauthorizedApiError";

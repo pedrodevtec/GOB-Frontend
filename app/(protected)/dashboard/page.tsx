@@ -8,16 +8,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Campanhas"
-        title="Central de Mesas"
-        description="Organize campanhas assincronas, convide jogadores, revise personagens, publique missoes e acompanhe a timeline."
+        eyebrow="Piloto MVP"
+        title="Chamado aos Marcados"
+        description="Retome o teste fechado de criacao de personagem: proposta publica, consentimento, dossie criativo, revisao e conclusao."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild>
-              <Link href="/tables/create">Criar Mesa</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/tables/join">Entrar com Codigo</Link>
+              <Link href="/campanhas/pilot-v1">Abrir teste fechado</Link>
             </Button>
           </div>
         }

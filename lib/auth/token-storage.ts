@@ -10,6 +10,31 @@ export function getAccessToken() {
   return isBrowser() ? window.localStorage.getItem(ACCESS_TOKEN_KEY) : null;
 }
 
+function decodeJwtPayload(token: string) {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = window.atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
+    return JSON.parse(json) as { exp?: number };
+  } catch {
+    return null;
+  }
+}
+
+export function isAccessTokenExpired(token?: string | null) {
+  if (!token || !isBrowser()) return true;
+
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return false;
+
+  return payload.exp * 1000 <= Date.now() + 10_000;
+}
+
+export function hasUsableAccessToken(token = getAccessToken()) {
+  return Boolean(token && !isAccessTokenExpired(token));
+}
+
 export function persistTokens(accessToken: string, refreshToken?: string) {
   if (!isBrowser()) return;
 

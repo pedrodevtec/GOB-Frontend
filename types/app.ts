@@ -6,6 +6,7 @@ export interface AuthUser {
   username: string;
   accountRole: AccountRole;
   systemRole?: AccountRole;
+  emailVerifiedAt?: string | null;
   /** @deprecated Legacy global account role field. Never use this for table permissions. */
   role?: string;
   theme?: string | null;

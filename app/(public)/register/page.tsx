@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { RegisterForm } from "@/features/auth/components/register-form";
 
@@ -17,7 +19,9 @@ export default function RegisterPage() {
           Crie sua conta para iniciar a progressão e liberar seu primeiro personagem.
         </CardDescription>
         <div className="mt-8">
-          <RegisterForm />
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando cadastro...</p>}>
+            <RegisterForm />
+          </Suspense>
         </div>
       </Card>
     </div>

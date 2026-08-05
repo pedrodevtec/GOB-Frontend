@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { LoginForm } from "@/features/auth/components/login-form";
 
@@ -17,7 +19,9 @@ export default function LoginPage() {
           Acesse sua conta, carregue seu herói e continue a jornada.
         </CardDescription>
         <div className="mt-8">
-          <LoginForm />
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando acesso...</p>}>
+            <LoginForm />
+          </Suspense>
         </div>
       </Card>
     </div>

@@ -1,0 +1,64 @@
+export const DEFAULT_LOGIN_REDIRECT = "/dashboard";
+export const DEFAULT_REGISTER_REDIRECT = "/characters/create";
+
+export const AUTH_ENTRY_ROUTES = ["/login", "/register"];
+export const PUBLIC_ROUTE_PREFIXES = [
+  "/",
+  "/login",
+  "/register",
+  "/terms",
+  "/termos",
+  "/privacy",
+  "/privacidade",
+  "/verify-email",
+  "/confirm-email",
+  "/confirmar-email",
+  "/verificar-email"
+];
+
+export const RETURN_TO_PARAM = "returnTo";
+
+function isAbsoluteExternalUrl(value: string) {
+  return /^[a-z][a-z\d+\-.]*:/i.test(value) || value.startsWith("//");
+}
+
+function isPublicCampaignLanding(pathname: string) {
+  const parts = pathname.split("/").filter(Boolean);
+  return parts.length === 2 && (parts[0] === "campanhas" || parts[0] === "campaigns");
+}
+
+export function isPublicRoute(pathname: string) {
+  if (isPublicCampaignLanding(pathname)) return true;
+
+  return PUBLIC_ROUTE_PREFIXES.some((route) =>
+    route === "/" ? pathname === "/" : pathname === route || pathname.startsWith(`${route}/`)
+  );
+}
+
+export function isAuthEntryRoute(pathname: string) {
+  return AUTH_ENTRY_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+}
+
+export function isSafeReturnPath(value?: string | null) {
+  if (!value) return false;
+  return value.startsWith("/") && !isAbsoluteExternalUrl(value);
+}
+
+export function safeReturnPath(value?: string | null, fallback = DEFAULT_LOGIN_REDIRECT) {
+  if (!isSafeReturnPath(value)) return fallback;
+  return value as string;
+}
+
+export function pathWithReturnTo(pathname: string, search = "") {
+  return `${pathname}${search}`;
+}
+
+export function authPathWithReturnTo(authPath: string, returnTo?: string | null) {
+  if (!isSafeReturnPath(returnTo)) return authPath;
+
+  const params = new URLSearchParams();
+  params.set(RETURN_TO_PARAM, returnTo as string);
+  return `${authPath}?${params.toString()}`;
+}
