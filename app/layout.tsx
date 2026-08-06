@@ -58,6 +58,14 @@ export default function RootLayout({
             </Script>
           </>
         ) : null}
+        {googleAdsenseAccount ? (
+          <Script
+            id="google-adsense"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${googleAdsenseAccount}`}
+            strategy="afterInteractive"
+            crossOrigin="anonymous"
+          />
+        ) : null}
       </head>
       <body>
         <noscript>
