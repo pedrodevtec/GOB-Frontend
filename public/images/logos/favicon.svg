@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Guardian of Bravantus - escudo</title>
+  <desc id="desc">Escudo dourado e verde derivado da identidade visual oficial de Guardian of Bravantus.</desc>
+  <path fill="#3D1C15" d="M256 20c63 51 130 77 211 88v137c0 118-71 202-211 247C116 447 45 363 45 245V108c81-11 148-37 211-88Z"/>
+  <path fill="#F7C43F" d="M256 42c57 43 117 67 188 80v123c0 102-60 175-188 218C128 420 68 347 68 245V122c71-13 131-37 188-80Z"/>
+  <path fill="#FFDD72" d="M256 64c-50 35-105 57-165 70v36c60-11 115-32 165-66V64Z"/>
+  <path fill="#C47A13" d="M256 42v421c128-43 188-116 188-218V122c-71-13-131-37-188-80Z" opacity=".46"/>
+  <path fill="#3D1C15" d="M256 91c48 33 98 53 155 65v89c0 82-46 141-155 182C147 386 101 327 101 245v-89c57-12 107-32 155-65Z"/>
+  <path fill="#00742E" d="M256 112c41 27 85 45 132 56v77c0 69-37 119-132 157-95-38-132-88-132-157v-77c47-11 91-29 132-56Z"/>
+  <path fill="#005D25" d="M256 112v290c95-38 132-88 132-157v-77c-47-11-91-29-132-56Z"/>
+  <path fill="#014A1E" d="M229 128h27v260l-27-12V128Zm80 11 25 10v204c-8 7-16 13-25 19V139Zm-105 2v230c-9-6-17-12-25-19V151l25-10Z" opacity=".58"/>
+  <path fill="none" stroke="#FFDD72" stroke-linecap="round" stroke-width="13" d="M105 137c55-12 105-33 151-65" opacity=".8"/>
+</svg>

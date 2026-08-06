@@ -16,6 +16,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: `${appConfig.appName} | RPG Dashboard`,
   description: "Frontend do web game RPG em Next.js.",
+  icons: {
+    icon: [
+      {
+        url: "/images/logos/favicon.svg",
+        type: "image/svg+xml"
+      }
+    ],
+    shortcut: "/images/logos/favicon.svg"
+  },
   verification: googleSiteVerification
     ? {
         google: googleSiteVerification
