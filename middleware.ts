@@ -20,7 +20,9 @@ export function middleware(request: NextRequest) {
   const isStatic =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/images") ||
-    pathname === "/favicon.ico";
+    pathname === "/favicon.ico" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml";
 
   if (isStatic) {
     return NextResponse.next();
