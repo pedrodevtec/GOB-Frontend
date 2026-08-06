@@ -10,6 +10,7 @@ export const PUBLIC_ROUTE_PREFIXES = [
   "/termos",
   "/privacy",
   "/privacidade",
+  "/contato",
   "/verify-email",
   "/confirm-email",
   "/confirmar-email",

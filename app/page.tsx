@@ -185,6 +185,23 @@ export default async function HomePage() {
           </Button>
         </div>
       </section>
+
+      <footer className="border-t border-white/10 bg-slate-950 px-5 py-8 text-sm text-muted-foreground sm:px-8 lg:px-10">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p>{appConfig.appName} - RPG Dashboard</p>
+          <nav className="flex flex-wrap gap-x-5 gap-y-2">
+            <Link href="/termos" className="hover:text-white">
+              Termos
+            </Link>
+            <Link href="/privacidade" className="hover:text-white">
+              Privacidade
+            </Link>
+            <Link href="/contato" className="hover:text-white">
+              Contato
+            </Link>
+          </nav>
+        </div>
+      </footer>
     </main>
   );
 }
