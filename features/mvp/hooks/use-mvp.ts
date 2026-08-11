@@ -198,7 +198,7 @@ export function useSaveEpisodeAnswers(tableId?: string, characterId?: string | n
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (answers: Array<{ questionKey: string; answer: string }>) => {
+    mutationFn: (answers: Array<{ questionKey: string; answer: string; version?: string }>) => {
       if (!tableId || !characterId) {
         throw new Error("Salve o rascunho do personagem antes das respostas do episodio.");
       }
@@ -216,11 +216,11 @@ export function useSubmitMvpCharacter(tableId?: string, characterId?: string | n
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => {
+    mutationFn: (input?: { expectedRevision?: number }) => {
       if (!tableId || !characterId) {
         throw new Error("Salve o rascunho antes de submeter.");
       }
-      return mvpService.submitCharacter(tableId, characterId);
+      return mvpService.submitCharacter(tableId, characterId, input?.expectedRevision);
     },
     onSuccess: () => {
       if (tableId) queryClient.invalidateQueries({ queryKey: mvpKeys.myCharacter(tableId) });

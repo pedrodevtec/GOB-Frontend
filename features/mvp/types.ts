@@ -54,7 +54,7 @@ export interface CampaignResume {
 export interface BuilderConfig {
   version: string;
   status: string;
-  archetypes: Array<{ key: string; name: string }>;
+  archetypes: Array<{ key: string; name: string; description?: string }>;
   attributes?: {
     totalPoints?: number;
     min?: number;
@@ -64,6 +64,11 @@ export interface BuilderConfig {
   trainings?: {
     requiredCount?: number;
     bonus?: number;
+    options?: Array<{ key: string; name: string; description?: string }>;
+  };
+  equipment?: {
+    slots?: Array<{ key: string; name: string; description?: string }>;
+    options?: Array<{ key: string; name: string; slot?: string; description?: string }>;
   };
   episodeOneQuestions: Array<{
     questionKey: string;
@@ -141,11 +146,56 @@ export interface PlayerAiSuggestion {
   playerAction?: string;
 }
 
+export type MvpSheetStatus = "DRAFT" | "SUBMITTED" | "CHANGES_REQUESTED" | "APPROVED" | string;
+
+export interface MvpEpisodeAnswer {
+  questionKey: string;
+  answer: string;
+  version?: string;
+}
+
+export interface MvpDerivedResources {
+  hp?: number;
+  pv?: number;
+  health?: number;
+  energy?: number;
+  ascensionPoints?: number;
+  pontosAscensao?: number;
+}
+
+export interface MvpCharacterSubmissionSnapshot {
+  id?: string;
+  sheetRevision?: number;
+  submittedRevision?: number;
+  submittedAt?: string | null;
+  approvedAt?: string | null;
+  status?: string;
+  character?: unknown;
+}
+
 export interface MvpTableCharacter {
   id: string;
   tableId: string;
   name: string;
-  sheetStatus?: "DRAFT" | "SUBMITTED" | "CHANGES_REQUESTED" | "APPROVED" | string;
+  sheetStatus?: MvpSheetStatus;
+  sheetRevision?: number;
+  submittedRevision?: number;
+  submittedAt?: string | null;
+  approvedAt?: string | null;
+  editable?: boolean;
+  nextAction?: string | { key?: string; title?: string; description?: string } | null;
+  masterFeedback?: string | null;
+  concept?: string;
+  origin?: string;
+  appearance?: string;
+  motivation?: string;
+  bond?: string;
+  history?: string;
+  markLocation?: string;
+  markAppearance?: string;
+  markReaction?: string;
+  markAttitude?: string;
+  guardianSoulsFear?: string;
   archetypeKey?: string;
   attributes?: Record<string, number>;
   trainings?: string[];
@@ -153,8 +203,11 @@ export interface MvpTableCharacter {
   negativeTrait?: string;
   narrativeBond?: string;
   equipment?: Array<{ slot?: string; name?: string; description?: string }>;
+  episodeAnswers?: MvpEpisodeAnswer[];
+  derivedResources?: MvpDerivedResources;
   creativeDossier?: PlaytestCreativeDossier;
-  submittedRevision?: number;
+  latestSubmission?: MvpCharacterSubmissionSnapshot | null;
+  approvedSubmission?: MvpCharacterSubmissionSnapshot | null;
 }
 
 export type SoulLegacyKey = "LADINO" | "PALADINO" | "ARQUEIRO" | "SACERDOTE" | "CUSTOM";

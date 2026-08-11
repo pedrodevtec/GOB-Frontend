@@ -39,6 +39,10 @@ function num(value: unknown) {
   return typeof value === "number" ? value : undefined;
 }
 
+function bool(value: unknown) {
+  return typeof value === "boolean" ? value : undefined;
+}
+
 function arr<T>(value: unknown, mapper: (item: unknown) => T): T[] {
   return Array.isArray(value) ? value.map(mapper) : [];
 }
@@ -145,12 +149,17 @@ function mapBuilderConfig(input: unknown): BuilderConfig {
   const source = record(input);
   const attributes = record(source.attributes);
   const trainings = record(source.trainings);
+  const equipment = record(source.equipment);
   return {
     version: text(source.version),
     status: text(source.status),
     archetypes: arr(source.archetypes, (item) => {
       const entry = record(item);
-      return { key: text(entry.key), name: text(entry.name) };
+      return {
+        key: text(entry.key),
+        name: text(entry.name),
+        description: text(entry.description) || undefined
+      };
     }),
     attributes: isObject(source.attributes)
       ? {
@@ -163,7 +172,36 @@ function mapBuilderConfig(input: unknown): BuilderConfig {
     trainings: isObject(source.trainings)
       ? {
           requiredCount: num(trainings.requiredCount),
-          bonus: num(trainings.bonus)
+          bonus: num(trainings.bonus),
+          options: arr(trainings.options ?? source.trainingOptions, (item) => {
+            const entry = record(item);
+            return {
+              key: text(entry.key),
+              name: text(entry.name),
+              description: text(entry.description) || undefined
+            };
+          })
+        }
+      : undefined,
+    equipment: isObject(source.equipment) || Array.isArray(source.equipmentOptions)
+      ? {
+          slots: arr(equipment.slots ?? source.equipmentSlots, (item) => {
+            const entry = record(item);
+            return {
+              key: text(entry.key),
+              name: text(entry.name),
+              description: text(entry.description) || undefined
+            };
+          }),
+          options: arr(equipment.options ?? source.equipmentOptions, (item) => {
+            const entry = record(item);
+            return {
+              key: text(entry.key),
+              name: text(entry.name),
+              slot: text(entry.slot) || undefined,
+              description: text(entry.description) || undefined
+            };
+          })
         }
       : undefined,
     episodeOneQuestions: arr(source.episodeOneQuestions, (item) => {
@@ -174,6 +212,28 @@ function mapBuilderConfig(input: unknown): BuilderConfig {
         version: text(entry.version) || undefined
       };
     })
+  };
+}
+
+function mapEpisodeAnswer(input: unknown) {
+  const source = record(input);
+  return {
+    questionKey: text(source.questionKey),
+    answer: text(source.answer),
+    version: text(source.version) || undefined
+  };
+}
+
+function mapSubmissionSnapshot(input: unknown) {
+  const source = record(input);
+  return {
+    id: text(source.id) || undefined,
+    sheetRevision: num(source.sheetRevision),
+    submittedRevision: num(source.submittedRevision),
+    submittedAt: text(source.submittedAt) || null,
+    approvedAt: text(source.approvedAt) || null,
+    status: text(source.status) || undefined,
+    character: source.character ?? source.snapshot ?? undefined
   };
 }
 
@@ -221,6 +281,26 @@ function mapMvpCharacter(input: unknown): MvpTableCharacter {
     tableId: text(source.tableId),
     name: text(source.name),
     sheetStatus: text(source.sheetStatus),
+    sheetRevision: num(source.sheetRevision),
+    submittedRevision: num(source.submittedRevision),
+    submittedAt: text(source.submittedAt) || null,
+    approvedAt: text(source.approvedAt) || null,
+    editable: bool(source.editable),
+    nextAction: isObject(source.nextAction)
+      ? record(source.nextAction)
+      : text(source.nextAction) || null,
+    masterFeedback: text(source.masterFeedback) || null,
+    concept: text(source.concept) || undefined,
+    origin: text(source.origin) || undefined,
+    appearance: text(source.appearance) || undefined,
+    motivation: text(source.motivation) || undefined,
+    bond: text(source.bond ?? source.narrativeBond) || undefined,
+    history: text(source.history) || undefined,
+    markLocation: text(source.markLocation) || undefined,
+    markAppearance: text(source.markAppearance) || undefined,
+    markReaction: text(source.markReaction) || undefined,
+    markAttitude: text(source.markAttitude) || undefined,
+    guardianSoulsFear: text(source.guardianSoulsFear) || undefined,
     archetypeKey: text(source.archetypeKey) || undefined,
     attributes: record(source.attributes) as Record<string, number>,
     trainings: Array.isArray(source.trainings) ? source.trainings.map(String) : [],
@@ -240,7 +320,14 @@ function mapMvpCharacter(input: unknown): MvpTableCharacter {
     creativeDossier: isObject(source.creativeDossier)
       ? (source.creativeDossier as unknown as PlaytestCreativeDossier)
       : undefined,
-    submittedRevision: num(source.submittedRevision)
+    episodeAnswers: arr(source.episodeAnswers, mapEpisodeAnswer),
+    derivedResources: isObject(source.derivedResources) ? record(source.derivedResources) : undefined,
+    latestSubmission: isObject(source.latestSubmission)
+      ? mapSubmissionSnapshot(source.latestSubmission)
+      : null,
+    approvedSubmission: isObject(source.approvedSubmission)
+      ? mapSubmissionSnapshot(source.approvedSubmission)
+      : null
   };
 }
 
@@ -426,7 +513,7 @@ export const mvpService = {
   saveEpisodeAnswers: (
     tableId: string,
     characterId: string,
-    answers: Array<{ questionKey: string; answer: string }>
+    answers: Array<{ questionKey: string; answer: string; version?: string }>
   ) =>
     request(
       apiClient.patch(`/api/v1/tables/${tableId}/characters/${characterId}/episode-answers`, {
@@ -434,9 +521,12 @@ export const mvpService = {
       }),
       (data) => mapMvpCharacter(unwrap(data, "character"))
     ),
-  submitCharacter: (tableId: string, characterId: string) =>
+  submitCharacter: (tableId: string, characterId: string, expectedRevision?: number) =>
     request(
-      apiClient.post(`/api/v1/tables/${tableId}/characters/${characterId}/submit`, {}),
+      apiClient.post(
+        `/api/v1/tables/${tableId}/characters/${characterId}/submit`,
+        expectedRevision ? { expectedRevision } : {}
+      ),
       (data) => mapMvpCharacter(unwrap(data, "character"))
     ),
   getCharacterById: (tableId: string, characterId: string) =>
