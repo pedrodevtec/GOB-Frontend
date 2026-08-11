@@ -2,6 +2,9 @@
 
 import type React from "react";
 
+import { ImageIcon } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   ATTRIBUTE_KEYS,
@@ -10,6 +13,7 @@ import {
   EPISODE_ONE_KEYS,
   EPISODE_ONE_FALLBACK_PROMPTS
 } from "@/features/mvp/builder/character-builder-schema";
+import { usePreviewCharacterCardArt } from "@/features/mvp/hooks/use-mvp";
 import type { MvpTableCharacter } from "@/features/mvp/types";
 
 function valueOrEmpty(value?: string | number | null) {
@@ -42,13 +46,17 @@ function Detail({ label, value }: { label: string; value?: string | number | nul
 
 export function MyCharacterReadonlyPanel({
   character,
+  tableId,
   emptyTitle = "Nenhum personagem encontrado",
   emptyDescription = "Crie e salve um rascunho para visualizar a ficha consolidada aqui."
 }: {
   character?: MvpTableCharacter | null;
+  tableId?: string;
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
+  const cardArt = usePreviewCharacterCardArt(tableId ?? character?.tableId, character?.id);
+
   if (!character) {
     return (
       <Card className="space-y-2">
@@ -61,6 +69,7 @@ export function MyCharacterReadonlyPanel({
   const derived = backendDerivedResources(character);
   const latest = character.latestSubmission;
   const approved = character.approvedSubmission;
+  const canPrepareCardArt = character.sheetStatus === "APPROVED" && Boolean(character.approvedSubmission);
 
   return (
     <Card className="space-y-5">
@@ -171,6 +180,67 @@ export function MyCharacterReadonlyPanel({
           />
         </Section>
       </div>
+
+      <Section title="Ilustracao da carta">
+        {canPrepareCardArt ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              A IA prepara apenas a ilustracao, usando exclusivamente a submissao aprovada. Moldura,
+              nome, textos e numeros devem ser compostos por layout deterministico.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => cardArt.mutate()}
+              disabled={cardArt.isPending}
+              aria-busy={cardArt.isPending}
+            >
+              <ImageIcon className="mr-2 h-4 w-4" />
+              {cardArt.isPending ? "Preparando..." : "Preparar ilustracao da carta"}
+            </Button>
+            {cardArt.isError ? (
+              <p className="text-sm text-amber-200">
+                {(cardArt.error as Error)?.message || "Nao foi possivel preparar a ilustracao agora."}
+              </p>
+            ) : null}
+            {cardArt.data ? (
+              <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
+                <Detail label="Versao do prompt visual" value={cardArt.data.promptVersion} />
+                <Detail label="Uso" value={cardArt.data.useCase} />
+                {cardArt.data.pending?.length ? (
+                  <Detail label="Pendente" value={cardArt.data.pending.join(", ")} />
+                ) : null}
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-primary">Resumo visual autorizado</p>
+                  <dl className="mt-2 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
+                    {Object.entries(cardArt.data.fields ?? {}).map(([key, value]) => (
+                      <div key={key} className="rounded-lg border border-white/10 p-2">
+                        <dt className="font-medium text-foreground">{key}</dt>
+                        <dd>{String(value ?? "Nao informado")}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+                {cardArt.data.prompt ? (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-primary">Prompt estruturado</p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                      {cardArt.data.prompt}
+                    </p>
+                  </div>
+                ) : null}
+                <p className="text-sm text-muted-foreground">
+                  Geracao de imagem ainda nao configurada neste contrato.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Disponivel somente para personagem aprovado com submissao aprovada preservada.
+          </p>
+        )}
+      </Section>
     </Card>
   );
 }

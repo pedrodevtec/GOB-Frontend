@@ -24,6 +24,7 @@ export function MyMvpCharacterPanel({ tableId }: { tableId: string }) {
   return (
     <MyCharacterReadonlyPanel
       character={character.data}
+      tableId={tableId}
       emptyTitle="Voce ainda nao tem personagem neste piloto"
       emptyDescription="Quando o rascunho for salvo no Builder, a ficha consolidada aparecera aqui em modo somente leitura."
     />
