@@ -23,7 +23,9 @@ function statusCode(error: unknown) {
 
 export function PublicCampaignPanel({ slug }: { slug: string }) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const hasSession = hasUsableAccessToken(accessToken);
+  const hydrated = useAuthStore((state) => state.hydrated);
+  const user = useAuthStore((state) => state.user);
+  const hasSession = Boolean(user) || hasUsableAccessToken(accessToken);
   const campaign = usePublicCampaign(slug);
   const campaignPath = campaignFlowPath(slug);
   const resume = useCampaignResume(
@@ -57,7 +59,7 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
     typeof maxPlayers === "number" &&
     typeof activeMembers === "number" &&
     activeMembers >= maxPlayers;
-  const isAuthenticated = hasSession;
+  const isAuthenticated = hydrated && hasSession;
   const resumeStatus = statusCode(resume.error);
   const hasConsent = resume.data?.consent?.status === "ACCEPTED";
   const hasMembership = resume.data?.membership?.status === "ACTIVE";
@@ -122,6 +124,12 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
             variant="access-denied"
             title="Participacao indisponivel"
             description="As vagas publicas retornadas pela API estao preenchidas."
+          />
+        ) : !hydrated ? (
+          <MvpState
+            variant="loading"
+            title="Verificando sessao"
+            description="Estamos restaurando sua sessao antes de mostrar as acoes da campanha."
           />
         ) : isAuthenticated && resume.isLoading ? (
           <MvpState
