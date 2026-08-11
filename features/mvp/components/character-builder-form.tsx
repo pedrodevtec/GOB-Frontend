@@ -147,7 +147,12 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const decideAi = useDecidePlayerAiSuggestion(tableId);
 
   const editable = character.data ? character.data.editable === true : true;
-  const status = character.data?.sheetStatus ?? "DRAFT";
+  const status = character.data?.sheetStatus ?? "WORKFLOW_UNAVAILABLE";
+  const workflowIssue = character.data?.workflowIssue;
+  const workflowBlocksEditing =
+    Boolean(character.data?.id) &&
+    status === "CHANGES_REQUESTED" &&
+    character.data?.editable !== true;
   const legacy = legacyReferencesFromDossier(character.data?.creativeDossier);
   const validation = useMemo(() => validateBuilderForm(form, config.data), [form, config.data]);
   const preview = previewDerivedResources(form);
@@ -231,13 +236,6 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     setChapter(next);
     setSuggestions([]);
     setAiInstruction("");
-  }
-
-  function applySuggestion(targetField: string | undefined, text: string) {
-    const field = targetField && targetField in form ? targetField : undefined;
-    if (!field) return;
-    if (!window.confirm(`Aplicar sugestao ao campo "${field}"?`)) return;
-    update(field as keyof CharacterBuilderFormState, text as never);
   }
 
   if (campaign.isLoading || resume.isLoading || character.isLoading || config.isLoading) {
@@ -331,6 +329,27 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
             </p>
           </div>
         </div>
+
+        {workflowIssue ? (
+          <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
+            <p className="font-semibold text-amber-100">
+              Workflow do personagem legado normalizado parcialmente
+            </p>
+            <p className="mt-2 text-sm leading-6 text-amber-50/80">
+              {workflowIssue} {character.data?.workflowInferredFromLegacy
+                ? "O frontend permitiu retomada apenas quando nao houve negativa explicita do backend."
+                : "A edicao permanece bloqueada ate o backend retornar permissao clara."}
+            </p>
+          </div>
+        ) : null}
+
+        {workflowBlocksEditing ? (
+          <MvpState
+            variant="error"
+            title="Permissao de edicao indisponivel"
+            description="O personagem esta em CHANGES_REQUESTED, mas o contrato nao retornou editable=true. A plataforma nao pode liberar edicao sem essa autorizacao."
+          />
+        ) : null}
 
         {status === "CHANGES_REQUESTED" && character.data?.masterFeedback ? (
           <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
@@ -657,11 +676,10 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                           size="sm"
                           onClick={() => {
                             decideAi.mutate({ suggestionId: suggestion.id, decision: "ACCEPTED" });
-                            applySuggestion(target, suggestion.suggestion);
                           }}
-                          disabled={decideAi.isPending || readOnly}
+                          disabled={decideAi.isPending}
                         >
-                          Aceitar
+                          Aceitar referencia
                         </Button>
                         <Button
                           type="button"
@@ -669,11 +687,10 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                           variant="outline"
                           onClick={() => {
                             decideAi.mutate({ suggestionId: suggestion.id, decision: "EDITED", editedSuggestion: edited });
-                            applySuggestion(target, edited);
                           }}
-                          disabled={decideAi.isPending || readOnly}
+                          disabled={decideAi.isPending}
                         >
-                          Editar e aplicar
+                          Registrar editada
                         </Button>
                         <Button
                           type="button"

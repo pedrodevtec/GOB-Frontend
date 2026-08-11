@@ -72,7 +72,7 @@ export function MyCharacterReadonlyPanel({
           </CardDescription>
         </div>
         <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
-          <p className="font-semibold">{character.sheetStatus ?? "DRAFT"}</p>
+          <p className="font-semibold">{character.sheetStatus ?? "Workflow indisponivel"}</p>
           <p className="text-muted-foreground">Revisao {valueOrEmpty(character.sheetRevision)}</p>
         </div>
       </div>

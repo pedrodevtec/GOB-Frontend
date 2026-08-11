@@ -178,6 +178,9 @@ export interface MvpTableCharacter {
   tableId: string;
   name: string;
   sheetStatus?: MvpSheetStatus;
+  workflowIssue?: string;
+  workflowInferredFromLegacy?: boolean;
+  workflowMissingFields?: string[];
   sheetRevision?: number;
   submittedRevision?: number;
   submittedAt?: string | null;

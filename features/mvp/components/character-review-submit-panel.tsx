@@ -90,7 +90,8 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
   const form = formStateFromCharacter(character.data);
   const validation = validateBuilderForm(form, config.data);
   const editable = character.data.editable === true;
-  const status = character.data.sheetStatus ?? "DRAFT";
+  const status = character.data.sheetStatus ?? "WORKFLOW_UNAVAILABLE";
+  const workflowIssue = character.data.workflowIssue;
   const canSubmit =
     validation.canSubmit &&
     editable &&
@@ -127,6 +128,17 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
           <CardTitle>Ajustes solicitados</CardTitle>
           <CardDescription className="text-amber-50/80">
             {character.data.masterFeedback}
+          </CardDescription>
+        </Card>
+      ) : null}
+
+      {workflowIssue ? (
+        <Card className="space-y-2 border-amber-400/30 bg-amber-500/10">
+          <CardTitle>Workflow incompleto</CardTitle>
+          <CardDescription className="text-amber-50/80">
+            {workflowIssue} {character.data.workflowInferredFromLegacy
+              ? "A retomada foi permitida apenas quando nao havia negativa explicita do backend."
+              : "A submissao permanece bloqueada ate o contrato retornar permissao clara."}
           </CardDescription>
         </Card>
       ) : null}

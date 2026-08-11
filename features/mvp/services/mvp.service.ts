@@ -43,6 +43,10 @@ function bool(value: unknown) {
   return typeof value === "boolean" ? value : undefined;
 }
 
+function firstDefined<T>(...values: T[]) {
+  return values.find((value) => value !== undefined && value !== null);
+}
+
 function arr<T>(value: unknown, mapper: (item: unknown) => T): T[] {
   return Array.isArray(value) ? value.map(mapper) : [];
 }
@@ -237,6 +241,134 @@ function mapSubmissionSnapshot(input: unknown) {
   };
 }
 
+function hasTextId(input: unknown) {
+  return Boolean(text(record(input).id));
+}
+
+function workflowRecord(input: Dict) {
+  return record(input.workflow ?? input.sheetWorkflow ?? input.characterWorkflow);
+}
+
+function sheetStatusValue(value: unknown) {
+  const candidate = text(value);
+  return ["DRAFT", "SUBMITTED", "CHANGES_REQUESTED", "APPROVED"].includes(candidate)
+    ? candidate
+    : "";
+}
+
+function characterRecordFromResponse(data: unknown) {
+  const root = record(data);
+  const dataRecord = record(root.data);
+  const candidates = [
+    root.character,
+    dataRecord.character,
+    root.myCharacter,
+    dataRecord.myCharacter,
+    hasTextId(root) ? root : undefined,
+    hasTextId(dataRecord) ? dataRecord : undefined
+  ];
+  const character = candidates.find(isObject);
+  if (!character) return null;
+
+  const source = record(character);
+  const rootWorkflow = workflowRecord(root);
+  const dataWorkflow = workflowRecord(dataRecord);
+  const characterWorkflow = workflowRecord(source);
+  const sheet = record(source.sheet);
+  const review = record(source.review);
+  const latestSubmission = record(source.latestSubmission);
+  const approvedSubmission = record(source.approvedSubmission);
+  const workflowSources = [source, characterWorkflow, sheet, review, dataRecord, dataWorkflow, root, rootWorkflow];
+
+  const pick = (...keys: string[]) => {
+    for (const container of workflowSources) {
+      for (const key of keys) {
+        if (container[key] !== undefined && container[key] !== null) return container[key];
+      }
+    }
+    return undefined;
+  };
+
+  const explicitSheetStatus =
+    sheetStatusValue(source.sheetStatus) ||
+    sheetStatusValue(characterWorkflow.sheetStatus) ||
+    sheetStatusValue(characterWorkflow.status) ||
+    sheetStatusValue(sheet.sheetStatus) ||
+    sheetStatusValue(sheet.status) ||
+    sheetStatusValue(review.sheetStatus) ||
+    sheetStatusValue(dataRecord.sheetStatus) ||
+    sheetStatusValue(dataWorkflow.sheetStatus) ||
+    sheetStatusValue(dataWorkflow.status) ||
+    sheetStatusValue(root.sheetStatus) ||
+    sheetStatusValue(rootWorkflow.sheetStatus) ||
+    sheetStatusValue(rootWorkflow.status);
+  const submittedAt = firstDefined(
+    pick("submittedAt"),
+    latestSubmission.submittedAt
+  );
+  const approvedAt = firstDefined(
+    pick("approvedAt"),
+    approvedSubmission.approvedAt
+  );
+  const explicitEditable = pick("editable", "canEdit");
+  const missingFields: string[] = [];
+  let sheetStatus = explicitSheetStatus;
+  let editable = typeof explicitEditable === "boolean" ? explicitEditable : undefined;
+  let workflowInferredFromLegacy = false;
+
+  if (!sheetStatus && text(approvedAt)) {
+    sheetStatus = "APPROVED";
+    workflowInferredFromLegacy = true;
+  } else if (!sheetStatus && text(submittedAt)) {
+    sheetStatus = "SUBMITTED";
+    workflowInferredFromLegacy = true;
+  } else if (!sheetStatus && hasTextId(source)) {
+    sheetStatus = "DRAFT";
+    workflowInferredFromLegacy = true;
+    missingFields.push("sheetStatus");
+  }
+
+  if (editable === undefined) {
+    if (sheetStatus === "DRAFT") {
+      editable = true;
+      workflowInferredFromLegacy = true;
+      missingFields.push("editable");
+    } else if (sheetStatus === "SUBMITTED" || sheetStatus === "APPROVED") {
+      editable = false;
+      workflowInferredFromLegacy = true;
+      missingFields.push("editable");
+    } else if (sheetStatus === "CHANGES_REQUESTED") {
+      editable = false;
+      missingFields.push("editable");
+    }
+  }
+
+  const workflowIssue = missingFields.length
+    ? `Contrato de workflow incompleto em /characters/me: ${missingFields.join(", ")}.`
+    : undefined;
+
+  return {
+    ...source,
+    sheetStatus,
+    sheetRevision: firstDefined(pick("sheetRevision"), source.sheetRevision),
+    submittedRevision: firstDefined(pick("submittedRevision"), source.submittedRevision),
+    submittedAt,
+    approvedAt,
+    editable,
+    nextAction: firstDefined(pick("nextAction"), source.nextAction),
+    masterFeedback: firstDefined(pick("masterFeedback", "feedback"), source.masterFeedback),
+    latestSubmission: firstDefined(source.latestSubmission, dataRecord.latestSubmission, root.latestSubmission),
+    approvedSubmission: firstDefined(
+      source.approvedSubmission,
+      dataRecord.approvedSubmission,
+      root.approvedSubmission
+    ),
+    workflowIssue,
+    workflowInferredFromLegacy,
+    workflowMissingFields: missingFields.length ? missingFields : undefined
+  };
+}
+
 function mapSurveyConfig(input: unknown): FinalSurveyConfig {
   const source = record(input);
   return {
@@ -281,6 +413,14 @@ function mapMvpCharacter(input: unknown): MvpTableCharacter {
     tableId: text(source.tableId),
     name: text(source.name),
     sheetStatus: text(source.sheetStatus),
+    workflowIssue: text(source.workflowIssue) || undefined,
+    workflowInferredFromLegacy:
+      typeof source.workflowInferredFromLegacy === "boolean"
+        ? source.workflowInferredFromLegacy
+        : undefined,
+    workflowMissingFields: Array.isArray(source.workflowMissingFields)
+      ? source.workflowMissingFields.map(String)
+      : undefined,
     sheetRevision: num(source.sheetRevision),
     submittedRevision: num(source.submittedRevision),
     submittedAt: text(source.submittedAt) || null,
@@ -495,7 +635,7 @@ export const mvpService = {
     }),
   getMyCharacter: (tableId: string) =>
     request(apiClient.get(`/api/v1/tables/${tableId}/characters/me`), (data) => {
-      const value = unwrap(data, "character");
+      const value = characterRecordFromResponse(data);
       return isObject(value) ? mapMvpCharacter(value) : null;
     }),
   createCharacterDraft: (tableId: string, input: Partial<MvpTableCharacter>) =>
