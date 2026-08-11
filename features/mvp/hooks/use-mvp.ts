@@ -17,6 +17,7 @@ export const mvpKeys = {
   operations: (campaignId: string) => ["mvp", "operations", campaignId] as const
   ,
   myCharacter: (tableId: string) => ["mvp", "tables", tableId, "characters", "me"] as const,
+  aiUsage: (filters?: unknown) => ["mvp", "admin", "ai-usage", filters ?? {}] as const,
   technical: ["mvp", "technical"] as const,
   docsJson: ["mvp", "docs-json"] as const
 };
@@ -145,10 +146,64 @@ export function useDecidePlayerAiSuggestion(tableId?: string) {
       suggestionId: string;
       decision: "ACCEPTED" | "EDITED" | "DISCARDED";
       editedSuggestion?: string;
+      appliedContent?: string;
     }) => {
       if (!tableId) throw new Error("Entre na campanha antes de decidir uma sugestao.");
       const { suggestionId, ...payload } = input;
       return mvpService.decidePlayerAiSuggestion(tableId, suggestionId, payload);
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useGenerateChapterSuggestions(tableId?: string, characterId?: string | null) {
+  return useMutation({
+    mutationFn: (input: Parameters<typeof mvpService.getChapterSuggestions>[2]) => {
+      if (!tableId || !characterId) throw new Error("Salve o personagem antes de pedir sugestoes.");
+      return mvpService.getChapterSuggestions(tableId, characterId, input);
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useDecideChapterSuggestion(tableId?: string, characterId?: string | null) {
+  return useMutation({
+    mutationFn: (input: {
+      suggestionId: string;
+      decision: "ACCEPTED" | "EDITED" | "DISCARDED";
+      appliedContent?: string;
+    }) => {
+      if (!tableId || !characterId) throw new Error("Personagem indisponivel para decisao da IA.");
+      const { suggestionId, ...payload } = input;
+      return mvpService.decideChapterSuggestion(tableId, characterId, suggestionId, payload);
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useAiUsage(filters: Parameters<typeof mvpService.getAiUsageSummary>[0]) {
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  return useQuery({
+    queryKey: mvpKeys.aiUsage(filters),
+    queryFn: async () => {
+      const [summary, timeseries, breakdown] = await Promise.all([
+        mvpService.getAiUsageSummary(filters),
+        mvpService.getAiUsageTimeseries(filters),
+        mvpService.getAiUsageBreakdown(filters)
+      ]);
+      return { summary, timeseries, breakdown };
+    },
+    enabled: hasUsableAccessToken(accessToken),
+    retry: false
+  });
+}
+
+export function usePreviewCharacterCardArt(tableId?: string, characterId?: string | null) {
+  return useMutation({
+    mutationFn: () => {
+      if (!tableId || !characterId) throw new Error("Personagem aprovado indisponivel para carta.");
+      return mvpService.previewCharacterCardArt(tableId, characterId);
     },
     onError: (error: Error) => toast.error(error.message)
   });

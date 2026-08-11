@@ -146,6 +146,123 @@ export interface PlayerAiSuggestion {
   playerAction?: string;
 }
 
+export type CharacterAiSuggestionDecision = "ACCEPTED" | "EDITED" | "DISCARDED";
+
+export interface CharacterAiSuggestion {
+  id: string;
+  targetField: string;
+  content: string;
+  rationale: string;
+  basedOn: string[];
+  status: "GENERATED" | string;
+}
+
+export interface CharacterChapterSuggestionRequest {
+  targetChapter: "STORY" | string;
+  targetFields: string[];
+  expectedRevision: number;
+  playerIntent?: string;
+}
+
+export interface CharacterChapterSuggestionResponse {
+  suggestions: CharacterAiSuggestion[];
+  characterRevision: number;
+  promptVersion: string;
+  cached: boolean;
+}
+
+export interface AiUsageFilters {
+  dateFrom?: string;
+  dateTo?: string;
+  useCase?: string;
+  provider?: string;
+  model?: string;
+  status?: "SUCCESS" | "ERROR" | "";
+  tableId?: string;
+}
+
+export interface AiUsageSummary {
+  period?: Record<string, unknown>;
+  currency?: "USD" | string;
+  brl?: null | {
+    amount?: number;
+    rate?: number;
+    date?: string;
+    source?: string;
+  };
+  totalCalls?: number;
+  successfulCalls?: number;
+  failedCalls?: number;
+  inputTokens?: number;
+  cachedInputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  totalCostMicrosUsd?: string | null;
+  unpricedCalls?: number;
+  averageCostMicrosUsd?: string | null;
+  averageLatencyMs?: number | null;
+  acceptedSuggestions?: number;
+  editedSuggestions?: number;
+  discardedSuggestions?: number;
+}
+
+export interface AiUsageTimeseriesPoint {
+  day: string;
+  totalCalls?: number;
+  successfulCalls?: number;
+  failedCalls?: number;
+  inputTokens?: number;
+  cachedInputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  totalCostMicrosUsd?: string | null;
+  averageLatencyMs?: number | null;
+}
+
+export interface AiUsageTimeseries {
+  period?: Record<string, unknown>;
+  timezone?: string;
+  points: AiUsageTimeseriesPoint[];
+}
+
+export interface AiUsageBreakdownItem {
+  useCase?: string;
+  provider?: string;
+  model?: string;
+  status?: "SUCCESS" | "ERROR" | string;
+  tableId?: string | null;
+  totalCalls?: number;
+  inputTokens?: number;
+  cachedInputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  totalCostMicrosUsd?: string | null;
+  averageLatencyMs?: number | null;
+}
+
+export interface AiUsageBreakdown {
+  period?: Record<string, unknown>;
+  items: AiUsageBreakdownItem[];
+}
+
+export interface CharacterCardArtPreparation {
+  promptVersion?: string;
+  approvedSubmission?: {
+    id?: string;
+    sheetRevision?: number;
+    approvedAt?: string | null;
+    builderConfigVersion?: string;
+    contextVersionId?: string;
+  };
+  useCase?: string;
+  usageEventId?: string;
+  provider?: unknown;
+  storage?: unknown;
+  pending?: string[];
+  fields?: Record<string, unknown>;
+  prompt?: string;
+}
+
 export type MvpSheetStatus = "DRAFT" | "SUBMITTED" | "CHANGES_REQUESTED" | "APPROVED" | string;
 
 export interface MvpEpisodeAnswer {

@@ -18,7 +18,16 @@ import type {
   AdminCampaignInput,
   TechnicalStatus,
   PlaytestCreativeDossier,
-  PlaytestDossierSubmission
+  PlaytestDossierSubmission,
+  CharacterAiSuggestion,
+  CharacterChapterSuggestionRequest,
+  CharacterChapterSuggestionResponse,
+  CharacterAiSuggestionDecision,
+  AiUsageBreakdown,
+  AiUsageFilters,
+  AiUsageSummary,
+  AiUsageTimeseries,
+  CharacterCardArtPreparation
 } from "@/features/mvp/types";
 
 type Dict = Record<string, unknown>;
@@ -49,6 +58,17 @@ function firstDefined<T>(...values: T[]) {
 
 function arr<T>(value: unknown, mapper: (item: unknown) => T): T[] {
   return Array.isArray(value) ? value.map(mapper) : [];
+}
+
+function queryString(input?: object) {
+  const params = new URLSearchParams();
+  Object.entries((input ?? {}) as Record<string, unknown>).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
+  });
+  const value = params.toString();
+  return value ? `?${value}` : "";
 }
 
 function apiError(error: unknown, fallback: string) {
@@ -471,6 +491,66 @@ function mapMvpCharacter(input: unknown): MvpTableCharacter {
   };
 }
 
+function mapChapterSuggestion(input: unknown): CharacterAiSuggestion {
+  const source = record(input);
+  return {
+    id: text(source.id),
+    targetField: text(source.targetField),
+    content: text(source.content ?? source.suggestion),
+    rationale: text(source.rationale),
+    basedOn: Array.isArray(source.basedOn) ? source.basedOn.map(String) : [],
+    status: text(source.status, "GENERATED")
+  };
+}
+
+function mapChapterSuggestionResponse(input: unknown): CharacterChapterSuggestionResponse {
+  const source = record(input);
+  return {
+    suggestions: arr(source.suggestions, mapChapterSuggestion).slice(0, 3),
+    characterRevision: num(source.characterRevision) ?? 0,
+    promptVersion: text(source.promptVersion),
+    cached: bool(source.cached) ?? false
+  };
+}
+
+function mapUsageSummary(input: unknown): AiUsageSummary {
+  return record(input) as unknown as AiUsageSummary;
+}
+
+function mapUsageTimeseries(input: unknown): AiUsageTimeseries {
+  const source = record(input);
+  return {
+    period: isObject(source.period) ? source.period : undefined,
+    timezone: text(source.timezone) || undefined,
+    points: arr(source.points, (item) => record(item) as unknown as AiUsageTimeseries["points"][number])
+  };
+}
+
+function mapUsageBreakdown(input: unknown): AiUsageBreakdown {
+  const source = record(input);
+  return {
+    period: isObject(source.period) ? source.period : undefined,
+    items: arr(source.items, (item) => record(item) as AiUsageBreakdown["items"][number])
+  };
+}
+
+function mapCardArtPreparation(input: unknown): CharacterCardArtPreparation {
+  const source = record(input);
+  return {
+    promptVersion: text(source.promptVersion) || undefined,
+    approvedSubmission: isObject(source.approvedSubmission)
+      ? (source.approvedSubmission as CharacterCardArtPreparation["approvedSubmission"])
+      : undefined,
+    useCase: text(source.useCase) || undefined,
+    usageEventId: text(source.usageEventId) || undefined,
+    provider: source.provider ?? null,
+    storage: source.storage ?? null,
+    pending: Array.isArray(source.pending) ? source.pending.map(String) : [],
+    fields: isObject(source.fields) ? source.fields : undefined,
+    prompt: text(source.prompt) || undefined
+  };
+}
+
 function mapDossierSubmission(input: unknown): PlaytestDossierSubmission {
   const source = record(input);
   const participant = record(source.participant ?? source.user);
@@ -612,11 +692,59 @@ export const mvpService = {
   decidePlayerAiSuggestion: (
     tableId: string,
     suggestionId: string,
-    input: { decision: "ACCEPTED" | "EDITED" | "DISCARDED"; editedSuggestion?: string }
+    input: { decision: "ACCEPTED" | "EDITED" | "DISCARDED"; editedSuggestion?: string; appliedContent?: string }
   ) =>
     request(
       apiClient.patch(`/api/v1/tables/${tableId}/player-ai/suggestions/${suggestionId}/decision`, input),
       (data) => record(unwrap(data, "suggestion"))
+    ),
+  getChapterSuggestions: (
+    tableId: string,
+    characterId: string,
+    input: CharacterChapterSuggestionRequest
+  ) =>
+    request(
+      apiClient.post(
+        `/api/v1/tables/${tableId}/characters/${characterId}/ai/chapter-suggestions`,
+        input
+      ),
+      mapChapterSuggestionResponse
+    ),
+  decideChapterSuggestion: (
+    tableId: string,
+    characterId: string,
+    suggestionId: string,
+    input: { decision: CharacterAiSuggestionDecision; appliedContent?: string }
+  ) =>
+    request(
+      apiClient.patch(
+        `/api/v1/tables/${tableId}/characters/${characterId}/ai/suggestions/${suggestionId}`,
+        input
+      ),
+      (data) => record(unwrap(data, "suggestion"))
+    ),
+  getAiUsageSummary: (filters?: AiUsageFilters) =>
+    request(
+      apiClient.get(`/api/v1/admin/ai-usage/summary${queryString(filters)}`),
+      (data) => mapUsageSummary(unwrap(data, "summary"))
+    ),
+  getAiUsageTimeseries: (filters?: AiUsageFilters) =>
+    request(
+      apiClient.get(`/api/v1/admin/ai-usage/timeseries${queryString(filters)}`),
+      (data) => mapUsageTimeseries(unwrap(data, "timeseries"))
+    ),
+  getAiUsageBreakdown: (filters?: AiUsageFilters) =>
+    request(
+      apiClient.get(`/api/v1/admin/ai-usage/breakdown${queryString(filters)}`),
+      (data) => mapUsageBreakdown(unwrap(data, "breakdown"))
+    ),
+  previewCharacterCardArt: (tableId: string, characterId: string) =>
+    request(
+      apiClient.post(
+        `/api/v1/tables/${tableId}/characters/${characterId}/card-art-prompt/preview`,
+        {}
+      ),
+      (data) => mapCardArtPreparation(unwrap(data, "preview"))
     ),
   getOperationalOverview: (campaignId: string) =>
     request(apiClient.get(`/api/v1/campaigns/admin/${campaignId}/operations`), (data) => {
