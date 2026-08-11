@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageCircle, X } from "lucide-react";
+import { Bot, MessageCircle, RotateCcw, Sparkles, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -30,7 +30,9 @@ import { campaignFlowPath } from "@/features/mvp/campaign-flow";
 import {
   useBuilderConfig,
   useCampaignResume,
+  useDecideChapterSuggestion,
   useDecidePlayerAiSuggestion,
+  useGenerateChapterSuggestions,
   useGeneratePlayerAiSuggestion,
   useMyMvpCharacter,
   usePublicCampaign,
@@ -38,7 +40,9 @@ import {
 } from "@/features/mvp/hooks/use-mvp";
 import { mvpService } from "@/features/mvp/services/mvp.service";
 import type { PlayerAiSuggestion } from "@/features/mvp/types";
+import type { CharacterAiSuggestion } from "@/features/mvp/types";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
+import { ApiRequestError } from "@/lib/api/errors";
 import { authPathWithReturnTo } from "@/lib/routing/auth-redirects";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -51,6 +55,55 @@ const chapters = [
 ] as const;
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
+type SuggestionStatus = "pending" | "applying" | "applied" | "discarded" | "error";
+
+const autoSuggestionPreferenceKey = "gob.mvp.builder.auto-suggestions";
+
+const chapterTargets: Record<number, string[]> = {
+  0: ["name", "concept", "origin", "appearance"],
+  1: ["desire", "narrativeBond", "personalHistory"],
+  2: ["markLocation", "markAppearance", "markReaction", "markAttitude"],
+  3: ["positiveTrait", "negativeTrait", "initialEquipment"],
+  4: []
+};
+
+const apiFieldToFormField: Record<string, keyof CharacterBuilderFormState> = {
+  name: "name",
+  concept: "concept",
+  origin: "origin",
+  appearance: "appearance",
+  desire: "motivation",
+  narrativeBond: "bond",
+  personalHistory: "history",
+  markLocation: "markLocation",
+  markAppearance: "markAppearance",
+  markReaction: "markReaction",
+  markAttitude: "markAttitude",
+  positiveTrait: "positiveTrait",
+  negativeTrait: "negativeTrait",
+  initialEquipment: "equipment"
+};
+
+const formFieldToApiField: Partial<Record<keyof CharacterBuilderFormState, string>> = Object.entries(
+  apiFieldToFormField
+).reduce((acc, [apiField, formField]) => ({ ...acc, [formField]: apiField }), {});
+
+const fieldLabels: Record<string, string> = {
+  name: "nome",
+  concept: "conceito",
+  origin: "origem",
+  appearance: "aparencia",
+  desire: "motivacao",
+  narrativeBond: "vinculo",
+  personalHistory: "historia",
+  markLocation: "local da Marca",
+  markAppearance: "aparencia da Marca",
+  markReaction: "reacao da Marca",
+  markAttitude: "atitude diante da Marca",
+  positiveTrait: "Trait positiva",
+  negativeTrait: "Trait negativa",
+  initialEquipment: "equipamentos iniciais"
+};
 
 function nextActionText(action: unknown) {
   if (!action) return "Nenhuma";
@@ -74,7 +127,8 @@ function Field({
   error,
   multiline = false,
   rows = 4,
-  onFocus
+  onFocus,
+  suggestion
 }: {
   label: string;
   value: string;
@@ -84,6 +138,7 @@ function Field({
   multiline?: boolean;
   rows?: number;
   onFocus?: () => void;
+  suggestion?: React.ReactNode;
 }) {
   const Control = multiline ? Textarea : Input;
   return (
@@ -98,7 +153,103 @@ function Field({
         onFocus={onFocus}
       />
       {error ? <span className="block text-xs text-destructive">{error}</span> : null}
+      {suggestion}
     </label>
+  );
+}
+
+function AiFieldSuggestion({
+  suggestion,
+  status,
+  previousValue,
+  onApply,
+  onEditApply,
+  onDiscard,
+  onUndo
+}: {
+  suggestion?: CharacterAiSuggestion;
+  status?: SuggestionStatus;
+  previousValue?: string;
+  onApply: () => void;
+  onEditApply: (value: string) => void;
+  onDiscard: () => void;
+  onUndo: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  useEffect(() => {
+    if (suggestion) setDraft(suggestion.content);
+  }, [suggestion]);
+
+  if (!suggestion) return null;
+
+  if (status === "discarded") {
+    return (
+      <p className="rounded-lg border border-white/10 bg-black/20 p-3 text-xs text-muted-foreground">
+        Sugestao da IA descartada para este campo.
+      </p>
+    );
+  }
+
+  return (
+    <div
+      className="space-y-3 rounded-xl border border-primary/30 bg-primary/10 p-3 text-sm"
+      aria-live="polite"
+    >
+      <div className="flex items-center gap-2 font-semibold text-primary">
+        <Bot className="h-4 w-4" />
+        <span>Sugestao da IA</span>
+      </div>
+      {editing ? (
+        <Textarea rows={3} value={draft} onChange={(event) => setDraft(event.target.value)} />
+      ) : (
+        <p className="leading-6 text-foreground">{suggestion.content}</p>
+      )}
+      <p className="text-xs leading-5 text-muted-foreground">{suggestion.rationale}</p>
+      {suggestion.basedOn.length ? (
+        <p className="text-xs text-muted-foreground">
+          Baseada em: {suggestion.basedOn.map((field) => fieldLabels[field] ?? field).join(", ")}
+        </p>
+      ) : null}
+      {status === "error" ? (
+        <p className="text-xs text-amber-200">
+          A decisao nao foi registrada, mas o texto aplicado foi mantido localmente.
+        </p>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        {status === "applied" ? (
+          <Button type="button" size="sm" variant="outline" onClick={onUndo} disabled={!previousValue}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Desfazer
+          </Button>
+        ) : (
+          <>
+            <Button type="button" size="sm" onClick={onApply} disabled={status === "applying"}>
+              Aplicar
+            </Button>
+            {editing ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onEditApply(draft)}
+                disabled={status === "applying" || !draft.trim()}
+              >
+                Confirmar edicao
+              </Button>
+            ) : (
+              <Button type="button" size="sm" variant="outline" onClick={() => setEditing(true)}>
+                Editar antes de aplicar
+              </Button>
+            )}
+            <Button type="button" size="sm" variant="ghost" onClick={onDiscard} disabled={status === "applying"}>
+              Descartar
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -134,6 +285,16 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<PlayerAiSuggestion[]>([]);
   const [editedSuggestions, setEditedSuggestions] = useState<Record<string, string>>({});
+  const [suggestionsByField, setSuggestionsByField] = useState<Record<string, CharacterAiSuggestion[]>>({});
+  const [suggestionStatusById, setSuggestionStatusById] = useState<Record<string, SuggestionStatus>>({});
+  const [previousValueByField, setPreviousValueByField] = useState<Record<string, string>>({});
+  const [loadingChapter, setLoadingChapter] = useState<number | null>(null);
+  const [chapterError, setChapterError] = useState("");
+  const [lastSuggestionFingerprint, setLastSuggestionFingerprint] = useState("");
+  const [autoSuggestionsEnabled, setAutoSuggestionsEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(autoSuggestionPreferenceKey) === "true";
+  });
   const saveInFlight = useRef(false);
   const loadedKey = useRef("");
 
@@ -143,6 +304,8 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const character = useMyMvpCharacter(tableId);
   const config = useBuilderConfig(campaign.data?.builderConfigVersion);
   const saveCharacter = useSaveMvpCharacter(tableId, character.data?.id);
+  const generateChapterSuggestions = useGenerateChapterSuggestions(tableId, character.data?.id);
+  const decideChapterSuggestion = useDecideChapterSuggestion(tableId, character.data?.id);
   const generateAi = useGeneratePlayerAiSuggestion(tableId);
   const decideAi = useDecidePlayerAiSuggestion(tableId);
 
@@ -181,6 +344,11 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     setSaveStatus("idle");
   }
 
+  function setAutoSuggestions(value: boolean) {
+    setAutoSuggestionsEnabled(value);
+    window.localStorage.setItem(autoSuggestionPreferenceKey, String(value));
+  }
+
   function updateAttribute(key: AttributeKey, value: number) {
     const clean = Number.isFinite(value) ? Math.max(0, value) : 0;
     update("attributes", { ...form.attributes, [key]: clean });
@@ -210,7 +378,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
       loadedKey.current = `${saved.id}:${saved.sheetRevision ?? 0}:${saved.sheetStatus ?? ""}`;
       setDirty(false);
       setSaveStatus("saved");
-      return true;
+      return saved;
     } catch (error) {
       setSaveStatus("error");
       setSaveError(error instanceof Error ? error.message : "Falha ao salvar.");
@@ -231,11 +399,137 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   async function goToChapter(next: number) {
     if (next === chapter) return;
     if (next > chapter && editable) {
-      await saveDraft("navigation");
+      const saved = await saveDraft("navigation");
+      if (!saved) return;
+      if (autoSuggestionsEnabled) {
+        await requestChapterSuggestions(next, saved.sheetRevision ?? character.data?.sheetRevision);
+      }
     }
     setChapter(next);
     setSuggestions([]);
     setAiInstruction("");
+  }
+
+  function emptyTargetFieldsForChapter(targetChapter: number) {
+    return (chapterTargets[targetChapter] ?? [])
+      .filter((apiField) => {
+        const formField = apiFieldToFormField[apiField];
+        if (!formField) return false;
+        const value = form[formField];
+        if (Array.isArray(value)) return value.length === 0;
+        if (typeof value === "object") return false;
+        return !String(value ?? "").trim();
+      })
+      .slice(0, 3);
+  }
+
+  async function requestChapterSuggestions(targetChapter = chapter, revision = character.data?.sheetRevision) {
+    if (!editable || status === "SUBMITTED" || status === "APPROVED") return;
+    if (!tableId || !character.data?.id || !revision) {
+      setChapterError("Salve o rascunho antes de pedir sugestoes da IA.");
+      return;
+    }
+    const targetFields = emptyTargetFieldsForChapter(targetChapter);
+    if (!targetFields.length) {
+      setChapterError("Nao ha campos vazios neste capitulo para sugerir agora.");
+      return;
+    }
+    const fingerprint = `${character.data.id}:${revision}:${targetChapter}:${targetFields.join(",")}:${JSON.stringify(form)}`;
+    if (fingerprint === lastSuggestionFingerprint) return;
+    setLoadingChapter(targetChapter);
+    setChapterError("");
+    try {
+      const response = await generateChapterSuggestions.mutateAsync({
+        targetChapter: "STORY",
+        targetFields,
+        expectedRevision: revision,
+        playerIntent: `Sugerir conteudo seguro para o capitulo ${chapters[targetChapter]?.title ?? "atual"}.`
+      });
+      setLastSuggestionFingerprint(fingerprint);
+      setSuggestionsByField((current) => {
+        const next = { ...current };
+        for (const suggestion of response.suggestions) {
+          next[suggestion.targetField] = [suggestion];
+        }
+        return next;
+      });
+      response.suggestions.forEach((suggestion) =>
+        setSuggestionStatusById((current) => ({ ...current, [suggestion.id]: "pending" }))
+      );
+    } catch (error) {
+      const message =
+        error instanceof ApiRequestError && error.statusCode === 409
+          ? "Existe uma versao mais recente do personagem. Seus dados locais foram preservados; recarregue ou salve novamente antes de pedir sugestoes."
+          : error instanceof Error
+            ? error.message
+            : "A IA nao conseguiu gerar sugestoes agora.";
+      setChapterError(message);
+    } finally {
+      setLoadingChapter(null);
+    }
+  }
+
+  function suggestionFor(formField: keyof CharacterBuilderFormState) {
+    const apiField = formFieldToApiField[formField];
+    if (!apiField) return undefined;
+    return suggestionsByField[apiField]?.[0];
+  }
+
+  function applyFieldSuggestion(suggestion: CharacterAiSuggestion, mode: "ACCEPTED" | "EDITED", content: string) {
+    const formField = apiFieldToFormField[suggestion.targetField];
+    if (!formField || formField === "equipment") return;
+    const currentValue = String(form[formField] ?? "");
+    setPreviousValueByField((current) => ({ ...current, [suggestion.targetField]: currentValue }));
+    setSuggestionStatusById((current) => ({ ...current, [suggestion.id]: "applying" }));
+    update(formField, content as never);
+    decideChapterSuggestion.mutate(
+      {
+        suggestionId: suggestion.id,
+        decision: mode,
+        appliedContent: mode === "EDITED" ? content : undefined
+      },
+      {
+        onSuccess: () =>
+          setSuggestionStatusById((current) => ({ ...current, [suggestion.id]: "applied" })),
+        onError: () =>
+          setSuggestionStatusById((current) => ({ ...current, [suggestion.id]: "error" }))
+      }
+    );
+  }
+
+  function discardFieldSuggestion(suggestion: CharacterAiSuggestion) {
+    setSuggestionStatusById((current) => ({ ...current, [suggestion.id]: "applying" }));
+    decideChapterSuggestion.mutate(
+      { suggestionId: suggestion.id, decision: "DISCARDED" },
+      {
+        onSettled: () =>
+          setSuggestionStatusById((current) => ({ ...current, [suggestion.id]: "discarded" }))
+      }
+    );
+  }
+
+  function undoSuggestion(suggestion: CharacterAiSuggestion) {
+    const formField = apiFieldToFormField[suggestion.targetField];
+    const previous = previousValueByField[suggestion.targetField];
+    if (!formField || formField === "equipment" || previous === undefined) return;
+    update(formField, previous as never);
+    setSuggestionStatusById((current) => ({ ...current, [suggestion.id]: "pending" }));
+  }
+
+  function suggestionNode(formField: keyof CharacterBuilderFormState) {
+    const suggestion = suggestionFor(formField);
+    if (!suggestion) return null;
+    return (
+      <AiFieldSuggestion
+        suggestion={suggestion}
+        status={suggestionStatusById[suggestion.id]}
+        previousValue={previousValueByField[suggestion.targetField]}
+        onApply={() => applyFieldSuggestion(suggestion, "ACCEPTED", suggestion.content)}
+        onEditApply={(value) => applyFieldSuggestion(suggestion, "EDITED", value)}
+        onDiscard={() => discardFieldSuggestion(suggestion)}
+        onUndo={() => undoSuggestion(suggestion)}
+      />
+    );
   }
 
   if (campaign.isLoading || resume.isLoading || character.isLoading || config.isLoading) {
@@ -330,6 +624,54 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           </div>
         </div>
 
+        <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={autoSuggestionsEnabled}
+              onChange={(event) => setAutoSuggestions(event.target.checked)}
+              disabled={readOnly}
+              className="mt-1 h-4 w-4"
+            />
+            <span>
+              <span className="flex items-center gap-2 font-medium">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Receber sugestoes da IA ao avancar
+              </span>
+              <span className="mt-1 block text-muted-foreground">
+                A IA sugere apenas para campos vazios do proximo capitulo, depois do salvamento confirmado.
+              </span>
+            </span>
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void requestChapterSuggestions(chapter)}
+            disabled={readOnly || loadingChapter !== null}
+            aria-busy={loadingChapter === chapter}
+          >
+            <Bot className="mr-2 h-4 w-4" />
+            {loadingChapter === chapter ? "Pedindo ajuda..." : "Pedir ajuda neste capitulo"}
+          </Button>
+        </div>
+
+        {chapterError ? (
+          <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-50/90">
+            {chapterError}
+            <div className="mt-3">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void requestChapterSuggestions(chapter)}
+                disabled={readOnly || loadingChapter !== null}
+              >
+                Tentar novamente
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         {workflowIssue ? (
           <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
             <p className="font-semibold text-amber-100">
@@ -412,10 +754,10 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           {chapter === 0 ? (
             <Section title="1. Identidade">
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Nome" value={form.name} onChange={(value) => update("name", value)} disabled={readOnly} error={validation.errors.name} onFocus={() => setSelectedAiField("name")} />
-                <Field label="Conceito" value={form.concept} onChange={(value) => update("concept", value)} disabled={readOnly} error={validation.errors.concept} onFocus={() => setSelectedAiField("concept")} />
-                <Field label="Origem" value={form.origin} onChange={(value) => update("origin", value)} disabled={readOnly} error={validation.errors.origin} multiline onFocus={() => setSelectedAiField("origin")} />
-                <Field label="Aparencia" value={form.appearance} onChange={(value) => update("appearance", value)} disabled={readOnly} error={validation.errors.appearance} multiline onFocus={() => setSelectedAiField("appearance")} />
+                <Field label="Nome" value={form.name} onChange={(value) => update("name", value)} disabled={readOnly} error={validation.errors.name} onFocus={() => setSelectedAiField("name")} suggestion={suggestionNode("name")} />
+                <Field label="Conceito" value={form.concept} onChange={(value) => update("concept", value)} disabled={readOnly} error={validation.errors.concept} onFocus={() => setSelectedAiField("concept")} suggestion={suggestionNode("concept")} />
+                <Field label="Origem" value={form.origin} onChange={(value) => update("origin", value)} disabled={readOnly} error={validation.errors.origin} multiline onFocus={() => setSelectedAiField("origin")} suggestion={suggestionNode("origin")} />
+                <Field label="Aparencia" value={form.appearance} onChange={(value) => update("appearance", value)} disabled={readOnly} error={validation.errors.appearance} multiline onFocus={() => setSelectedAiField("appearance")} suggestion={suggestionNode("appearance")} />
               </div>
             </Section>
           ) : null}
@@ -423,9 +765,9 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           {chapter === 1 ? (
             <Section title="2. Historia e motivacao">
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Motivacao" value={form.motivation} onChange={(value) => update("motivation", value)} disabled={readOnly} error={validation.errors.motivation} multiline onFocus={() => setSelectedAiField("motivation")} />
-                <Field label="Vinculo" value={form.bond} onChange={(value) => update("bond", value)} disabled={readOnly} error={validation.errors.bond} multiline onFocus={() => setSelectedAiField("bond")} />
-                <Field label="Historia" value={form.history} onChange={(value) => update("history", value)} disabled={readOnly} error={validation.errors.history} multiline rows={6} onFocus={() => setSelectedAiField("history")} />
+                <Field label="Motivacao" value={form.motivation} onChange={(value) => update("motivation", value)} disabled={readOnly} error={validation.errors.motivation} multiline onFocus={() => setSelectedAiField("motivation")} suggestion={suggestionNode("motivation")} />
+                <Field label="Vinculo" value={form.bond} onChange={(value) => update("bond", value)} disabled={readOnly} error={validation.errors.bond} multiline onFocus={() => setSelectedAiField("bond")} suggestion={suggestionNode("bond")} />
+                <Field label="Historia" value={form.history} onChange={(value) => update("history", value)} disabled={readOnly} error={validation.errors.history} multiline rows={6} onFocus={() => setSelectedAiField("history")} suggestion={suggestionNode("history")} />
               </div>
             </Section>
           ) : null}
@@ -433,10 +775,10 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           {chapter === 2 ? (
             <Section title="3. Marca">
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Local da Marca" value={form.markLocation} onChange={(value) => update("markLocation", value)} disabled={readOnly} error={validation.errors.markLocation} onFocus={() => setSelectedAiField("markLocation")} />
-                <Field label="Aparencia da Marca" value={form.markAppearance} onChange={(value) => update("markAppearance", value)} disabled={readOnly} error={validation.errors.markAppearance} multiline onFocus={() => setSelectedAiField("markAppearance")} />
-                <Field label="Reacao da Marca" value={form.markReaction} onChange={(value) => update("markReaction", value)} disabled={readOnly} error={validation.errors.markReaction} multiline onFocus={() => setSelectedAiField("markReaction")} />
-                <Field label="Atitude diante dela" value={form.markAttitude} onChange={(value) => update("markAttitude", value)} disabled={readOnly} error={validation.errors.markAttitude} multiline onFocus={() => setSelectedAiField("markAttitude")} />
+                <Field label="Local da Marca" value={form.markLocation} onChange={(value) => update("markLocation", value)} disabled={readOnly} error={validation.errors.markLocation} onFocus={() => setSelectedAiField("markLocation")} suggestion={suggestionNode("markLocation")} />
+                <Field label="Aparencia da Marca" value={form.markAppearance} onChange={(value) => update("markAppearance", value)} disabled={readOnly} error={validation.errors.markAppearance} multiline onFocus={() => setSelectedAiField("markAppearance")} suggestion={suggestionNode("markAppearance")} />
+                <Field label="Reacao da Marca" value={form.markReaction} onChange={(value) => update("markReaction", value)} disabled={readOnly} error={validation.errors.markReaction} multiline onFocus={() => setSelectedAiField("markReaction")} suggestion={suggestionNode("markReaction")} />
+                <Field label="Atitude diante dela" value={form.markAttitude} onChange={(value) => update("markAttitude", value)} disabled={readOnly} error={validation.errors.markAttitude} multiline onFocus={() => setSelectedAiField("markAttitude")} suggestion={suggestionNode("markAttitude")} />
                 <Field label="Medo ou desconfianca das Almas Guardias" value={form.guardianSoulsFear} onChange={(value) => update("guardianSoulsFear", value)} disabled={readOnly} error={validation.errors.guardianSoulsFear} multiline onFocus={() => setSelectedAiField("guardianSoulsFear")} />
               </div>
             </Section>
@@ -523,8 +865,8 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Trait positiva" value={form.positiveTrait} onChange={(value) => update("positiveTrait", value)} disabled={readOnly} error={validation.errors.positiveTrait} onFocus={() => setSelectedAiField("positiveTrait")} />
-                <Field label="Trait negativa" value={form.negativeTrait} onChange={(value) => update("negativeTrait", value)} disabled={readOnly} error={validation.errors.negativeTrait} onFocus={() => setSelectedAiField("negativeTrait")} />
+                <Field label="Trait positiva" value={form.positiveTrait} onChange={(value) => update("positiveTrait", value)} disabled={readOnly} error={validation.errors.positiveTrait} onFocus={() => setSelectedAiField("positiveTrait")} suggestion={suggestionNode("positiveTrait")} />
+                <Field label="Trait negativa" value={form.negativeTrait} onChange={(value) => update("negativeTrait", value)} disabled={readOnly} error={validation.errors.negativeTrait} onFocus={() => setSelectedAiField("negativeTrait")} suggestion={suggestionNode("negativeTrait")} />
               </div>
 
               <div className="space-y-3">
