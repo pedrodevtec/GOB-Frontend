@@ -1,26 +1,37 @@
 "use client";
 
+import Link from "next/link";
+
 import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
+  formStateFromCharacter,
+  validateBuilderForm
+} from "@/features/mvp/builder/character-builder-schema";
+import { MyCharacterReadonlyPanel } from "@/features/mvp/components/character-builder/my-character-readonly-panel";
+import { campaignFlowPath } from "@/features/mvp/campaign-flow";
+import {
+  useBuilderConfig,
   useCampaignResume,
   useMyMvpCharacter,
+  usePublicCampaign,
   useSubmitMvpCharacter
 } from "@/features/mvp/hooks/use-mvp";
-import { campaignFlowPath } from "@/features/mvp/campaign-flow";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { authPathWithReturnTo } from "@/lib/routing/auth-redirects";
 import { useAuthStore } from "@/stores/auth-store";
 
 export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
   const accessToken = useAuthStore((state) => state.accessToken);
+  const campaign = usePublicCampaign(slug);
   const resume = useCampaignResume(slug);
   const tableId = resume.data?.membership?.tableId;
   const character = useMyMvpCharacter(tableId);
+  const config = useBuilderConfig(campaign.data?.builderConfigVersion);
   const submit = useSubmitMvpCharacter(tableId, character.data?.id);
 
-  if (resume.isLoading || character.isLoading) {
+  if (campaign.isLoading || resume.isLoading || character.isLoading || config.isLoading) {
     return <MvpState variant="loading" title="Carregando revisao" />;
   }
 
@@ -49,71 +60,114 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
     );
   }
 
+  if (character.isError || config.isError) {
+    return (
+      <MvpState
+        variant="error"
+        title="Revisao indisponivel"
+        description={(character.error as Error)?.message || (config.error as Error)?.message}
+      />
+    );
+  }
+
   if (!character.data) {
     return (
       <MvpState
         variant="empty"
-        title="Nenhum dossie encontrado"
-        description="Preencha e salve o dossie criativo antes de enviar."
+        title="Nenhum personagem encontrado"
+        description="Preencha e salve o Builder antes de submeter."
+        actions={[
+          {
+            label: "Abrir Builder",
+            href: campaignFlowPath(slug, "/personagem"),
+            variant: "default"
+          }
+        ]}
       />
     );
   }
 
-  if (character.data.sheetStatus === "SUBMITTED") {
-    return (
-      <MvpState
-        variant="submitted"
-        title="Dossie ja enviado"
-        description={`Revisao ${character.data.submittedRevision ?? 1} enviada para avaliacao.`}
-      />
-    );
-  }
+  const form = formStateFromCharacter(character.data);
+  const validation = validateBuilderForm(form, config.data);
+  const editable = character.data.editable === true;
+  const status = character.data.sheetStatus ?? "DRAFT";
+  const canSubmit =
+    validation.canSubmit &&
+    editable &&
+    (status === "DRAFT" || status === "CHANGES_REQUESTED") &&
+    !submit.isPending;
 
-  const dossier = character.data.creativeDossier;
+  function submitCharacter() {
+    if (!canSubmit) return;
+    const action = status === "CHANGES_REQUESTED" ? "ressubmeter" : "submeter";
+    if (!window.confirm(`Confirmar ${action} do personagem para avaliacao do Mestre?`)) return;
+    submit.mutate({ expectedRevision: character.data?.sheetRevision });
+  }
 
   return (
-    <Card className="space-y-5">
-      <div>
-        <CardTitle>{dossier?.characterName ?? character.data.name}</CardTitle>
-        <CardDescription className="mt-2">
-          Revise os dados principais antes do envio. A submissao bloqueia a
-          edicao enquanto o Mestre/Admin avalia o personagem.
-        </CardDescription>
-      </div>
+    <div className="space-y-5">
+      {status === "SUBMITTED" ? (
+        <MvpState
+          variant="submitted"
+          title="Personagem ja enviado"
+          description={`Revisao ${character.data.submittedRevision ?? character.data.sheetRevision ?? 1} aguardando analise do Mestre.`}
+        />
+      ) : null}
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-          <p className="text-xs uppercase tracking-wide text-primary">Base de Alma</p>
-          <p className="mt-1 font-semibold">
-            {dossier?.soulLegacy ?? character.data.archetypeKey ?? "Nao informado"}
-          </p>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-          <p className="text-xs uppercase tracking-wide text-primary">Criador</p>
-          <p className="mt-1 font-semibold">{dossier?.creatorName ?? "Nao informado"}</p>
-        </div>
-      </div>
+      {status === "APPROVED" ? (
+        <MvpState
+          variant="success"
+          title="Personagem aprovado"
+          description="A ficha aprovada permanece somente leitura neste fluxo."
+        />
+      ) : null}
 
-      <div className="grid gap-3">
-        {[
-          ["Conceito", dossier?.concept],
-          ["Quem deseja proteger", dossier?.protects],
-          ["Fardo", dossier?.burden],
-          ["Pergunta em aberto", dossier?.openQuestion],
-          ["Apresentacao final", dossier?.finalPresentation]
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-xl border border-white/10 bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-primary">{label}</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {value || "Nao informado"}
-            </p>
+      {status === "CHANGES_REQUESTED" && character.data.masterFeedback ? (
+        <Card className="space-y-2 border-amber-400/30 bg-amber-500/10">
+          <CardTitle>Ajustes solicitados</CardTitle>
+          <CardDescription className="text-amber-50/80">
+            {character.data.masterFeedback}
+          </CardDescription>
+        </Card>
+      ) : null}
+
+      <MyCharacterReadonlyPanel character={character.data} />
+
+      <Card className="space-y-4">
+        <div>
+          <CardTitle>Submissao</CardTitle>
+          <CardDescription className="mt-2">
+            Revise todos os campos antes de enviar. O backend valida a ficha e registra
+            cada submissao como snapshot imutavel.
+          </CardDescription>
+        </div>
+
+        {validation.missing.length ? (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+            <p className="font-semibold text-destructive">Campos pendentes</p>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-destructive">
+              {validation.missing.map((item) => <li key={item}>{item}</li>)}
+            </ul>
           </div>
-        ))}
-      </div>
+        ) : (
+          <p className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-muted-foreground">
+            Ficha completa para submissao.
+          </p>
+        )}
 
-      <Button type="button" onClick={() => submit.mutate()} disabled={submit.isPending}>
-        {submit.isPending ? "Submetendo..." : "Enviar dossie para revisao"}
-      </Button>
-    </Card>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button asChild variant="outline">
+            <Link href={campaignFlowPath(slug, "/personagem")}>Voltar ao Builder</Link>
+          </Button>
+          <Button type="button" onClick={submitCharacter} disabled={!canSubmit}>
+            {submit.isPending
+              ? "Enviando..."
+              : status === "CHANGES_REQUESTED"
+                ? "Ressubmeter personagem"
+                : "Submeter personagem"}
+          </Button>
+        </div>
+      </Card>
+    </div>
   );
 }
