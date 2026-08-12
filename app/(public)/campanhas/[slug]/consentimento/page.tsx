@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AnalyticsEvent } from "@/features/mvp/components/analytics-event";
 import { CampaignFlowAside } from "@/features/mvp/components/campaign-flow-aside";
 import { ConsentFlowPanel } from "@/features/mvp/components/consent-flow-panel";
+import { JourneyRouteGuard } from "@/features/mvp/components/journey-route-guard";
 import { campaignFlowPath } from "@/features/mvp/campaign-flow";
 
 interface ConsentPageProps {
@@ -27,7 +28,9 @@ export default async function ConsentPage({ params }: ConsentPageProps) {
       aside={<CampaignFlowAside currentStep="consent" blockedSteps={["episode", "builder"]} />}
     >
       <AnalyticsEvent slug={slug} eventKey="registration_completed" metadata={{ step: "consent" }} />
-      <ConsentFlowPanel slug={slug} />
+      <JourneyRouteGuard slug={slug} allow={["CONSENT_REQUIRED", "JOIN_REQUIRED"]}>
+        <ConsentFlowPanel slug={slug} />
+      </JourneyRouteGuard>
     </MvpFlowShell>
   );
 }

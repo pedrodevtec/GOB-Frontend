@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AnalyticsEvent } from "@/features/mvp/components/analytics-event";
 import { CampaignFlowAside } from "@/features/mvp/components/campaign-flow-aside";
 import { EpisodeContextPanel } from "@/features/mvp/components/episode-context-panel";
+import { JourneyRouteGuard } from "@/features/mvp/components/journey-route-guard";
 import { campaignFlowPath } from "@/features/mvp/campaign-flow";
 
 interface EpisodeOnePageProps {
@@ -32,7 +33,9 @@ export default async function EpisodeOnePage({ params }: EpisodeOnePageProps) {
       aside={<CampaignFlowAside currentStep="episode" />}
     >
       <AnalyticsEvent slug={slug} eventKey="public_context_viewed" />
-      <EpisodeContextPanel slug={slug} />
+      <JourneyRouteGuard slug={slug} allow={["CONTEXT_REQUIRED"]}>
+        <EpisodeContextPanel slug={slug} />
+      </JourneyRouteGuard>
     </MvpFlowShell>
   );
 }

@@ -57,6 +57,8 @@ const chapters = [
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 type SuggestionStatus = "pending" | "applying" | "applied" | "discarded" | "error";
+type MechanicalBlock = "archetype" | "attributes" | "traits" | "trainings" | "equipment";
+const mechanicalBlocks: MechanicalBlock[] = ["archetype", "attributes", "traits", "trainings", "equipment"];
 
 const autoSuggestionPreferenceKey = "gob.mvp.builder.auto-suggestions";
 
@@ -309,6 +311,11 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const [chapterError, setChapterError] = useState("");
   const [lastSuggestionFingerprint, setLastSuggestionFingerprint] = useState("");
   const [mechanicalProposal, setMechanicalProposal] = useState<CharacterMechanicalProposal | null>(null);
+  const [mechanicalProposalBaseline, setMechanicalProposalBaseline] = useState<CharacterBuilderFormState | null>(null);
+  const [mechanicalBlockStatus, setMechanicalBlockStatus] = useState<
+    Partial<Record<MechanicalBlock, "applied" | "discarded">>
+  >({});
+  const [aiPendingConfirmation, setAiPendingConfirmation] = useState(false);
   const [autoSuggestionsEnabled, setAutoSuggestionsEnabled] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(autoSuggestionPreferenceKey) === "true";
@@ -398,29 +405,68 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     }
     setChapterError("");
     try {
-      setMechanicalProposal(await generateMechanicalProposal.mutateAsync(revision));
+      const proposal = await generateMechanicalProposal.mutateAsync(revision);
+      setMechanicalProposalBaseline(form);
+      setMechanicalBlockStatus({});
+      setAiPendingConfirmation(false);
+      setMechanicalProposal(proposal);
     } catch (error) {
       setChapterError(error instanceof Error ? error.message : "A proposta nao ficou disponivel agora.");
     }
   }
 
-  function applyMechanicalProposal() {
+  function applyMechanicalBlock(block: MechanicalBlock) {
     if (!mechanicalProposal) return;
-    setForm((current) => ({
-      ...current,
-      archetypeKey: mechanicalProposal.archetypes[0]?.key ?? current.archetypeKey,
-      attributes: mechanicalProposal.attributes as CharacterBuilderFormState["attributes"],
-      trainings: mechanicalProposal.trainings,
-      positiveTrait: mechanicalProposal.positiveTrait,
-      negativeTrait: mechanicalProposal.negativeTrait,
-      equipment: mechanicalProposal.equipment
-    }));
+    setForm((current) => {
+      if (block === "archetype") return { ...current, archetypeKey: mechanicalProposal.archetypes[0]?.key ?? current.archetypeKey };
+      if (block === "attributes") return { ...current, attributes: mechanicalProposal.attributes as CharacterBuilderFormState["attributes"] };
+      if (block === "traits") return { ...current, positiveTrait: mechanicalProposal.positiveTrait, negativeTrait: mechanicalProposal.negativeTrait };
+      if (block === "trainings") return { ...current, trainings: mechanicalProposal.trainings };
+      return { ...current, equipment: mechanicalProposal.equipment };
+    });
+    setMechanicalBlockStatus((current) => ({ ...current, [block]: "applied" }));
+    setAiPendingConfirmation(true);
     setDirty(true);
-    decideChapterSuggestion.mutate({ suggestionId: mechanicalProposal.id, decision: "ACCEPTED" });
   }
 
-  async function saveDraft(mode: "manual" | "auto" | "navigation" = "manual") {
+  function discardMechanicalBlock(block: MechanicalBlock) {
+    if (mechanicalProposalBaseline) {
+      setForm((current) => {
+        if (block === "archetype") return { ...current, archetypeKey: mechanicalProposalBaseline.archetypeKey };
+        if (block === "attributes") return { ...current, attributes: mechanicalProposalBaseline.attributes };
+        if (block === "traits") return { ...current, positiveTrait: mechanicalProposalBaseline.positiveTrait, negativeTrait: mechanicalProposalBaseline.negativeTrait };
+        if (block === "trainings") return { ...current, trainings: mechanicalProposalBaseline.trainings };
+        return { ...current, equipment: mechanicalProposalBaseline.equipment };
+      });
+    }
+    setMechanicalBlockStatus((current) => {
+      const next = { ...current, [block]: "discarded" as const };
+      setAiPendingConfirmation(mechanicalBlocks.some((item) => next[item] === "applied"));
+      return next;
+    });
+  }
+
+  async function confirmMechanicalChoices() {
+    if (!mechanicalProposal || mechanicalBlocks.some((block) => !mechanicalBlockStatus[block])) return;
+    const saved = await saveDraft("ai-confirmed");
+    if (!saved) return;
+    decideChapterSuggestion.mutate({
+      suggestionId: mechanicalProposal.id,
+      decision: "EDITED",
+      appliedContent: JSON.stringify({ blocks: mechanicalBlockStatus })
+    });
+    setAiPendingConfirmation(false);
+    setMechanicalProposal(null);
+    setMechanicalProposalBaseline(null);
+    setMechanicalBlockStatus({});
+  }
+
+  async function saveDraft(mode: "manual" | "auto" | "navigation" | "ai-confirmed" = "manual") {
     if (!tableId || !editable || saveInFlight.current) return false;
+    if (aiPendingConfirmation && mode !== "ai-confirmed") {
+      setChapterError("Confirme ou descarte todos os blocos sugeridos antes de salvar.");
+      return false;
+    }
     if (!form.name.trim() && mode === "auto") return false;
 
     saveInFlight.current = true;
@@ -446,7 +492,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   }
 
   useEffect(() => {
-    if (!dirty || !editable || saveInFlight.current) return;
+    if (!dirty || !editable || saveInFlight.current || aiPendingConfirmation) return;
     const timer = window.setTimeout(() => {
       void saveDraft("auto");
     }, 1800);
@@ -456,6 +502,18 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   async function goToChapter(next: number) {
     if (next === chapter) return;
     if (next > chapter && editable) {
+      const chapterReady =
+        chapter === 0
+          ? Object.values(form.narrativeResponses).every((value) => value.trim())
+          : chapter === 1
+            ? form.confirmedBlocks.length === 3 && Boolean(form.name.trim() && form.concept.trim() && form.history.trim() && form.motivation.trim() && form.bond.trim() && form.markAppearance.trim() && form.markAttitude.trim())
+            : chapter === 2
+              ? validation.missing.length === 0
+              : true;
+      if (!chapterReady) {
+        setChapterError("Complete e confirme este bloco antes de avançar.");
+        return;
+      }
       const saved = await saveDraft("navigation");
       if (!saved) return;
       if (autoSuggestionsEnabled) {
@@ -493,7 +551,8 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           ["markAppearance", "markReaction", "markAttitude"]
         ]
       : [emptyTargetFieldsForChapter(targetChapter)];
-    if (!targetGroups.some((group) => group.length)) {
+    const nextTargetGroup = targetGroups.find((group) => group.length);
+    if (!nextTargetGroup) {
       setChapterError("Nao ha campos vazios neste capitulo para sugerir agora.");
       return;
     }
@@ -503,12 +562,12 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     setChapterError("");
     try {
       const responses: CharacterChapterSuggestionResponse[] = [];
-      for (const targetFields of targetGroups.filter((group) => group.length)) {
+      for (const targetFields of [nextTargetGroup]) {
         responses.push(await generateChapterSuggestions.mutateAsync({
           targetChapter: "STORY",
           targetFields,
           expectedRevision: revision,
-          playerIntent: "Interpretar somente o que o jogador contou nas tres respostas narrativas. Marcar lacunas sem inventar informacoes."
+          playerIntent: "Interpretar somente o que o jogador contou. Se faltar informação essencial, fazer no máximo uma pergunta complementar e nunca inventar conteúdo."
         }));
       }
       setLastSuggestionFingerprint(fingerprint);
@@ -912,8 +971,30 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                 <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
                   <p className="font-semibold">Proposta da IA</p>
                   <p className="text-sm text-muted-foreground">{mechanicalProposal.rationale}</p>
-                  <p className="text-sm">Arquetipos: {mechanicalProposal.archetypes.map((item) => item.key).join(", ")}</p>
-                  <Button type="button" size="sm" onClick={applyMechanicalProposal}>Usar esta proposta</Button>
+                  {([
+                    ["archetype", "Arquétipo", mechanicalProposal.archetypes.map((item) => item.key).join(", ")],
+                    ["attributes", "Atributos", Object.entries(mechanicalProposal.attributes).map(([key, value]) => `${key}: ${value}`).join(", ")],
+                    ["traits", "Traits", `${mechanicalProposal.positiveTrait} · ${mechanicalProposal.negativeTrait}`],
+                    ["trainings", "Treinamentos", mechanicalProposal.trainings.join(", ")],
+                    ["equipment", "Equipamentos", mechanicalProposal.equipment.map((item) => item.name).join(", ")]
+                  ] as Array<[MechanicalBlock, string, string]>).map(([block, label, content]) => (
+                    <div key={block} className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
+                      <p className="font-medium">{label}</p>
+                      <p className="text-sm text-muted-foreground">{content}</p>
+                      <div className="flex gap-2">
+                        <Button type="button" size="sm" onClick={() => applyMechanicalBlock(block)}>Usar</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => discardMechanicalBlock(block)}>Descartar</Button>
+                        {mechanicalBlockStatus[block] ? <span className="self-center text-xs text-primary">{mechanicalBlockStatus[block] === "applied" ? "Usado — você ainda pode editar" : "Descartado"}</span> : null}
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    onClick={() => void confirmMechanicalChoices()}
+                    disabled={mechanicalBlocks.some((block) => !mechanicalBlockStatus[block])}
+                  >
+                    Confirmar escolhas e salvar
+                  </Button>
                 </div>
               ) : null}
               <div className="grid gap-4 lg:grid-cols-2">

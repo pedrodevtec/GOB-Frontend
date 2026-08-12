@@ -9,13 +9,14 @@ import { useAuthStore } from "@/stores/auth-store";
 
 export const mvpKeys = {
   campaign: (slug: string) => ["mvp", "campaign", slug] as const,
+  adminCampaign: (slug: string) => ["mvp", "admin-campaign", slug] as const,
   consentDocument: ["mvp", "consent-document"] as const,
   resume: (slug: string) => ["mvp", "campaign", slug, "resume"] as const,
   builderConfig: (version?: string) => ["mvp", "builder-config", version ?? "active"] as const,
   finalSurvey: ["mvp", "final-survey"] as const,
   myFinalSurvey: (slug: string) => ["mvp", "campaign", slug, "final-survey", "me"] as const,
-  operations: (campaignId: string) => ["mvp", "operations", campaignId] as const
-  ,
+  operations: (campaignId: string) => ["mvp", "operations", campaignId] as const,
+  reviewQueue: (tableId: string) => ["mvp", "tables", tableId, "character-reviews"] as const,
   myCharacter: (tableId: string) => ["mvp", "tables", tableId, "characters", "me"] as const,
   aiUsage: (filters?: unknown) => ["mvp", "admin", "ai-usage", filters ?? {}] as const,
   technical: ["mvp", "technical"] as const,
@@ -27,6 +28,16 @@ export function usePublicCampaign(slug: string) {
     queryKey: mvpKeys.campaign(slug),
     queryFn: () => mvpService.getPublicCampaign(slug),
     enabled: Boolean(slug),
+    retry: false
+  });
+}
+
+export function useAdminCampaign(slug: string) {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useQuery({
+    queryKey: mvpKeys.adminCampaign(slug),
+    queryFn: () => mvpService.getAdminCampaignBySlug(slug),
+    enabled: Boolean(slug && hasUsableAccessToken(accessToken)),
     retry: false
   });
 }
@@ -212,7 +223,7 @@ export function useAiUsage(filters: Parameters<typeof mvpService.getAiUsageSumma
 export function usePreviewCharacterCardArt(tableId?: string, characterId?: string | null) {
   return useMutation({
     mutationFn: () => {
-      if (!tableId || !characterId) throw new Error("Personagem aprovado indisponivel para carta.");
+      if (!tableId || !characterId) throw new Error("Personagem enviado indisponível para a imagem.");
       return mvpService.previewCharacterCardArt(tableId, characterId);
     },
     onError: (error: Error) => toast.error(error.message)
@@ -238,6 +249,79 @@ export function useMyMvpCharacter(tableId?: string) {
     queryFn: () => mvpService.getMyCharacter(tableId ?? ""),
     enabled: Boolean(tableId && hasUsableAccessToken(accessToken)),
     retry: false
+  });
+}
+
+export function useCharacterReviewQueue(tableId?: string) {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useQuery({
+    queryKey: mvpKeys.reviewQueue(tableId ?? ""),
+    queryFn: () => mvpService.getCharacterReviewQueue(tableId ?? ""),
+    enabled: Boolean(tableId && hasUsableAccessToken(accessToken)),
+    retry: false
+  });
+}
+
+export function useRequestCharacterChanges(tableId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { characterId: string; expectedRevision: number; reason: string }) => {
+      if (!tableId) throw new Error("Mesa do piloto indisponível.");
+      return mvpService.requestCharacterChanges(tableId, input.characterId, {
+        expectedRevision: input.expectedRevision,
+        reason: input.reason
+      });
+    },
+    onSuccess: () => {
+      if (tableId) queryClient.invalidateQueries({ queryKey: mvpKeys.reviewQueue(tableId) });
+      toast.success("Pedido de ajuste enviado.");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useApproveCharacter(tableId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { characterId: string; expectedRevision: number }) => {
+      if (!tableId) throw new Error("Mesa do piloto indisponível.");
+      return mvpService.approveCharacter(tableId, input.characterId, input.expectedRevision);
+    },
+    onSuccess: () => {
+      if (tableId) queryClient.invalidateQueries({ queryKey: mvpKeys.reviewQueue(tableId) });
+      toast.success("Personagem aprovado.");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useAdaptLegacyCharacter(tableId?: string, campaignId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (characterId: string) => {
+      if (!tableId) throw new Error("Mesa do piloto indisponível.");
+      return mvpService.adaptLegacyCharacter(tableId, characterId);
+    },
+    onSuccess: () => {
+      if (campaignId) queryClient.invalidateQueries({ queryKey: mvpKeys.operations(campaignId) });
+      toast.success("Personagem preparado para o modelo atual.");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useDeleteCharacterAsAdmin(tableId?: string, campaignId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { characterId: string; reason: string }) => {
+      if (!tableId) throw new Error("Mesa do piloto indisponível.");
+      return mvpService.deleteCharacterAsAdmin(tableId, input.characterId, input.reason);
+    },
+    onSuccess: () => {
+      if (campaignId) queryClient.invalidateQueries({ queryKey: mvpKeys.operations(campaignId) });
+      toast.success("Personagem excluído.");
+    },
+    onError: (error: Error) => toast.error(error.message)
   });
 }
 
@@ -332,6 +416,8 @@ export function useUpdateAdminCampaign() {
     }) => mvpService.updateAdminCampaign(campaignId, input),
     onSuccess: (campaign) => {
       queryClient.invalidateQueries({ queryKey: mvpKeys.operations(campaign.id) });
+      queryClient.invalidateQueries({ queryKey: ["mvp", "campaign"] });
+      queryClient.invalidateQueries({ queryKey: ["mvp", "admin-campaign"] });
       toast.success("Campanha atualizada.");
     },
     onError: (error: Error) => toast.error(error.message)
@@ -351,6 +437,8 @@ export function useUpdateAdminCampaignStatus() {
     }) => mvpService.updateAdminCampaignStatus(campaignId, status),
     onSuccess: (campaign) => {
       queryClient.invalidateQueries({ queryKey: mvpKeys.operations(campaign.id) });
+      queryClient.invalidateQueries({ queryKey: ["mvp", "campaign"] });
+      queryClient.invalidateQueries({ queryKey: ["mvp", "admin-campaign"] });
       toast.success("Status atualizado.");
     },
     onError: (error: Error) => toast.error(error.message)
