@@ -774,6 +774,8 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                 <Field label="Motivacao" value={form.motivation} onChange={(value) => update("motivation", value)} disabled={readOnly} error={validation.errors.motivation} multiline onFocus={() => setSelectedAiField("motivation")} suggestion={suggestionNode("motivation")} />
                 <Field label="Vinculo" value={form.bond} onChange={(value) => update("bond", value)} disabled={readOnly} error={validation.errors.bond} multiline onFocus={() => setSelectedAiField("bond")} suggestion={suggestionNode("bond")} />
                 <Field label="Historia" value={form.history} onChange={(value) => update("history", value)} disabled={readOnly} error={validation.errors.history} multiline rows={6} onFocus={() => setSelectedAiField("history")} suggestion={suggestionNode("history")} />
+                <Field label="Promessa ou culpa" value={form.promiseOrGuilt} onChange={(value) => update("promiseOrGuilt", value)} disabled={readOnly} error={validation.errors.promiseOrGuilt} multiline onFocus={() => setSelectedAiField("promiseOrGuilt")} />
+                <Field label="Razao para agir com o grupo" value={form.reasonToActWithGroup} onChange={(value) => update("reasonToActWithGroup", value)} disabled={readOnly} error={validation.errors.reasonToActWithGroup} multiline onFocus={() => setSelectedAiField("reasonToActWithGroup")} />
               </div>
             </Section>
           ) : null}

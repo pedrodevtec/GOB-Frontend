@@ -310,6 +310,8 @@ export interface MvpTableCharacter {
   appearance?: string;
   desire?: string;
   fear?: string;
+  promiseOrGuilt?: string;
+  reasonToActWithGroup?: string;
   personalHistory?: string;
   initialEquipment?: Array<{ slot?: string; name?: string; description?: string }>;
   motivation?: string;

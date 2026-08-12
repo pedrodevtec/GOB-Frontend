@@ -104,6 +104,8 @@ export function MyCharacterReadonlyPanel({
           <Detail label="Motivacao" value={character.motivation} />
           <Detail label="Vinculo" value={character.bond ?? character.narrativeBond} />
           <Detail label="Historia" value={character.history} />
+          <Detail label="Promessa ou culpa" value={character.promiseOrGuilt} />
+          <Detail label="Razao para agir com o grupo" value={character.reasonToActWithGroup} />
         </Section>
 
         <Section title="Marca">

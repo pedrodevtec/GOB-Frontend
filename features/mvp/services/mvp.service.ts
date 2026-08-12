@@ -458,6 +458,8 @@ function mapMvpCharacter(input: unknown): MvpTableCharacter {
     appearance: text(source.appearance) || undefined,
     desire: text(source.desire) || undefined,
     fear: text(source.fear) || undefined,
+    promiseOrGuilt: text(source.promiseOrGuilt) || undefined,
+    reasonToActWithGroup: text(source.reasonToActWithGroup) || undefined,
     personalHistory: text(source.personalHistory) || undefined,
     motivation: text(source.motivation ?? source.desire) || undefined,
     bond: text(source.bond ?? source.narrativeBond) || undefined,

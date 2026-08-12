@@ -52,6 +52,8 @@ export interface CharacterBuilderFormState {
   motivation: string;
   bond: string;
   history: string;
+  promiseOrGuilt: string;
+  reasonToActWithGroup: string;
   markLocation: string;
   markAppearance: string;
   markReaction: string;
@@ -91,6 +93,8 @@ export function emptyBuilderFormState(): CharacterBuilderFormState {
     motivation: "",
     bond: "",
     history: "",
+    promiseOrGuilt: "",
+    reasonToActWithGroup: "",
     markLocation: "",
     markAppearance: "",
     markReaction: "",
@@ -154,6 +158,8 @@ export function formStateFromCharacter(character?: MvpTableCharacter | null): Ch
     motivation: normalizeText(character.motivation),
     bond: normalizeText(character.bond ?? character.narrativeBond),
     history: normalizeText(character.history),
+    promiseOrGuilt: normalizeText(character.promiseOrGuilt),
+    reasonToActWithGroup: normalizeText(character.reasonToActWithGroup),
     markLocation: normalizeText(character.markLocation),
     markAppearance: normalizeText(character.markAppearance),
     markReaction: normalizeText(character.markReaction),
@@ -214,7 +220,9 @@ export function serializeCharacterPayload(
     1: {
       desire: state.motivation.trim(),
       narrativeBond: state.bond.trim(),
-      personalHistory: state.history.trim()
+      personalHistory: state.history.trim(),
+      promiseOrGuilt: state.promiseOrGuilt.trim(),
+      reasonToActWithGroup: state.reasonToActWithGroup.trim()
     },
     2: {
       markLocation: state.markLocation.trim(),
@@ -291,6 +299,8 @@ export function validateBuilderForm(
     ["motivation", "Motivacao", state.motivation],
     ["bond", "Vinculo", state.bond],
     ["history", "Historia", state.history],
+    ["promiseOrGuilt", "Promessa ou culpa", state.promiseOrGuilt],
+    ["reasonToActWithGroup", "Razao para agir com o grupo", state.reasonToActWithGroup],
     ["markLocation", "Local da Marca", state.markLocation],
     ["markAppearance", "Aparencia da Marca", state.markAppearance],
     ["markReaction", "Reacao da Marca", state.markReaction],
