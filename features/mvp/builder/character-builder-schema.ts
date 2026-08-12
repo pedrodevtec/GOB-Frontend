@@ -232,7 +232,11 @@ export function serializeCharacterPayload(
       }))
   };
   if (existing?.creativeDossier) payload.creativeDossier = existing.creativeDossier;
-  return payload;
+  return Object.fromEntries(
+    Object.entries(payload).filter(
+      ([, value]) => value !== "" && value !== null && value !== undefined
+    )
+  ) as Partial<MvpTableCharacter>;
 }
 
 export function serializeEpisodeAnswers(
