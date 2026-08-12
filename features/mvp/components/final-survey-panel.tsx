@@ -49,7 +49,7 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
       <div>
         <CardTitle>Pesquisa {survey.data?.version}</CardTitle>
         <CardDescription className="mt-2">
-          Perguntas carregadas do backend. O envio usa o contrato oficial do piloto.
+          Suas respostas ajudam a melhorar a criacao de personagem e a experiencia do playtest.
         </CardDescription>
       </div>
       <form
@@ -136,4 +136,3 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
     </Card>
   );
 }
-

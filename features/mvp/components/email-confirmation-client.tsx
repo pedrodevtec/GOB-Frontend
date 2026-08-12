@@ -38,7 +38,7 @@ export function EmailConfirmationClient({
       <MvpState
         variant="success"
         title="E-mail confirmado"
-        description="A API confirmou seu e-mail. Continue o fluxo do piloto."
+        description="Seu acesso esta liberado. Continue de onde parou."
         actions={[{ label: "Continuar", href: returnTo, variant: "default" }]}
       />
     );

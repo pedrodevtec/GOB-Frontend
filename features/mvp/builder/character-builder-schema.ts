@@ -45,6 +45,13 @@ export const EPISODE_ONE_FALLBACK_PROMPTS: Record<EpisodeOneKey, string> = {
 };
 
 export interface CharacterBuilderFormState {
+  narrativeResponses: {
+    before_mark: string;
+    motivation_and_bonds: string;
+    mark_change: string;
+  };
+  confirmedBlocks: Array<"identity" | "motivations" | "mark">;
+  playStylePreference: string;
   name: string;
   concept: string;
   origin: string;
@@ -86,6 +93,13 @@ export interface BuilderValidationResult {
 
 export function emptyBuilderFormState(): CharacterBuilderFormState {
   return {
+    narrativeResponses: {
+      before_mark: "",
+      motivation_and_bonds: "",
+      mark_change: ""
+    },
+    confirmedBlocks: [],
+    playStylePreference: "",
     name: "",
     concept: "",
     origin: "",
@@ -151,6 +165,16 @@ export function formStateFromCharacter(character?: MvpTableCharacter | null): Ch
   if (!character) return empty;
   return {
     ...empty,
+    narrativeResponses: {
+      before_mark: normalizeText(character.narrativeResponses?.before_mark),
+      motivation_and_bonds: normalizeText(character.narrativeResponses?.motivation_and_bonds),
+      mark_change: normalizeText(character.narrativeResponses?.mark_change)
+    },
+    confirmedBlocks: (character.confirmedNarrativeContext?.confirmedBlocks ?? []).filter(
+      (block): block is "identity" | "motivations" | "mark" =>
+        ["identity", "motivations", "mark"].includes(block)
+    ),
+    playStylePreference: normalizeText(character.playStylePreference),
     name: normalizeText(character.name),
     concept: normalizeText(character.concept),
     origin: normalizeText(character.origin),
@@ -208,8 +232,56 @@ export function legacyReferencesFromDossier(
 
 export function serializeCharacterPayload(
   state: CharacterBuilderFormState,
-  chapter: number
+  chapter: number,
+  config?: BuilderConfig
 ): Partial<MvpTableCharacter> {
+  if (config?.narrativeFlow) {
+    const confirmedFields = {
+      name: state.name.trim(),
+      concept: state.concept.trim(),
+      origin: state.origin.trim(),
+      appearance: state.appearance.trim(),
+      personalHistory: state.history.trim(),
+      desire: state.motivation.trim(),
+      fear: state.guardianSoulsFear.trim(),
+      narrativeBond: state.bond.trim(),
+      promiseOrGuilt: state.promiseOrGuilt.trim(),
+      reasonToActWithGroup: state.reasonToActWithGroup.trim(),
+      markLocation: state.markLocation.trim(),
+      markAppearance: state.markAppearance.trim(),
+      markReaction: state.markReaction.trim(),
+      markAttitude: state.markAttitude.trim()
+    };
+    const payloadByStep: Record<number, Partial<MvpTableCharacter>> = {
+      0: { narrativeResponses: state.narrativeResponses },
+      1: {
+        ...confirmedFields,
+        confirmedNarrativeContext: {
+          confirmedBlocks: state.confirmedBlocks,
+          fields: Object.fromEntries(Object.entries(confirmedFields).filter(([, value]) => value))
+        }
+      },
+      2: {
+        playStylePreference: state.playStylePreference,
+        archetypeKey: state.archetypeKey.trim(),
+        attributes: state.attributes,
+        trainings: state.trainings,
+        positiveTrait: state.positiveTrait.trim(),
+        negativeTrait: state.negativeTrait.trim(),
+        initialEquipment: state.equipment
+          .filter((item) => item.name.trim() || item.slot.trim())
+          .map((item) => ({
+            slot: item.slot.trim() || undefined,
+            name: item.name.trim() || undefined,
+            description: item.description?.trim() || undefined
+          }))
+      },
+      3: {}
+    };
+    return Object.fromEntries(
+      Object.entries(payloadByStep[chapter] ?? {}).filter(([, value]) => value !== "" && value !== undefined)
+    ) as Partial<MvpTableCharacter>;
+  }
   const payloadByChapter: Record<number, Partial<MvpTableCharacter>> = {
     0: {
       name: state.name.trim(),
@@ -291,6 +363,31 @@ export function validateBuilderForm(
   config?: BuilderConfig
 ): BuilderValidationResult {
   const errors: Record<string, string> = {};
+  if (config?.narrativeFlow) {
+    for (const question of config.narrativeFlow.questions) {
+      if (!state.narrativeResponses[question.key].trim()) {
+        errors[`narrativeResponses.${question.key}`] = "Conte um pouco sobre este ponto antes de continuar.";
+      }
+    }
+    for (const block of config.narrativeFlow.confirmationBlocks) {
+      if (!state.confirmedBlocks.includes(block)) {
+        errors[`confirmedBlocks.${block}`] = "Revise e confirme este bloco.";
+      }
+    }
+    const confirmedValues: Record<string, string> = {
+      name: state.name,
+      concept: state.concept,
+      personalHistory: state.history,
+      desire: state.motivation,
+      narrativeBond: state.bond,
+      markAppearance: state.markAppearance,
+      markAttitude: state.markAttitude
+    };
+    for (const field of config.narrativeFlow.requiredConfirmedFields) {
+      if (!confirmedValues[field]?.trim()) errors[field] = "Informacao necessaria antes do envio.";
+    }
+    if (!state.playStylePreference) errors.playStylePreference = "Escolha como deseja contribuir nas cenas.";
+  }
   const requiredFields: Array<[string, string, string]> = [
     ["name", "Nome", state.name],
     ["concept", "Conceito", state.concept],
@@ -311,13 +408,14 @@ export function validateBuilderForm(
     ["negativeTrait", "Trait negativa", state.negativeTrait]
   ];
 
-  for (const [key, label, value] of requiredFields) {
-    if (!value.trim()) errors[key] = `${label} e obrigatorio.`;
-  }
-
-  for (const key of EPISODE_ONE_KEYS) {
-    if (!state.episodeAnswers[key].trim()) {
-      errors[`episodeAnswers.${key}`] = "Resposta obrigatoria do Episodio 1.";
+  if (!config?.narrativeFlow) {
+    for (const [key, label, value] of requiredFields) {
+      if (!value.trim()) errors[key] = `${label} e obrigatorio.`;
+    }
+    for (const key of EPISODE_ONE_KEYS) {
+      if (!state.episodeAnswers[key].trim()) {
+        errors[`episodeAnswers.${key}`] = "Resposta obrigatoria do Episodio 1.";
+      }
     }
   }
 

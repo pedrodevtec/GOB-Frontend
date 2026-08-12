@@ -17,7 +17,7 @@ export default async function BuilderReviewPage({ params }: BuilderReviewPagePro
     <MvpFlowShell
       eyebrow="Revisao final"
       title="Enviar personagem"
-      description="A submissao final deve ocorrer somente depois da validacao oficial do backend."
+      description="Confira o que voce criou e envie quando estiver satisfeito. O Mestre ainda podera solicitar ajustes."
       actions={
         <Button asChild variant="outline">
           <Link href={campaignFlowPath(slug, "/personagem")}>Voltar ao Builder</Link>

@@ -17,8 +17,8 @@ export default async function EpisodeOnePage({ params }: EpisodeOnePageProps) {
   return (
     <MvpFlowShell
       eyebrow="Episodio 1"
-      title="Contexto publico"
-      description="Somente o contexto publico aprovado deve aparecer nesta etapa."
+      title="Conheca o ponto de partida"
+      description="Voce so precisa deste contexto para criar alguem que pertence a Bravantus. Nao precisa conhecer toda a historia."
       actions={
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline">

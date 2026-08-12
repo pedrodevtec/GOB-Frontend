@@ -75,6 +75,18 @@ export interface BuilderConfig {
     prompt: string;
     version?: string;
   }>;
+  narrativeFlow?: {
+    visibleSteps: number;
+    questions: Array<{
+      key: "before_mark" | "motivation_and_bonds" | "mark_change";
+      prompt: string;
+      helper: string;
+      required: boolean;
+    }>;
+    confirmationBlocks: Array<"identity" | "motivations" | "mark">;
+    requiredConfirmedFields: string[];
+    playStyleOptions: Array<{ key: string; name: string; description: string }>;
+  };
 }
 
 export interface FinalSurveyConfig {
@@ -169,6 +181,19 @@ export interface CharacterChapterSuggestionResponse {
   characterRevision: number;
   promptVersion: string;
   cached: boolean;
+}
+
+export interface CharacterMechanicalProposal {
+  id: string;
+  archetypes: Array<{ key: string; rationale: string }>;
+  positiveTrait: string;
+  negativeTrait: string;
+  attributes: Record<string, number>;
+  trainings: string[];
+  equipment: Array<{ slot: string; name: string; description?: string }>;
+  rationale: string;
+  characterRevision: number;
+  promptVersion: string;
 }
 
 export interface AiUsageFilters {
@@ -332,6 +357,13 @@ export interface MvpTableCharacter {
   episodeAnswers?: MvpEpisodeAnswer[];
   derivedResources?: MvpDerivedResources;
   creativeDossier?: PlaytestCreativeDossier;
+  builderConfigVersion?: string;
+  narrativeResponses?: Record<string, string>;
+  confirmedNarrativeContext?: {
+    confirmedBlocks: string[];
+    fields: Record<string, string>;
+  };
+  playStylePreference?: string;
   latestSubmission?: MvpCharacterSubmissionSnapshot | null;
   approvedSubmission?: MvpCharacterSubmissionSnapshot | null;
 }

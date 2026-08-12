@@ -5,6 +5,7 @@ import type React from "react";
 import { ImageIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { playerNextActionLabel, playerSheetStatusLabel } from "@/lib/campaign/player-journey";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   ATTRIBUTE_KEYS,
@@ -81,7 +82,7 @@ export function MyCharacterReadonlyPanel({
           </CardDescription>
         </div>
         <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
-          <p className="font-semibold">{character.sheetStatus ?? "Workflow indisponivel"}</p>
+          <p className="font-semibold">{playerSheetStatusLabel(character.sheetStatus)}</p>
           <p className="text-muted-foreground">Revisao {valueOrEmpty(character.sheetRevision)}</p>
         </div>
       </div>
@@ -175,9 +176,7 @@ export function MyCharacterReadonlyPanel({
           <Detail
             label="Proxima acao"
             value={
-              typeof character.nextAction === "string"
-                ? character.nextAction
-                : character.nextAction?.title ?? character.nextAction?.key
+              playerNextActionLabel(character.nextAction)
             }
           />
         </Section>

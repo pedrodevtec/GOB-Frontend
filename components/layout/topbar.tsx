@@ -24,7 +24,7 @@ export function Topbar() {
           </span>
           <span className="inline-flex items-center gap-2">
             <ClipboardList className="h-4 w-4" />
-            Chamado aos Marcados e dossie criativo
+            Sua jornada em Bravantus
           </span>
           {accountRole === "ADMIN" ? (
             <span className="inline-flex items-center gap-2 text-primary">
@@ -36,14 +36,11 @@ export function Topbar() {
       </div>
       <div className="flex flex-wrap gap-2">
         <Button asChild>
-          <Link href="/campanhas/pilot-v1/personagem">Dossie criativo</Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link href="/campanhas/pilot-v1">Campanha piloto</Link>
+          <Link href="/campanhas/pilot-v1">Continuar jornada</Link>
         </Button>
         <Button variant="outline" onClick={logout}>
           <LogOut className="mr-2 h-4 w-4" />
-          Logout
+          Sair
         </Button>
       </div>
     </header>

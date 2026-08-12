@@ -13,15 +13,12 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ATTRIBUTE_KEYS,
   ATTRIBUTE_LABELS,
-  EPISODE_ONE_KEYS,
   backendDerivedResources,
   emptyBuilderFormState,
-  episodePrompt,
   formStateFromCharacter,
   legacyReferencesFromDossier,
   previewDerivedResources,
   serializeCharacterPayload,
-  serializeEpisodeAnswers,
   validateBuilderForm,
   type AttributeKey,
   type CharacterBuilderFormState
@@ -33,25 +30,29 @@ import {
   useDecideChapterSuggestion,
   useDecidePlayerAiSuggestion,
   useGenerateChapterSuggestions,
+  useGenerateMechanicalProposal,
   useGeneratePlayerAiSuggestion,
   useMyMvpCharacter,
   usePublicCampaign,
   useSaveMvpCharacter
 } from "@/features/mvp/hooks/use-mvp";
-import { mvpService } from "@/features/mvp/services/mvp.service";
-import type { PlayerAiSuggestion } from "@/features/mvp/types";
+import type {
+  CharacterChapterSuggestionResponse,
+  CharacterMechanicalProposal,
+  PlayerAiSuggestion
+} from "@/features/mvp/types";
 import type { CharacterAiSuggestion } from "@/features/mvp/types";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { ApiRequestError } from "@/lib/api/errors";
 import { authPathWithReturnTo } from "@/lib/routing/auth-redirects";
+import { playerNextActionLabel, playerSheetStatusLabel } from "@/lib/campaign/player-journey";
 import { useAuthStore } from "@/stores/auth-store";
 
 const chapters = [
-  { id: "identity", title: "Identidade" },
-  { id: "story", title: "Historia" },
-  { id: "mark", title: "Marca" },
-  { id: "mechanics", title: "Mecanica" },
-  { id: "review", title: "Episodio 1 e revisao" }
+  { id: "story", title: "Conte sua historia" },
+  { id: "confirmation", title: "Confirme o personagem" },
+  { id: "play", title: "Como quer jogar" },
+  { id: "review", title: "Revisao" }
 ] as const;
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -60,11 +61,10 @@ type SuggestionStatus = "pending" | "applying" | "applied" | "discarded" | "erro
 const autoSuggestionPreferenceKey = "gob.mvp.builder.auto-suggestions";
 
 const chapterTargets: Record<number, string[]> = {
-  0: ["name", "concept", "origin", "appearance"],
-  1: ["desire", "narrativeBond", "personalHistory"],
-  2: ["markLocation", "markAppearance", "markReaction", "markAttitude"],
-  3: ["positiveTrait", "negativeTrait", "initialEquipment"],
-  4: []
+  0: [],
+  1: ["name", "concept", "personalHistory"],
+  2: [],
+  3: []
 };
 
 const apiFieldToFormField: Record<string, keyof CharacterBuilderFormState> = {
@@ -104,16 +104,6 @@ const fieldLabels: Record<string, string> = {
   negativeTrait: "Trait negativa",
   initialEquipment: "equipamentos iniciais"
 };
-
-function nextActionText(action: unknown) {
-  if (!action) return "Nenhuma";
-  if (typeof action === "string") return action;
-  if (typeof action === "object" && action !== null) {
-    const source = action as { title?: string; key?: string; description?: string };
-    return source.title ?? source.description ?? source.key ?? "Acao pendente";
-  }
-  return "Acao pendente";
-}
 
 function fieldLabelClass(error?: string) {
   return `space-y-2 ${error ? "text-destructive" : ""}`;
@@ -273,6 +263,33 @@ function Section({
   );
 }
 
+function ConfirmationBlock({
+  title,
+  confirmed,
+  onToggle,
+  error,
+  children
+}: {
+  title: string;
+  confirmed: boolean;
+  onToggle: () => void;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-4 rounded-xl border border-white/10 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h4 className="font-semibold">{title}</h4>
+        <Button type="button" size="sm" variant={confirmed ? "default" : "outline"} onClick={onToggle}>
+          {confirmed ? "Confirmado" : "Confirmar este bloco"}
+        </Button>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">{children}</div>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+    </div>
+  );
+}
+
 export function CharacterBuilderForm({ slug }: { slug: string }) {
   const accessToken = useAuthStore((state) => state.accessToken);
   const [chapter, setChapter] = useState(0);
@@ -291,6 +308,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const [loadingChapter, setLoadingChapter] = useState<number | null>(null);
   const [chapterError, setChapterError] = useState("");
   const [lastSuggestionFingerprint, setLastSuggestionFingerprint] = useState("");
+  const [mechanicalProposal, setMechanicalProposal] = useState<CharacterMechanicalProposal | null>(null);
   const [autoSuggestionsEnabled, setAutoSuggestionsEnabled] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(autoSuggestionPreferenceKey) === "true";
@@ -305,6 +323,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const config = useBuilderConfig(campaign.data?.builderConfigVersion);
   const saveCharacter = useSaveMvpCharacter(tableId, character.data?.id);
   const generateChapterSuggestions = useGenerateChapterSuggestions(tableId, character.data?.id);
+  const generateMechanicalProposal = useGenerateMechanicalProposal(tableId, character.data?.id);
   const decideChapterSuggestion = useDecideChapterSuggestion(tableId, character.data?.id);
   const generateAi = useGeneratePlayerAiSuggestion(tableId);
   const decideAi = useDecidePlayerAiSuggestion(tableId);
@@ -362,6 +381,44 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     update("trainings", trainings);
   }
 
+  function toggleConfirmation(block: "identity" | "motivations" | "mark") {
+    update(
+      "confirmedBlocks",
+      form.confirmedBlocks.includes(block)
+        ? form.confirmedBlocks.filter((item) => item !== block)
+        : [...form.confirmedBlocks, block]
+    );
+  }
+
+  async function requestMechanicalProposal() {
+    const revision = character.data?.sheetRevision;
+    if (!revision) {
+      setChapterError("Salve e confirme o personagem antes de pedir uma proposta.");
+      return;
+    }
+    setChapterError("");
+    try {
+      setMechanicalProposal(await generateMechanicalProposal.mutateAsync(revision));
+    } catch (error) {
+      setChapterError(error instanceof Error ? error.message : "A proposta nao ficou disponivel agora.");
+    }
+  }
+
+  function applyMechanicalProposal() {
+    if (!mechanicalProposal) return;
+    setForm((current) => ({
+      ...current,
+      archetypeKey: mechanicalProposal.archetypes[0]?.key ?? current.archetypeKey,
+      attributes: mechanicalProposal.attributes as CharacterBuilderFormState["attributes"],
+      trainings: mechanicalProposal.trainings,
+      positiveTrait: mechanicalProposal.positiveTrait,
+      negativeTrait: mechanicalProposal.negativeTrait,
+      equipment: mechanicalProposal.equipment
+    }));
+    setDirty(true);
+    decideChapterSuggestion.mutate({ suggestionId: mechanicalProposal.id, decision: "ACCEPTED" });
+  }
+
   async function saveDraft(mode: "manual" | "auto" | "navigation" = "manual") {
     if (!tableId || !editable || saveInFlight.current) return false;
     if (!form.name.trim() && mode === "auto") return false;
@@ -370,16 +427,10 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     setSaveStatus("saving");
     setSaveError("");
     try {
-      const saved = chapter === 4
+      const saved = chapter === 3
         ? character.data
-        : await saveCharacter.mutateAsync(serializeCharacterPayload(form, chapter));
+        : await saveCharacter.mutateAsync(serializeCharacterPayload(form, chapter, config.data));
       if (!saved?.id) throw new Error("Salve as etapas anteriores antes da revisao.");
-      if (chapter === 4) {
-        const answers = serializeEpisodeAnswers(form, config.data);
-        if (answers.length) {
-          await mvpService.saveEpisodeAnswers(tableId, saved.id, answers);
-        }
-      }
       await character.refetch();
       loadedKey.current = `${saved.id}:${saved.sheetRevision ?? 0}:${saved.sheetStatus ?? ""}`;
       setDirty(false);
@@ -435,31 +486,40 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
       setChapterError("Salve o rascunho antes de pedir sugestoes da IA.");
       return;
     }
-    const targetFields = emptyTargetFieldsForChapter(targetChapter);
-    if (!targetFields.length) {
+    const targetGroups = targetChapter === 1
+      ? [
+          ["name", "concept", "personalHistory"],
+          ["desire", "narrativeBond", "reasonToActWithGroup"],
+          ["markAppearance", "markReaction", "markAttitude"]
+        ]
+      : [emptyTargetFieldsForChapter(targetChapter)];
+    if (!targetGroups.some((group) => group.length)) {
       setChapterError("Nao ha campos vazios neste capitulo para sugerir agora.");
       return;
     }
-    const fingerprint = `${character.data.id}:${revision}:${targetChapter}:${targetFields.join(",")}:${JSON.stringify(form)}`;
+    const fingerprint = `${character.data.id}:${revision}:${targetChapter}:${targetGroups.flat().join(",")}:${JSON.stringify(form.narrativeResponses)}`;
     if (fingerprint === lastSuggestionFingerprint) return;
     setLoadingChapter(targetChapter);
     setChapterError("");
     try {
-      const response = await generateChapterSuggestions.mutateAsync({
-        targetChapter: "STORY",
-        targetFields,
-        expectedRevision: revision,
-        playerIntent: `Sugerir conteudo seguro para o capitulo ${chapters[targetChapter]?.title ?? "atual"}.`
-      });
+      const responses: CharacterChapterSuggestionResponse[] = [];
+      for (const targetFields of targetGroups.filter((group) => group.length)) {
+        responses.push(await generateChapterSuggestions.mutateAsync({
+          targetChapter: "STORY",
+          targetFields,
+          expectedRevision: revision,
+          playerIntent: "Interpretar somente o que o jogador contou nas tres respostas narrativas. Marcar lacunas sem inventar informacoes."
+        }));
+      }
       setLastSuggestionFingerprint(fingerprint);
       setSuggestionsByField((current) => {
         const next = { ...current };
-        for (const suggestion of response.suggestions) {
-          next[suggestion.targetField] = [suggestion];
+        for (const response of responses) {
+          for (const suggestion of response.suggestions) next[suggestion.targetField] = [suggestion];
         }
         return next;
       });
-      response.suggestions.forEach((suggestion) =>
+      responses.flatMap((response) => response.suggestions).forEach((suggestion) =>
         setSuggestionStatusById((current) => ({ ...current, [suggestion.id]: "pending" }))
       );
     } catch (error) {
@@ -585,7 +645,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
       <Card className="space-y-5" aria-busy={saveStatus === "saving"}>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <CardTitle>Character Builder v2</CardTitle>
+            <CardTitle>Crie seu personagem</CardTitle>
             <CardDescription className="mt-2">
               A IA sugere. O Mestre decide. O jogador personaliza. A plataforma registra.
             </CardDescription>
@@ -604,7 +664,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
         <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded-xl border border-white/10 bg-black/20 p-3">
             <p className="text-xs uppercase tracking-wide text-primary">Estado</p>
-            <p className="mt-1 font-semibold">{status}</p>
+            <p className="mt-1 font-semibold">{playerSheetStatusLabel(status)}</p>
           </div>
           <div className="rounded-xl border border-white/10 bg-black/20 p-3">
             <p className="text-xs uppercase tracking-wide text-primary">Revisao</p>
@@ -612,7 +672,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           </div>
           <div className="rounded-xl border border-white/10 bg-black/20 p-3">
             <p className="text-xs uppercase tracking-wide text-primary">Proxima acao</p>
-            <p className="mt-1 font-semibold">{nextActionText(character.data?.nextAction)}</p>
+            <p className="mt-1 font-semibold">{playerNextActionLabel(character.data?.nextAction)}</p>
           </div>
           <div className="rounded-xl border border-white/10 bg-black/20 p-3">
             <p className="text-xs uppercase tracking-wide text-primary">Salvamento</p>
@@ -681,12 +741,10 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
         {workflowIssue ? (
           <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
             <p className="font-semibold text-amber-100">
-              Workflow do personagem legado normalizado parcialmente
+              Nao foi possivel confirmar a permissao de edicao
             </p>
             <p className="mt-2 text-sm leading-6 text-amber-50/80">
-              {workflowIssue} {character.data?.workflowInferredFromLegacy
-                ? "O frontend permitiu retomada apenas quando nao houve negativa explicita do backend."
-                : "A edicao permanece bloqueada ate o backend retornar permissao clara."}
+              Seu rascunho foi preservado. Atualize a pagina antes de continuar.
             </p>
           </div>
         ) : null}
@@ -695,7 +753,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           <MvpState
             variant="error"
             title="Permissao de edicao indisponivel"
-            description="O personagem esta em CHANGES_REQUESTED, mas o contrato nao retornou editable=true. A plataforma nao pode liberar edicao sem essa autorizacao."
+            description="Os ajustes pedidos pelo Mestre foram encontrados, mas a edicao ainda nao esta liberada. Atualize a pagina antes de continuar."
           />
         ) : null}
 
@@ -738,7 +796,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           </Section>
         ) : null}
 
-        <div className="grid gap-2 md:grid-cols-5">
+        <div className="grid gap-2 md:grid-cols-4">
           {chapters.map((item, index) => (
             <button
               key={item.id}
@@ -750,7 +808,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   : "border-white/10 bg-black/20 text-muted-foreground hover:bg-white/10"
               }`}
             >
-              <span className="block text-xs uppercase tracking-wide">Capitulo {index + 1}</span>
+              <span className="block text-xs uppercase tracking-wide">Etapa {index + 1}</span>
               <span className="mt-1 block font-medium">{item.title}</span>
             </button>
           ))}
@@ -758,42 +816,106 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
 
         <div className="space-y-5">
           {chapter === 0 ? (
-            <Section title="1. Identidade">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Nome" value={form.name} onChange={(value) => update("name", value)} disabled={readOnly} error={validation.errors.name} onFocus={() => setSelectedAiField("name")} suggestion={suggestionNode("name")} />
-                <Field label="Conceito" value={form.concept} onChange={(value) => update("concept", value)} disabled={readOnly} error={validation.errors.concept} onFocus={() => setSelectedAiField("concept")} suggestion={suggestionNode("concept")} />
-                <Field label="Origem" value={form.origin} onChange={(value) => update("origin", value)} disabled={readOnly} error={validation.errors.origin} multiline onFocus={() => setSelectedAiField("origin")} suggestion={suggestionNode("origin")} />
-                <Field label="Aparencia" value={form.appearance} onChange={(value) => update("appearance", value)} disabled={readOnly} error={validation.errors.appearance} multiline onFocus={() => setSelectedAiField("appearance")} suggestion={suggestionNode("appearance")} />
+            <Section
+              title="1. Conte a historia do seu personagem"
+              description="Responda com suas palavras. Voce nao precisa conhecer termos de RPG nem ter uma ligacao previa com o Episodio 1."
+            >
+              <div className="space-y-5">
+                {(config.data?.narrativeFlow?.questions ?? []).map((question) => (
+                  <label key={question.key} className={fieldLabelClass(validation.errors[`narrativeResponses.${question.key}`])}>
+                    <span className="block font-semibold">{question.prompt}</span>
+                    <span className="block text-sm text-muted-foreground">{question.helper}</span>
+                    <Textarea
+                      rows={6}
+                      value={form.narrativeResponses[question.key]}
+                      onChange={(event) => update("narrativeResponses", {
+                        ...form.narrativeResponses,
+                        [question.key]: event.target.value
+                      })}
+                      disabled={readOnly}
+                      aria-invalid={Boolean(validation.errors[`narrativeResponses.${question.key}`])}
+                    />
+                    {validation.errors[`narrativeResponses.${question.key}`] ? (
+                      <span className="block text-xs text-destructive">{validation.errors[`narrativeResponses.${question.key}`]}</span>
+                    ) : null}
+                  </label>
+                ))}
               </div>
             </Section>
           ) : null}
 
           {chapter === 1 ? (
-            <Section title="2. Historia e motivacao">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Motivacao" value={form.motivation} onChange={(value) => update("motivation", value)} disabled={readOnly} error={validation.errors.motivation} multiline onFocus={() => setSelectedAiField("motivation")} suggestion={suggestionNode("motivation")} />
-                <Field label="Vinculo" value={form.bond} onChange={(value) => update("bond", value)} disabled={readOnly} error={validation.errors.bond} multiline onFocus={() => setSelectedAiField("bond")} suggestion={suggestionNode("bond")} />
-                <Field label="Historia" value={form.history} onChange={(value) => update("history", value)} disabled={readOnly} error={validation.errors.history} multiline rows={6} onFocus={() => setSelectedAiField("history")} suggestion={suggestionNode("history")} />
-                <Field label="Promessa ou culpa" value={form.promiseOrGuilt} onChange={(value) => update("promiseOrGuilt", value)} disabled={readOnly} error={validation.errors.promiseOrGuilt} multiline onFocus={() => setSelectedAiField("promiseOrGuilt")} />
-                <Field label="Razao para agir com o grupo" value={form.reasonToActWithGroup} onChange={(value) => update("reasonToActWithGroup", value)} disabled={readOnly} error={validation.errors.reasonToActWithGroup} multiline onFocus={() => setSelectedAiField("reasonToActWithGroup")} />
+            <Section
+              title="2. Confirme quem entendemos que ele e"
+              description="Revise os campos. A IA pode sugerir, mas somente o que voce confirmar fara parte do personagem."
+            >
+              <div className="space-y-6">
+                <ConfirmationBlock
+                  title="Identidade"
+                  confirmed={form.confirmedBlocks.includes("identity")}
+                  onToggle={() => toggleConfirmation("identity")}
+                  error={validation.errors["confirmedBlocks.identity"]}
+                >
+                  <Field label="Nome" value={form.name} onChange={(value) => update("name", value)} disabled={readOnly} error={validation.errors.name} suggestion={suggestionNode("name")} />
+                  <Field label="Conceito em uma frase" value={form.concept} onChange={(value) => update("concept", value)} disabled={readOnly} error={validation.errors.concept} suggestion={suggestionNode("concept")} />
+                  <Field label="Passado importante" value={form.history} onChange={(value) => update("history", value)} disabled={readOnly} error={validation.errors.history} multiline suggestion={suggestionNode("history")} />
+                </ConfirmationBlock>
+                <ConfirmationBlock
+                  title="Motivacoes e vinculos"
+                  confirmed={form.confirmedBlocks.includes("motivations")}
+                  onToggle={() => toggleConfirmation("motivations")}
+                  error={validation.errors["confirmedBlocks.motivations"]}
+                >
+                  <Field label="O que deseja alcancar ou proteger" value={form.motivation} onChange={(value) => update("motivation", value)} disabled={readOnly} error={validation.errors.motivation} multiline suggestion={suggestionNode("motivation")} />
+                  <Field label="Quem ou o que ainda o prende ao mundo" value={form.bond} onChange={(value) => update("bond", value)} disabled={readOnly} error={validation.errors.bond} multiline suggestion={suggestionNode("bond")} />
+                  <Field label="Medo pessoal (opcional)" value={form.guardianSoulsFear} onChange={(value) => update("guardianSoulsFear", value)} disabled={readOnly} multiline />
+                </ConfirmationBlock>
+                <ConfirmationBlock
+                  title="Relacao com a Marca"
+                  confirmed={form.confirmedBlocks.includes("mark")}
+                  onToggle={() => toggleConfirmation("mark")}
+                  error={validation.errors["confirmedBlocks.mark"]}
+                >
+                  <Field label="Como a Marca aparece" value={form.markAppearance} onChange={(value) => update("markAppearance", value)} disabled={readOnly} error={validation.errors.markAppearance} multiline suggestion={suggestionNode("markAppearance")} />
+                  <Field label="Como ela reage" value={form.markReaction} onChange={(value) => update("markReaction", value)} disabled={readOnly} multiline suggestion={suggestionNode("markReaction")} />
+                  <Field label="Como o personagem se sente sobre ela" value={form.markAttitude} onChange={(value) => update("markAttitude", value)} disabled={readOnly} error={validation.errors.markAttitude} multiline suggestion={suggestionNode("markAttitude")} />
+                </ConfirmationBlock>
               </div>
             </Section>
           ) : null}
 
           {chapter === 2 ? (
-            <Section title="3. Marca">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Local da Marca" value={form.markLocation} onChange={(value) => update("markLocation", value)} disabled={readOnly} error={validation.errors.markLocation} onFocus={() => setSelectedAiField("markLocation")} suggestion={suggestionNode("markLocation")} />
-                <Field label="Aparencia da Marca" value={form.markAppearance} onChange={(value) => update("markAppearance", value)} disabled={readOnly} error={validation.errors.markAppearance} multiline onFocus={() => setSelectedAiField("markAppearance")} suggestion={suggestionNode("markAppearance")} />
-                <Field label="Reacao da Marca" value={form.markReaction} onChange={(value) => update("markReaction", value)} disabled={readOnly} error={validation.errors.markReaction} multiline onFocus={() => setSelectedAiField("markReaction")} suggestion={suggestionNode("markReaction")} />
-                <Field label="Atitude diante dela" value={form.markAttitude} onChange={(value) => update("markAttitude", value)} disabled={readOnly} error={validation.errors.markAttitude} multiline onFocus={() => setSelectedAiField("markAttitude")} suggestion={suggestionNode("markAttitude")} />
-                <Field label="Medo ou desconfianca das Almas Guardias" value={form.guardianSoulsFear} onChange={(value) => update("guardianSoulsFear", value)} disabled={readOnly} error={validation.errors.guardianSoulsFear} multiline onFocus={() => setSelectedAiField("guardianSoulsFear")} />
+            <Section title="3. Como voce quer jogar?" description="Escolha uma intencao. Isso orienta a proposta, mas nao limita seu personagem.">
+              <div className="grid gap-3 md:grid-cols-3">
+                {(config.data?.narrativeFlow?.playStyleOptions ?? []).map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => update("playStylePreference", option.key)}
+                    disabled={readOnly}
+                    className={`rounded-xl border p-4 text-left ${form.playStylePreference === option.key ? "border-primary bg-primary/15" : "border-white/10 bg-black/20"}`}
+                  >
+                    <span className="block font-semibold">{option.name}</span>
+                    <span className="mt-1 block text-sm text-muted-foreground">{option.description}</span>
+                  </button>
+                ))}
               </div>
-            </Section>
-          ) : null}
-
-          {chapter === 3 ? (
-            <Section title="4. Mecanica">
+              {validation.errors.playStylePreference ? <p className="text-sm text-destructive">{validation.errors.playStylePreference}</p> : null}
+              <div className="flex flex-wrap items-center gap-3">
+                <Button type="button" variant="outline" onClick={() => void requestMechanicalProposal()} disabled={readOnly || generateMechanicalProposal.isPending}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {generateMechanicalProposal.isPending ? "Preparando proposta..." : "Sugerir ficha a partir da historia"}
+                </Button>
+                <span className="text-sm text-muted-foreground">Opcional. Voce pode preencher tudo manualmente.</span>
+              </div>
+              {mechanicalProposal ? (
+                <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
+                  <p className="font-semibold">Proposta da IA</p>
+                  <p className="text-sm text-muted-foreground">{mechanicalProposal.rationale}</p>
+                  <p className="text-sm">Arquetipos: {mechanicalProposal.archetypes.map((item) => item.key).join(", ")}</p>
+                  <Button type="button" size="sm" onClick={applyMechanicalProposal}>Usar esta proposta</Button>
+                </div>
+              ) : null}
               <div className="grid gap-4 lg:grid-cols-2">
                 <label className={fieldLabelClass(validation.errors.archetypeKey)}>
                   <span className="text-sm font-medium">Arquetipo</span>
@@ -923,36 +1045,21 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
             </Section>
           ) : null}
 
-          {chapter === 4 ? (
-            <Section title="5. Episodio 1 e revisao">
-              <div className="grid gap-4 md:grid-cols-2">
-                {EPISODE_ONE_KEYS.map((key) => (
-                  <Field
-                    key={key}
-                    label={episodePrompt(config.data, key)}
-                    value={form.episodeAnswers[key]}
-                    onChange={(value) =>
-                      update("episodeAnswers", { ...form.episodeAnswers, [key]: value })
-                    }
-                    disabled={readOnly}
-                    error={validation.errors[`episodeAnswers.${key}`]}
-                    multiline
-                    rows={5}
-                    onFocus={() => setSelectedAiField(`episodeAnswers.${key}`)}
-                  />
-                ))}
-              </div>
-
+          {chapter === 3 ? (
+            <Section title="4. Revise antes de enviar" description="O Mestre ainda podera aprovar ou solicitar ajustes. Nenhuma conexao com o episodio foi criada automaticamente.">
               <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                <p className="font-semibold">Pendencias para submissao</p>
+                <p className="font-semibold">O que falta para enviar ao Mestre</p>
                 {validation.missing.length ? (
                   <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-destructive">
                     {validation.missing.map((item) => <li key={item}>{item}</li>)}
                   </ul>
                 ) : (
-                  <p className="mt-2 text-sm text-muted-foreground">Ficha pronta para revisao final.</p>
+                  <p className="mt-2 text-sm text-muted-foreground">Seu personagem esta pronto para a revisao final.</p>
                 )}
               </div>
+              <Button asChild>
+                <Link href={campaignFlowPath(slug, "/personagem/revisao")}>Abrir revisao final</Link>
+              </Button>
             </Section>
           ) : null}
         </div>
@@ -979,8 +1086,8 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           <Card className="space-y-4 border-primary/30 bg-slate-950/95 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-wide text-primary">PT06 IA opcional</p>
-                <CardTitle className="mt-1 text-lg">Campo: {selectedAiField}</CardTitle>
+                <p className="text-xs uppercase tracking-wide text-primary">Ajuda opcional</p>
+                <CardTitle className="mt-1 text-lg">Pensar em outra possibilidade</CardTitle>
                 <CardDescription className="mt-1">
                   Sugestoes nao sao canon e nunca alteram a ficha sem confirmacao.
                 </CardDescription>
