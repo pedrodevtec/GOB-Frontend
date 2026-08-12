@@ -1,10 +1,8 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-
 import { MvpState } from "@/components/states/mvp-state";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { useOperationalOverview } from "@/features/mvp/hooks/use-mvp";
+import { useAdminCampaign, useOperationalOverview } from "@/features/mvp/hooks/use-mvp";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { authPathWithReturnTo } from "@/lib/routing/auth-redirects";
 import { useAuthStore } from "@/stores/auth-store";
@@ -18,18 +16,22 @@ const funnelItems = [
   "Pesquisa concluida"
 ];
 
-export function OperationalFunnel() {
+export function OperationalFunnel({ slug }: { slug: string }) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const searchParams = useSearchParams();
-  const campaignId = searchParams.get("campaignId") ?? "";
+  const campaign = useAdminCampaign(slug);
+  const campaignId = campaign.data?.id;
   const overview = useOperationalOverview(campaignId);
 
-  if (!campaignId) {
+  if (campaign.isLoading) {
+    return <MvpState variant="loading" title="Carregando piloto" />;
+  }
+
+  if (campaign.isError || !campaignId) {
     return (
       <MvpState
-        variant="empty"
-        title="Informe campaignId"
-        description="Use /admin/piloto?campaignId=... para carregar o overview operacional do backend."
+        variant="error"
+        title="Piloto indisponível"
+        description={(campaign.error as Error)?.message ?? "Não foi possível localizar a campanha ativa."}
       />
     );
   }
@@ -41,7 +43,7 @@ export function OperationalFunnel() {
         actions={[
           {
             label: "Entrar novamente",
-            href: authPathWithReturnTo("/login", `/admin/piloto?campaignId=${encodeURIComponent(campaignId)}`),
+            href: authPathWithReturnTo("/login", "/admin/piloto"),
             variant: "default"
           }
         ]}
@@ -61,6 +63,8 @@ export function OperationalFunnel() {
   }
 
   const data = overview.data;
+  const participantItems = data?.participants?.items ?? [];
+  const players = participantItems.filter((item) => item.role === "PLAYER");
   const consents = data?.consents?.find((item) => item.status === "ACCEPTED")?.count;
   const submitted = data?.characters?.find((item) => item.sheetStatus === "SUBMITTED")?.count;
   const aiAccepted = data?.aiSuggestions?.find((item) => item.status === "ACCEPTED")?.count;
@@ -73,8 +77,14 @@ export function OperationalFunnel() {
           <Card key={label} className="space-y-2">
             <p className="text-xs uppercase tracking-wide text-primary">{label}</p>
             <CardTitle className="text-3xl">
-              {label === "Consentidos"
+              {label === "Inscritos"
+                ? players.length
+                : label === "E-mail pendente"
+                  ? players.filter((item) => !item.user.emailVerified).length
+                : label === "Consentidos"
                 ? consents ?? 0
+                : label === "Em rascunho"
+                  ? players.filter((item) => ["DRAFT", "CHANGES_REQUESTED"].includes(item.character?.sheetStatus ?? "")).length
                 : label === "Personagem submetido"
                   ? submitted ?? 0
                   : label === "Pesquisa concluida"
@@ -82,22 +92,21 @@ export function OperationalFunnel() {
                     : "-"}
             </CardTitle>
             <CardDescription>
-              {label === "Inscritos" ? data?.campaign?.title ?? "Campanha carregada" : "Agregado operacional."}
+              {label === "Inscritos" ? data?.campaign?.title ?? "Campanha carregada" : "Situação atual do piloto."}
             </CardDescription>
           </Card>
         ))}
       </div>
       <MvpState
         variant="success"
-        title="Overview operacional carregado"
-        description={`Sugestoes de IA aceitas: ${aiAccepted ?? 0}. Eventos tecnicos: ${data?.analytics?.eventsByKey?.length ?? 0}.`}
+        title="Visão geral atualizada"
+        description={`Sugestões de IA aceitas pelos participantes: ${aiAccepted ?? 0}.`}
       />
       <Card className="space-y-4">
         <div>
-          <CardTitle>Dossies criativos recebidos</CardTitle>
+          <CardTitle>Fichas criativas recebidas</CardTitle>
           <CardDescription className="mt-2">
-            Lista esperada do backend em `dossierSubmissions`, `characterSubmissions`
-            ou `submissions` dentro do overview operacional.
+            Apresentações narrativas enviadas pelos participantes.
           </CardDescription>
         </div>
         {dossiers.length ? (
@@ -154,8 +163,8 @@ export function OperationalFunnel() {
         ) : (
           <MvpState
             variant="empty"
-            title="Nenhum dossie retornado"
-            description="O funil carregou, mas a API ainda nao retornou a lista de dossies preenchidos para revisao."
+            title="Nenhuma ficha criativa recebida"
+            description="As apresentações enviadas aparecerão aqui."
           />
         )}
       </Card>

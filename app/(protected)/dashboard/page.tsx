@@ -1,25 +1,15 @@
-import Link from "next/link";
-
 import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
-import { CampaignDashboard } from "@/features/tables/components/campaign-dashboard";
+import { PublicCampaignPanel } from "@/features/mvp/components/public-campaign-panel";
 
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Piloto MVP"
-        title="Chamado aos Marcados"
-        description="Retome o teste fechado de criacao de personagem: proposta publica, consentimento, dossie criativo, revisao e conclusao."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button asChild>
-              <Link href="/campanhas/pilot-v1">Abrir teste fechado</Link>
-            </Button>
-          </div>
-        }
+        title="Minha Jornada"
+        description="Retome o playtest do ponto em que parou. A próxima ação é definida pelo estado salvo da sua participação."
       />
-      <CampaignDashboard />
+      <PublicCampaignPanel slug="pilot-v1" />
     </div>
   );
 }

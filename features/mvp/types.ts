@@ -49,7 +49,33 @@ export interface CampaignResume {
   membership?: CampaignMembership | null;
   playerOverview?: unknown;
   nextRecommendedAction?: { key?: string; title?: string; description?: string } | null;
+  journeyState?: JourneyState;
+  nextRoute?: string;
+  character?: {
+    id: string;
+    name: string;
+    sheetStatus: string;
+    sheetRevision?: number;
+    submittedRevision?: number | null;
+    submittedAt?: string | null;
+    approvedAt?: string | null;
+    builderConfigVersion?: string;
+  } | null;
+  finalSurvey?: { id: string; surveyVersion?: string; submittedAt?: string } | null;
 }
+
+export type JourneyState =
+  | "CONSENT_REQUIRED"
+  | "JOIN_REQUIRED"
+  | "CONTEXT_REQUIRED"
+  | "CHARACTER_DRAFT"
+  | "CHANGES_REQUIRED"
+  | "SURVEY_REQUIRED"
+  | "COMPLETED_PENDING_REVIEW"
+  | "COMPLETED_CHANGES_REQUIRED"
+  | "COMPLETED_APPROVED"
+  | "LEGACY_REVIEW"
+  | "BLOCKED";
 
 export interface BuilderConfig {
   version: string;
@@ -116,6 +142,7 @@ export interface OperationalOverview {
   };
   participants?: {
     membershipsByRoleAndStatus?: Array<{ role: string; status: string; count: number }>;
+    items?: PilotParticipant[];
   };
   consents?: Array<{ status: string; count: number }>;
   characters?: Array<{ sheetStatus: string; count: number }>;
@@ -126,6 +153,32 @@ export interface OperationalOverview {
     latestEvents?: unknown[];
   };
   dossierSubmissions?: PlaytestDossierSubmission[];
+}
+
+export interface PilotParticipant {
+  membershipId: string;
+  role: "PLAYER" | "MASTER" | string;
+  status: string;
+  joinedAt?: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    emailVerified: boolean;
+  };
+  consent?: { status: string; acceptedAt?: string | null } | null;
+  character?: {
+    id: string;
+    name: string;
+    sheetStatus: string;
+    sheetRevision: number;
+    submittedAt?: string | null;
+    approvedAt?: string | null;
+    legacy: boolean;
+    builderConfigVersion?: string | null;
+  } | null;
+  survey?: { submittedAt?: string | null } | null;
+  aiSuggestionsCount: number;
 }
 
 export interface TechnicalStatus {
@@ -279,6 +332,13 @@ export interface CharacterCardArtPreparation {
     builderConfigVersion?: string;
     contextVersionId?: string;
   };
+  sourceSubmission?: {
+    id?: string;
+    sheetRevision?: number;
+    approvedAt?: string | null;
+    builderConfigVersion?: string;
+    contextVersionId?: string;
+  };
   useCase?: string;
   usageEventId?: string;
   provider?: unknown;
@@ -313,12 +373,16 @@ export interface MvpCharacterSubmissionSnapshot {
   approvedAt?: string | null;
   status?: string;
   character?: unknown;
+  characterSnapshot?: Record<string, unknown>;
+  episodeAnswersSnapshot?: unknown[];
 }
 
 export interface MvpTableCharacter {
   id: string;
   tableId: string;
   name: string;
+  ownerUserId?: string;
+  owner?: { id?: string; name?: string; email?: string };
   sheetStatus?: MvpSheetStatus;
   workflowIssue?: string;
   workflowInferredFromLegacy?: boolean;

@@ -4,6 +4,7 @@ import { MvpFlowShell } from "@/components/layout/mvp-flow-shell";
 import { Button } from "@/components/ui/button";
 import { CampaignFlowAside } from "@/features/mvp/components/campaign-flow-aside";
 import { CharacterReviewSubmitPanel } from "@/features/mvp/components/character-review-submit-panel";
+import { JourneyRouteGuard } from "@/features/mvp/components/journey-route-guard";
 import { campaignFlowPath } from "@/features/mvp/campaign-flow";
 
 interface BuilderReviewPageProps {
@@ -25,7 +26,19 @@ export default async function BuilderReviewPage({ params }: BuilderReviewPagePro
       }
       aside={<CampaignFlowAside currentStep="review" blockedSteps={["survey"]} />}
     >
-      <CharacterReviewSubmitPanel slug={slug} />
+      <JourneyRouteGuard
+        slug={slug}
+        allow={[
+          "CHARACTER_DRAFT",
+          "CHANGES_REQUIRED",
+          "SURVEY_REQUIRED",
+          "COMPLETED_PENDING_REVIEW",
+          "COMPLETED_CHANGES_REQUIRED",
+          "COMPLETED_APPROVED"
+        ]}
+      >
+        <CharacterReviewSubmitPanel slug={slug} />
+      </JourneyRouteGuard>
     </MvpFlowShell>
   );
 }
