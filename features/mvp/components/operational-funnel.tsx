@@ -1,10 +1,8 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-
 import { MvpState } from "@/components/states/mvp-state";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { useOperationalOverview } from "@/features/mvp/hooks/use-mvp";
+import { useOperationalOverview, usePublicCampaign } from "@/features/mvp/hooks/use-mvp";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { authPathWithReturnTo } from "@/lib/routing/auth-redirects";
 import { useAuthStore } from "@/stores/auth-store";
@@ -18,18 +16,22 @@ const funnelItems = [
   "Pesquisa concluida"
 ];
 
-export function OperationalFunnel() {
+export function OperationalFunnel({ slug }: { slug: string }) {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const searchParams = useSearchParams();
-  const campaignId = searchParams.get("campaignId") ?? "";
+  const campaign = usePublicCampaign(slug);
+  const campaignId = campaign.data?.id;
   const overview = useOperationalOverview(campaignId);
 
-  if (!campaignId) {
+  if (campaign.isLoading) {
+    return <MvpState variant="loading" title="Carregando piloto" />;
+  }
+
+  if (campaign.isError || !campaignId) {
     return (
       <MvpState
-        variant="empty"
-        title="Informe campaignId"
-        description="Use /admin/piloto?campaignId=... para carregar o overview operacional do backend."
+        variant="error"
+        title="Piloto indisponível"
+        description={(campaign.error as Error)?.message ?? "Não foi possível localizar a campanha ativa."}
       />
     );
   }
@@ -41,7 +43,7 @@ export function OperationalFunnel() {
         actions={[
           {
             label: "Entrar novamente",
-            href: authPathWithReturnTo("/login", `/admin/piloto?campaignId=${encodeURIComponent(campaignId)}`),
+            href: authPathWithReturnTo("/login", "/admin/piloto"),
             variant: "default"
           }
         ]}
