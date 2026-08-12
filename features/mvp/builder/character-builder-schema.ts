@@ -212,17 +212,16 @@ export function serializeCharacterPayload(
       appearance: state.appearance.trim()
     },
     1: {
-      motivation: state.motivation.trim(),
-      bond: state.bond.trim(),
-      history: state.history.trim(),
-      narrativeBond: state.bond.trim()
+      desire: state.motivation.trim(),
+      narrativeBond: state.bond.trim(),
+      personalHistory: state.history.trim()
     },
     2: {
       markLocation: state.markLocation.trim(),
       markAppearance: state.markAppearance.trim(),
       markReaction: state.markReaction.trim(),
       markAttitude: state.markAttitude.trim(),
-      guardianSoulsFear: state.guardianSoulsFear.trim()
+      fear: state.guardianSoulsFear.trim()
     },
     3: {
       archetypeKey: state.archetypeKey.trim(),
@@ -230,7 +229,7 @@ export function serializeCharacterPayload(
       trainings: state.trainings,
       positiveTrait: state.positiveTrait.trim(),
       negativeTrait: state.negativeTrait.trim(),
-      equipment: state.equipment
+      initialEquipment: state.equipment
         .filter((item) => item.name.trim() || item.slot.trim())
         .map((item) => ({
           slot: item.slot.trim() || undefined,

@@ -456,26 +456,29 @@ function mapMvpCharacter(input: unknown): MvpTableCharacter {
     concept: text(source.concept) || undefined,
     origin: text(source.origin) || undefined,
     appearance: text(source.appearance) || undefined,
-    motivation: text(source.motivation) || undefined,
+    desire: text(source.desire) || undefined,
+    fear: text(source.fear) || undefined,
+    personalHistory: text(source.personalHistory) || undefined,
+    motivation: text(source.motivation ?? source.desire) || undefined,
     bond: text(source.bond ?? source.narrativeBond) || undefined,
-    history: text(source.history) || undefined,
+    history: text(source.history ?? source.personalHistory) || undefined,
     markLocation: text(source.markLocation) || undefined,
     markAppearance: text(source.markAppearance) || undefined,
     markReaction: text(source.markReaction) || undefined,
     markAttitude: text(source.markAttitude) || undefined,
-    guardianSoulsFear: text(source.guardianSoulsFear) || undefined,
+    guardianSoulsFear: text(source.guardianSoulsFear ?? source.fear) || undefined,
     archetypeKey: text(source.archetypeKey) || undefined,
     attributes: record(source.attributes) as Record<string, number>,
     trainings: Array.isArray(source.trainings) ? source.trainings.map(String) : [],
-    positiveTrait: text(source.positiveTrait) || undefined,
-    negativeTrait: text(source.negativeTrait) || undefined,
+    positiveTrait: text(source.positiveTrait) || text(record(source.positiveTrait).text) || undefined,
+    negativeTrait: text(source.negativeTrait) || text(record(source.negativeTrait).text) || undefined,
     narrativeBond: text(source.narrativeBond ?? source.bond) || undefined,
-    equipment: Array.isArray(source.equipment)
-      ? source.equipment.map((item) => {
+    equipment: Array.isArray(source.equipment ?? source.initialEquipment)
+      ? ((source.equipment ?? source.initialEquipment) as unknown[]).map((item) => {
           const entry = record(item);
           return {
             slot: text(entry.slot) || undefined,
-            name: text(entry.name) || undefined,
+            name: text(entry.name ?? entry.text) || undefined,
             description: text(entry.description) || undefined
           };
         })
