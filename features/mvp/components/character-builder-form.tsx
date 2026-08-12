@@ -370,9 +370,15 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     setSaveStatus("saving");
     setSaveError("");
     try {
-      const saved = await saveCharacter.mutateAsync(serializeCharacterPayload(form, character.data));
-      if (saved.id) {
-        await mvpService.saveEpisodeAnswers(tableId, saved.id, serializeEpisodeAnswers(form, config.data));
+      const saved = chapter === 4
+        ? character.data
+        : await saveCharacter.mutateAsync(serializeCharacterPayload(form, chapter));
+      if (!saved?.id) throw new Error("Salve as etapas anteriores antes da revisao.");
+      if (chapter === 4) {
+        const answers = serializeEpisodeAnswers(form, config.data);
+        if (answers.length) {
+          await mvpService.saveEpisodeAnswers(tableId, saved.id, answers);
+        }
       }
       await character.refetch();
       loadedKey.current = `${saved.id}:${saved.sheetRevision ?? 0}:${saved.sheetStatus ?? ""}`;

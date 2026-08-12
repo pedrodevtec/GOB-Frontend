@@ -202,36 +202,45 @@ export function legacyReferencesFromDossier(
 
 export function serializeCharacterPayload(
   state: CharacterBuilderFormState,
-  existing?: MvpTableCharacter | null
+  chapter: number
 ): Partial<MvpTableCharacter> {
-  const payload: Partial<MvpTableCharacter> = {
-    name: state.name.trim(),
-    concept: state.concept.trim(),
-    origin: state.origin.trim(),
-    appearance: state.appearance.trim(),
-    motivation: state.motivation.trim(),
-    bond: state.bond.trim(),
-    history: state.history.trim(),
-    markLocation: state.markLocation.trim(),
-    markAppearance: state.markAppearance.trim(),
-    markReaction: state.markReaction.trim(),
-    markAttitude: state.markAttitude.trim(),
-    guardianSoulsFear: state.guardianSoulsFear.trim(),
-    archetypeKey: state.archetypeKey,
-    attributes: state.attributes,
-    trainings: state.trainings,
-    positiveTrait: state.positiveTrait.trim(),
-    negativeTrait: state.negativeTrait.trim(),
-    narrativeBond: state.bond.trim(),
-    equipment: state.equipment
-      .filter((item) => item.name.trim() || item.slot.trim())
-      .map((item) => ({
-        slot: item.slot.trim() || undefined,
-        name: item.name.trim() || undefined,
-        description: item.description?.trim() || undefined
-      }))
+  const payloadByChapter: Record<number, Partial<MvpTableCharacter>> = {
+    0: {
+      name: state.name.trim(),
+      concept: state.concept.trim(),
+      origin: state.origin.trim(),
+      appearance: state.appearance.trim()
+    },
+    1: {
+      motivation: state.motivation.trim(),
+      bond: state.bond.trim(),
+      history: state.history.trim(),
+      narrativeBond: state.bond.trim()
+    },
+    2: {
+      markLocation: state.markLocation.trim(),
+      markAppearance: state.markAppearance.trim(),
+      markReaction: state.markReaction.trim(),
+      markAttitude: state.markAttitude.trim(),
+      guardianSoulsFear: state.guardianSoulsFear.trim()
+    },
+    3: {
+      archetypeKey: state.archetypeKey.trim(),
+      attributes: state.attributes,
+      trainings: state.trainings,
+      positiveTrait: state.positiveTrait.trim(),
+      negativeTrait: state.negativeTrait.trim(),
+      equipment: state.equipment
+        .filter((item) => item.name.trim() || item.slot.trim())
+        .map((item) => ({
+          slot: item.slot.trim() || undefined,
+          name: item.name.trim() || undefined,
+          description: item.description?.trim() || undefined
+        }))
+    },
+    4: {}
   };
-  if (existing?.creativeDossier) payload.creativeDossier = existing.creativeDossier;
+  const payload = payloadByChapter[chapter] ?? {};
   return Object.fromEntries(
     Object.entries(payload).filter(
       ([, value]) => value !== "" && value !== null && value !== undefined
@@ -250,7 +259,7 @@ export function serializeEpisodeAnswers(
       version: question?.version,
       answer: state.episodeAnswers[key].trim()
     };
-  });
+  }).filter((item) => item.answer !== "");
 }
 
 export function episodePrompt(config: BuilderConfig | undefined, key: EpisodeOneKey) {
