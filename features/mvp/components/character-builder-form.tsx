@@ -883,23 +883,36 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                     return (
                       <label key={slot.key} className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
                         <span className="text-sm font-medium">{slot.name}</span>
-                        <select
-                          value={current?.name ?? ""}
-                          onChange={(event) => {
-                            const next = form.equipment.filter((item) => item.slot !== slot.key);
-                            if (event.target.value) next.push({ slot: slot.key, name: event.target.value });
-                            update("equipment", next);
-                          }}
-                          disabled={readOnly}
-                          className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
-                        >
-                          <option value="">Selecione</option>
-                          {(config.data?.equipment?.options ?? [])
-                            .filter((item) => !item.slot || item.slot === slot.key)
-                            .map((item) => (
-                              <option key={item.key} value={item.name}>{item.name}</option>
-                            ))}
-                        </select>
+                        {(config.data?.equipment?.options ?? []).length ? (
+                          <select
+                            value={current?.name ?? ""}
+                            onChange={(event) => {
+                              const next = form.equipment.filter((item) => item.slot !== slot.key);
+                              if (event.target.value) next.push({ slot: slot.key, name: event.target.value });
+                              update("equipment", next);
+                            }}
+                            disabled={readOnly}
+                            className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                          >
+                            <option value="">Selecione</option>
+                            {(config.data?.equipment?.options ?? [])
+                              .filter((item) => !item.slot || item.slot === slot.key)
+                              .map((item) => (
+                                <option key={item.key} value={item.name}>{item.name}</option>
+                              ))}
+                          </select>
+                        ) : (
+                          <Input
+                            value={current?.name ?? ""}
+                            placeholder="Digite um item comum"
+                            onChange={(event) => {
+                              const next = form.equipment.filter((item) => item.slot !== slot.key);
+                              if (event.target.value) next.push({ slot: slot.key, name: event.target.value });
+                              update("equipment", next);
+                            }}
+                            disabled={readOnly}
+                          />
+                        )}
                       </label>
                     );
                   })}

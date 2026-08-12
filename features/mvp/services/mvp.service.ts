@@ -171,13 +171,16 @@ function mapMembership(input: unknown): CampaignMembership {
 
 function mapBuilderConfig(input: unknown): BuilderConfig {
   const source = record(input);
+  const archetypes = record(source.archetypes);
   const attributes = record(source.attributes);
   const trainings = record(source.trainings);
+  const trainingSelection = record(trainings.selection);
   const equipment = record(source.equipment);
+  const episodeQuestions = record(source.episodeQuestions);
   return {
     version: text(source.version),
     status: text(source.status),
-    archetypes: arr(source.archetypes, (item) => {
+    archetypes: arr(archetypes.options ?? source.archetypes, (item) => {
       const entry = record(item);
       return {
         key: text(entry.key),
@@ -188,14 +191,14 @@ function mapBuilderConfig(input: unknown): BuilderConfig {
     attributes: isObject(source.attributes)
       ? {
           totalPoints: num(attributes.totalPoints),
-          min: num(attributes.min),
+          min: num(attributes.minValue ?? attributes.min),
           maxInitialWithoutApproval: num(attributes.maxInitialWithoutApproval),
-          keys: Array.isArray(attributes.keys) ? attributes.keys.map(String) : []
+          keys: arr(attributes.options, (item) => text(record(item).key))
         }
       : undefined,
     trainings: isObject(source.trainings)
       ? {
-          requiredCount: num(trainings.requiredCount),
+          requiredCount: num(trainingSelection.exact ?? trainings.requiredCount),
           bonus: num(trainings.bonus),
           options: arr(trainings.options ?? source.trainingOptions, (item) => {
             const entry = record(item);
@@ -228,7 +231,7 @@ function mapBuilderConfig(input: unknown): BuilderConfig {
           })
         }
       : undefined,
-    episodeOneQuestions: arr(source.episodeOneQuestions, (item) => {
+    episodeOneQuestions: arr(episodeQuestions.questions ?? source.episodeOneQuestions, (item) => {
       const entry = record(item);
       return {
         questionKey: text(entry.questionKey),
@@ -641,7 +644,7 @@ export const mvpService = {
       version
         ? apiClient.get(`/api/v1/builder/configs/${version}`)
         : apiClient.get("/api/v1/builder/configs/active"),
-      (data) => mapBuilderConfig(unwrap(data, "config"))
+      (data) => mapBuilderConfig(unwrap(data, "builderConfig"))
     ),
   confirmEmail: (token: string) =>
     request(apiClient.post("/api/v1/auth/email-verification/confirm", { token }), (data) => {
