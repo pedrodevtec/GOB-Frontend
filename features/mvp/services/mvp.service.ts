@@ -282,7 +282,13 @@ function mapSubmissionSnapshot(input: unknown) {
     submittedAt: text(source.submittedAt) || null,
     approvedAt: text(source.approvedAt) || null,
     status: text(source.status) || undefined,
-    character: source.character ?? source.snapshot ?? undefined
+    character: source.character ?? source.snapshot ?? undefined,
+    characterSnapshot: isObject(source.characterSnapshot)
+      ? record(source.characterSnapshot)
+      : undefined,
+    episodeAnswersSnapshot: Array.isArray(source.episodeAnswersSnapshot)
+      ? source.episodeAnswersSnapshot
+      : undefined
   };
 }
 
@@ -456,6 +462,14 @@ function mapMvpCharacter(input: unknown): MvpTableCharacter {
   return {
     id: text(source.id),
     tableId: text(source.tableId),
+    ownerUserId: text(source.ownerUserId) || undefined,
+    owner: isObject(source.owner)
+      ? {
+          id: text(record(source.owner).id) || undefined,
+          name: text(record(source.owner).name) || undefined,
+          email: text(record(source.owner).email) || undefined
+        }
+      : undefined,
     name: text(source.name),
     sheetStatus: text(source.sheetStatus),
     workflowIssue: text(source.workflowIssue) || undefined,
@@ -584,6 +598,9 @@ function mapCardArtPreparation(input: unknown): CharacterCardArtPreparation {
     approvedSubmission: isObject(source.approvedSubmission)
       ? (source.approvedSubmission as CharacterCardArtPreparation["approvedSubmission"])
       : undefined,
+    sourceSubmission: isObject(source.sourceSubmission)
+      ? (source.sourceSubmission as CharacterCardArtPreparation["sourceSubmission"])
+      : undefined,
     useCase: text(source.useCase) || undefined,
     usageEventId: text(source.usageEventId) || undefined,
     provider: source.provider ?? null,
@@ -674,6 +691,27 @@ export const mvpService = {
         consent: isObject(source.consent) ? mapConsent(source.consent) : null,
         membership: isObject(source.membership) ? mapMembership(source.membership) : null,
         playerOverview: source.playerOverview,
+        journeyState: text(source.journeyState) as CampaignResume["journeyState"],
+        nextRoute: text(source.nextRoute) || undefined,
+        character: isObject(source.character)
+          ? {
+              id: text(record(source.character).id),
+              name: text(record(source.character).name),
+              sheetStatus: text(record(source.character).sheetStatus),
+              sheetRevision: num(record(source.character).sheetRevision),
+              submittedRevision: num(record(source.character).submittedRevision),
+              submittedAt: text(record(source.character).submittedAt) || null,
+              approvedAt: text(record(source.character).approvedAt) || null,
+              builderConfigVersion: text(record(source.character).builderConfigVersion) || undefined
+            }
+          : null,
+        finalSurvey: isObject(source.finalSurvey)
+          ? {
+              id: text(record(source.finalSurvey).id),
+              surveyVersion: text(record(source.finalSurvey).surveyVersion) || undefined,
+              submittedAt: text(record(source.finalSurvey).submittedAt) || undefined
+            }
+          : null,
         nextRecommendedAction: isObject(source.nextRecommendedAction)
           ? record(source.nextRecommendedAction)
           : null
@@ -812,6 +850,10 @@ export const mvpService = {
         dossierSubmissions: arr(submissions, mapDossierSubmission)
       };
     }),
+  getAdminCampaignBySlug: (slug: string) =>
+    request(apiClient.get(`/api/v1/campaigns/admin/by-slug/${slug}`), (data) =>
+      mapCampaign(unwrap(data, "campaign"))
+    ),
   getMyCharacter: (tableId: string) =>
     request(apiClient.get(`/api/v1/tables/${tableId}/characters/me`), (data) => {
       const value = characterRecordFromResponse(data);
@@ -851,6 +893,36 @@ export const mvpService = {
   getCharacterById: (tableId: string, characterId: string) =>
     request(apiClient.get(`/api/v1/tables/${tableId}/characters/${characterId}`), (data) =>
       mapMvpCharacter(unwrap(data, "character"))
+    ),
+  getCharacterReviewQueue: (tableId: string) =>
+    request(apiClient.get(`/api/v1/tables/${tableId}/character-reviews`), (data) =>
+      arr(unwrap(data, "characters"), mapMvpCharacter)
+    ),
+  requestCharacterChanges: (
+    tableId: string,
+    characterId: string,
+    input: { expectedRevision: number; reason: string }
+  ) =>
+    request(
+      apiClient.post(`/api/v1/tables/${tableId}/characters/${characterId}/request-changes`, input),
+      (data) => mapMvpCharacter(unwrap(data, "character"))
+    ),
+  approveCharacter: (tableId: string, characterId: string, expectedRevision: number) =>
+    request(
+      apiClient.post(`/api/v1/tables/${tableId}/characters/${characterId}/approve`, {
+        expectedRevision
+      }),
+      (data) => mapMvpCharacter(unwrap(data, "character"))
+    ),
+  adaptLegacyCharacter: (tableId: string, characterId: string) =>
+    request(
+      apiClient.post(`/api/v1/tables/${tableId}/characters/${characterId}/adapt-legacy`, {}),
+      (data) => mapMvpCharacter(unwrap(data, "character"))
+    ),
+  deleteCharacterAsAdmin: (tableId: string, characterId: string, reason: string) =>
+    request(
+      apiClient.delete(`/api/v1/tables/${tableId}/characters/${characterId}`, { data: { reason } }),
+      (data) => record(record(data).data ?? data) as { deleted: boolean; characterId: string }
     ),
   trackEvent: (
     slug: string,

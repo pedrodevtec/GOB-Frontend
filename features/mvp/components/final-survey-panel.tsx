@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -8,6 +10,7 @@ import {
   useMyFinalSurvey,
   useSaveFinalSurvey
 } from "@/features/mvp/hooks/use-mvp";
+import { campaignFlowPath } from "@/features/mvp/campaign-flow";
 
 function numberValue(formData: FormData, key: string, fallback = 3) {
   const value = Number(formData.get(key));
@@ -15,6 +18,7 @@ function numberValue(formData: FormData, key: string, fallback = 3) {
 }
 
 export function FinalSurveyPanel({ slug }: { slug: string }) {
+  const router = useRouter();
   const survey = useFinalSurvey();
   const mySurvey = useMyFinalSurvey(slug);
   const saveSurvey = useSaveFinalSurvey(slug);
@@ -57,18 +61,21 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
         onSubmit={(event) => {
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
-          saveSurvey.mutate({
-            characterUnderstandingScore: numberValue(formData, "characterUnderstandingScore"),
-            creationExperienceScore: numberValue(formData, "creationExperienceScore"),
-            aiHelpfulnessScore:
-              formData.get("aiHelpfulnessScore") === "NOT_USED"
-                ? "NOT_USED"
-                : numberValue(formData, "aiHelpfulnessScore"),
-            aiBoundaryProblem: formData.get("aiBoundaryProblem") === "true",
-            aiBoundaryProblemDetails: String(formData.get("aiBoundaryProblemDetails") ?? ""),
-            storyImpactScore: numberValue(formData, "storyImpactScore"),
-            finalComment: String(formData.get("finalComment") ?? "")
-          });
+          saveSurvey.mutate(
+            {
+              characterUnderstandingScore: numberValue(formData, "characterUnderstandingScore"),
+              creationExperienceScore: numberValue(formData, "creationExperienceScore"),
+              aiHelpfulnessScore:
+                formData.get("aiHelpfulnessScore") === "NOT_USED"
+                  ? "NOT_USED"
+                  : numberValue(formData, "aiHelpfulnessScore"),
+              aiBoundaryProblem: formData.get("aiBoundaryProblem") === "true",
+              aiBoundaryProblemDetails: String(formData.get("aiBoundaryProblemDetails") ?? ""),
+              storyImpactScore: numberValue(formData, "storyImpactScore"),
+              finalComment: String(formData.get("finalComment") ?? "")
+            },
+            { onSuccess: () => router.replace(campaignFlowPath(slug, "/conclusao")) }
+          );
         }}
       >
         <div className="grid gap-4 md:grid-cols-2">
@@ -128,11 +135,6 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
           {saveSurvey.isPending ? "Enviando..." : "Enviar pesquisa"}
         </Button>
       </form>
-      {survey.data?.questions?.length ? (
-        <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-muted-foreground">
-          Schema recebido: {survey.data.questions.map((question) => question.questionKey).join(", ")}
-        </div>
-      ) : null}
     </Card>
   );
 }

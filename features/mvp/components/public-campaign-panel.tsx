@@ -63,15 +63,13 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
   const resumeStatus = statusCode(resume.error);
   const hasConsent = resume.data?.consent?.status === "ACCEPTED";
   const hasMembership = resume.data?.membership?.status === "ACTIVE";
-  const isSubmitted = character.data?.sheetStatus === "SUBMITTED";
+  const isSubmitted = Boolean(character.data?.submittedAt);
   const journeyStarted = Boolean(hasConsent || hasMembership || character.data);
-  const continueHref = isSubmitted
-    ? campaignFlowPath(slug, "/pesquisa")
-    : hasMembership
+  const continueHref =
+    resume.data?.nextRoute ??
+    (hasMembership
       ? campaignFlowPath(slug, "/episodio-1")
-      : hasConsent
-        ? campaignFlowPath(slug, "/entrada")
-        : campaignFlowPath(slug, "/consentimento");
+      : campaignFlowPath(slug, "/consentimento"));
   const primaryAction = {
     label: isAuthenticated && journeyStarted ? "Continuar minha jornada" : "Participar do piloto",
     href: isAuthenticated
@@ -165,18 +163,21 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
           <MvpState
             variant="success"
             title={
-              isSubmitted
-                ? "Personagem submetido"
+              resume.data?.journeyState === "SURVEY_REQUIRED"
+                ? "Personagem enviado"
                 : journeyStarted
                   ? "Jornada ja iniciada"
                   : "Piloto disponivel"
             }
             description={
-              isSubmitted
-                ? "Sua ficha ja foi enviada. Continue para a pesquisa final."
+              (typeof resume.data?.nextRecommendedAction?.description === "string"
+                ? resume.data.nextRecommendedAction.description
+                : undefined) ??
+              (isSubmitted
+                ? "Sua ficha foi enviada. Continue para a próxima etapa."
                 : journeyStarted
                   ? "Continue exatamente do ponto em que parou."
-                  : "Entre no piloto para conhecer o contexto publico do Episodio 1 e criar seu personagem."
+                  : "Entre no piloto para conhecer o contexto público e criar seu personagem.")
             }
             actions={secondaryAction ? [primaryAction, secondaryAction] : [primaryAction]}
           />
