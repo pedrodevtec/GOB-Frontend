@@ -40,3 +40,33 @@ export function Sidebar() {
     </aside>
   );
 }
+
+export function MobileNavigation() {
+  const pathname = usePathname();
+  const accountRole = useAuthStore((state) => accountRoleFor(state.user));
+  const items = sidebarItems.filter((item) => !item.adminOnly || accountRole === "ADMIN");
+
+  return (
+    <nav
+      className="glass-panel fixed inset-x-3 bottom-3 z-50 flex items-stretch justify-around gap-1 rounded-2xl p-2 lg:hidden"
+      aria-label="Navegacao principal"
+    >
+      {items.map((item) => {
+        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 text-[11px] text-muted-foreground",
+              active && "bg-primary/15 text-primary"
+            )}
+          >
+            <item.icon className="h-4 w-4" />
+            <span className="max-w-full truncate">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}

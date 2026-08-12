@@ -123,7 +123,7 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
           <MvpState
             variant="access-denied"
             title="Participacao indisponivel"
-            description="As vagas publicas retornadas pela API estao preenchidas."
+            description="Todas as vagas deste teste ja foram preenchidas."
           />
         ) : !hydrated ? (
           <MvpState
@@ -175,7 +175,7 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
               isSubmitted
                 ? "Sua ficha ja foi enviada. Continue para a pesquisa final."
                 : journeyStarted
-                  ? "Retome a etapa registrada pelo backend para esta campanha."
+                  ? "Continue exatamente do ponto em que parou."
                   : "Entre no piloto para conhecer o contexto publico do Episodio 1 e criar seu personagem."
             }
             actions={secondaryAction ? [primaryAction, secondaryAction] : [primaryAction]}
@@ -187,21 +187,19 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
         <Card className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-primary">Entrada</p>
           <CardTitle>{data.table?.name ?? "Nao informada"}</CardTitle>
-          <CardDescription>
-            Status publico: {data.table?.status ?? "indisponivel"}
-          </CardDescription>
+          <CardDescription>Sua mesa para esta experiencia.</CardDescription>
         </Card>
         <Card className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-primary">Vagas</p>
           <CardTitle>
             {data.table?.seats?.activeMembers ?? "-"} / {data.table?.seats?.maxPlayers ?? "-"}
           </CardTitle>
-          <CardDescription>Disponibilidade publica retornada pelo backend.</CardDescription>
+          <CardDescription>Participantes confirmados e limite da mesa.</CardDescription>
         </Card>
         <Card className="space-y-2">
-          <p className="text-xs uppercase tracking-wide text-primary">Versao</p>
-          <CardTitle>{data.builderConfigVersion ?? "ativo"}</CardTitle>
-          <CardDescription>Conteudo e Builder retornados pela API.</CardDescription>
+          <p className="text-xs uppercase tracking-wide text-primary">Criacao</p>
+          <CardTitle>Personagem guiado</CardTitle>
+          <CardDescription>Conte sua historia e receba ajuda opcional da IA.</CardDescription>
         </Card>
       </div>
 

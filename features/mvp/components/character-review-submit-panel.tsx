@@ -134,11 +134,9 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
 
       {workflowIssue ? (
         <Card className="space-y-2 border-amber-400/30 bg-amber-500/10">
-          <CardTitle>Workflow incompleto</CardTitle>
+          <CardTitle>Nao foi possivel liberar o envio</CardTitle>
           <CardDescription className="text-amber-50/80">
-            {workflowIssue} {character.data.workflowInferredFromLegacy
-              ? "A retomada foi permitida apenas quando nao havia negativa explicita do backend."
-              : "A submissao permanece bloqueada ate o contrato retornar permissao clara."}
+            Atualize a pagina. Se o problema continuar, preserve seu rascunho e tente novamente mais tarde.
           </CardDescription>
         </Card>
       ) : null}
@@ -149,8 +147,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
         <div>
           <CardTitle>Submissao</CardTitle>
           <CardDescription className="mt-2">
-            Revise todos os campos antes de enviar. O backend valida a ficha e registra
-            cada submissao como snapshot imutavel.
+            Revise a historia e as escolhas de jogo. Depois do envio, o Mestre podera aprovar ou solicitar ajustes.
           </CardDescription>
         </div>
 
@@ -163,7 +160,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
           </div>
         ) : (
           <p className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-muted-foreground">
-            Ficha completa para submissao.
+            Personagem pronto para ser enviado ao Mestre.
           </p>
         )}
 
@@ -175,8 +172,8 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
             {submit.isPending
               ? "Enviando..."
               : status === "CHANGES_REQUESTED"
-                ? "Ressubmeter personagem"
-                : "Submeter personagem"}
+                ? "Enviar ajustes ao Mestre"
+                : "Enviar ao Mestre"}
           </Button>
         </div>
       </Card>

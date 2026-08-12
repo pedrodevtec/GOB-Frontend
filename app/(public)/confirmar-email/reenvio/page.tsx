@@ -22,7 +22,7 @@ export default async function ResendEmailPage({ searchParams }: ResendEmailPageP
     <MvpFlowShell
       eyebrow="Reenvio"
       title="Reenviar confirmacao"
-      description="A tela esta pronta para o contrato de reenvio de e-mail do MVP."
+      description="Informe seu e-mail para receber um novo link de confirmacao."
       actions={
         <Button asChild variant="outline">
           <Link href="/login">Entrar</Link>
@@ -31,10 +31,9 @@ export default async function ResendEmailPage({ searchParams }: ResendEmailPageP
     >
       <Card className="space-y-5">
         <div>
-          <CardTitle>Contrato de reenvio pendente</CardTitle>
+          <CardTitle>Receber um novo link</CardTitle>
           <CardDescription className="mt-2">
-            O frontend nao envia e-mails diretamente. O envio deve ser feito
-            pelo backend quando o contrato estiver disponivel.
+            Se houver uma conta aguardando confirmacao, enviaremos novas instrucoes.
           </CardDescription>
         </div>
         <ResendEmailClient returnTo={returnTo} />

@@ -56,11 +56,11 @@ export function ConsentFlowPanel({ slug }: { slug: string }) {
   return (
     <Card className="space-y-5">
       <div>
-        <CardTitle>Consentimento {document.data?.version}</CardTitle>
+        <CardTitle>Confirme sua participacao</CardTitle>
         <CardDescription className="mt-2">
           {document.data?.requiresLegalReviewBeforeExternalPilot
-            ? "Este documento indica necessidade de revisao legal antes de piloto externo."
-            : "Documento operacional carregado pela API."}
+            ? "Leia com atencao antes de participar do teste."
+            : "Leia os termos e confirme para entrar na campanha."}
         </CardDescription>
       </div>
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-muted-foreground">
@@ -78,24 +78,23 @@ export function ConsentFlowPanel({ slug }: { slug: string }) {
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
-            onClick={() => acceptConsent.mutate()}
-            disabled={accepted || acceptConsent.isPending}
+            onClick={() => {
+              if (accepted) joinCampaign.mutate();
+              else acceptConsent.mutate(undefined, { onSuccess: () => joinCampaign.mutate() });
+            }}
+            disabled={acceptConsent.isPending || joinCampaign.isPending}
           >
-            {accepted ? "Consentimento aceito" : acceptConsent.isPending ? "Registrando..." : "Aceitar consentimento"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => joinCampaign.mutate()}
-            disabled={!accepted || joinCampaign.isPending}
-          >
-            {joinCampaign.isPending ? "Entrando..." : "Entrar na campanha"}
+            {acceptConsent.isPending || joinCampaign.isPending
+              ? "Confirmando participacao..."
+              : accepted
+                ? "Entrar na campanha"
+                : "Li e quero participar"}
           </Button>
         </div>
       )}
       {!accepted ? (
         <p className="text-sm text-muted-foreground">
-          A entrada na campanha fica bloqueada ate o consentimento `ACCEPTED`.
+          Sua entrada so sera registrada depois desta confirmacao.
         </p>
       ) : null}
     </Card>

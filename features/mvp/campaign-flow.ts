@@ -24,19 +24,17 @@ export const participantFlowSteps = [
 
 export function stepStatus(
   currentId: string,
-  blockedIds: readonly string[] = []
+  blockedIds: readonly string[] = [],
+  completedIds: readonly string[] = []
 ): Array<{
   id: string;
   label: string;
   status: "pending" | "current" | "complete" | "blocked";
 }> {
-  const currentIndex = participantFlowSteps.findIndex((step) => step.id === currentId);
-
-  return participantFlowSteps.map((step, index) => {
+  return participantFlowSteps.map((step) => {
     if (blockedIds.includes(step.id)) return { ...step, status: "blocked" };
-    if (index < currentIndex) return { ...step, status: "complete" };
-    if (index === currentIndex) return { ...step, status: "current" };
+    if (completedIds.includes(step.id)) return { ...step, status: "complete" };
+    if (step.id === currentId) return { ...step, status: "current" };
     return { ...step, status: "pending" };
   });
 }
-

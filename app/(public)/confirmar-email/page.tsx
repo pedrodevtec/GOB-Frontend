@@ -67,15 +67,15 @@ function stateFor(status: EmailConfirmationStatus): {
       };
     case "token-received":
       return {
-        variant: "empty",
-        title: "Contrato de confirmacao pendente",
-        description: "O token foi recebido pela rota, mas a validacao real ainda depende do contrato backend."
+        variant: "loading",
+        title: "Verificando seu e-mail",
+        description: "Aguarde enquanto confirmamos seu acesso."
       };
     default:
       return {
         variant: "empty",
         title: "Confirme seu e-mail",
-        description: "Quando a API estiver disponivel, esta pagina validara o link enviado por e-mail."
+        description: "Abra o link enviado ao seu e-mail ou solicite um novo envio."
       };
   }
 }
@@ -98,8 +98,8 @@ export default async function ConfirmEmailPage({ searchParams }: ConfirmEmailPag
   return (
     <MvpFlowShell
       eyebrow="Confirmacao de e-mail"
-      title="Verificacao de acesso"
-      description="Esta etapa prepara o MVP para validar o e-mail antes da entrada na campanha."
+      title="Confirme seu acesso"
+      description="Depois da confirmacao, voce volta ao ponto em que parou."
       actions={
         <Button asChild variant="outline">
           <Link href="/login">Entrar</Link>
@@ -108,10 +108,9 @@ export default async function ConfirmEmailPage({ searchParams }: ConfirmEmailPag
     >
       <Card className="space-y-5">
         <div>
-          <CardTitle>Status da confirmacao</CardTitle>
+          <CardTitle>Confirmacao de e-mail</CardTitle>
           <CardDescription className="mt-2">
-            Nenhuma confirmacao real e gravada no frontend enquanto o contrato
-            backend estiver pendente.
+            Estamos protegendo sua conta antes de continuar a jornada.
           </CardDescription>
         </div>
         {emailConfirmationCanContinue(status) ? (

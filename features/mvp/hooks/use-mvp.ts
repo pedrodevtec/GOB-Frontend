@@ -181,6 +181,16 @@ export function useDecideChapterSuggestion(tableId?: string, characterId?: strin
   });
 }
 
+export function useGenerateMechanicalProposal(tableId?: string, characterId?: string | null) {
+  return useMutation({
+    mutationFn: (expectedRevision: number) => {
+      if (!tableId || !characterId) throw new Error("Salve o personagem antes de pedir a proposta.");
+      return mvpService.getMechanicalProposal(tableId, characterId, expectedRevision);
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
 export function useAiUsage(filters: Parameters<typeof mvpService.getAiUsageSummary>[0]) {
   const accessToken = useAuthStore((state) => state.accessToken);
 

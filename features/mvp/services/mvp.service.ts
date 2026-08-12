@@ -22,6 +22,7 @@ import type {
   CharacterAiSuggestion,
   CharacterChapterSuggestionRequest,
   CharacterChapterSuggestionResponse,
+  CharacterMechanicalProposal,
   CharacterAiSuggestionDecision,
   AiUsageBreakdown,
   AiUsageFilters,
@@ -177,6 +178,7 @@ function mapBuilderConfig(input: unknown): BuilderConfig {
   const trainingSelection = record(trainings.selection);
   const equipment = record(source.equipment);
   const episodeQuestions = record(source.episodeQuestions);
+  const narrativeFlow = record(source.narrativeFlow);
   return {
     version: text(source.version),
     status: text(source.status),
@@ -238,7 +240,27 @@ function mapBuilderConfig(input: unknown): BuilderConfig {
         prompt: text(entry.prompt),
         version: text(entry.version) || undefined
       };
-    })
+    }),
+    narrativeFlow: isObject(source.narrativeFlow)
+      ? {
+          visibleSteps: num(narrativeFlow.visibleSteps) ?? 4,
+          questions: arr(narrativeFlow.questions, (item) => {
+            const entry = record(item);
+            return {
+              key: text(entry.key) as "before_mark" | "motivation_and_bonds" | "mark_change",
+              prompt: text(entry.prompt),
+              helper: text(entry.helper),
+              required: bool(entry.required) ?? true
+            };
+          }),
+          confirmationBlocks: arr(narrativeFlow.confirmationBlocks, String) as Array<"identity" | "motivations" | "mark">,
+          requiredConfirmedFields: arr(narrativeFlow.requiredConfirmedFields, String),
+          playStyleOptions: arr(narrativeFlow.playStyleOptions, (item) => {
+            const entry = record(item);
+            return { key: text(entry.key), name: text(entry.name), description: text(entry.description) };
+          })
+        }
+      : undefined
   };
 }
 
@@ -488,6 +510,19 @@ function mapMvpCharacter(input: unknown): MvpTableCharacter {
     creativeDossier: isObject(source.creativeDossier)
       ? (source.creativeDossier as unknown as PlaytestCreativeDossier)
       : undefined,
+    builderConfigVersion: text(source.builderConfigVersion) || undefined,
+    narrativeResponses: isObject(source.narrativeResponses)
+      ? Object.fromEntries(Object.entries(record(source.narrativeResponses)).map(([key, value]) => [key, text(value)]))
+      : undefined,
+    confirmedNarrativeContext: isObject(source.confirmedNarrativeContext)
+      ? {
+          confirmedBlocks: arr(record(source.confirmedNarrativeContext).confirmedBlocks, String),
+          fields: Object.fromEntries(
+            Object.entries(record(record(source.confirmedNarrativeContext).fields)).map(([key, value]) => [key, text(value)])
+          )
+        }
+      : undefined,
+    playStylePreference: text(source.playStylePreference) || undefined,
     episodeAnswers: arr(source.episodeAnswers, mapEpisodeAnswer),
     derivedResources: isObject(source.derivedResources) ? record(source.derivedResources) : undefined,
     latestSubmission: isObject(source.latestSubmission)
@@ -717,6 +752,14 @@ export const mvpService = {
         input
       ),
       mapChapterSuggestionResponse
+    ),
+  getMechanicalProposal: (tableId: string, characterId: string, expectedRevision: number) =>
+    request(
+      apiClient.post(
+        `/api/v1/tables/${tableId}/characters/${characterId}/ai/mechanical-proposal`,
+        { expectedRevision }
+      ),
+      (data) => unwrap(data, "proposal") as CharacterMechanicalProposal
     ),
   decideChapterSuggestion: (
     tableId: string,
