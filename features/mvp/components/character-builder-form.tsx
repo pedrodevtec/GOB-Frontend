@@ -311,6 +311,9 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const [chapterError, setChapterError] = useState("");
   const [lastSuggestionFingerprint, setLastSuggestionFingerprint] = useState("");
   const [mechanicalProposal, setMechanicalProposal] = useState<CharacterMechanicalProposal | null>(null);
+  const [mechanicalProposalError, setMechanicalProposalError] = useState("");
+  const [manualMechanicsOpen, setManualMechanicsOpen] = useState(false);
+  const [selectedProposalArchetypeKey, setSelectedProposalArchetypeKey] = useState("");
   const [mechanicalProposalBaseline, setMechanicalProposalBaseline] = useState<CharacterBuilderFormState | null>(null);
   const [mechanicalBlockStatus, setMechanicalBlockStatus] = useState<
     Partial<Record<MechanicalBlock, "applied" | "discarded">>
@@ -370,6 +373,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     setForm((current) => ({ ...current, [key]: value }));
     setDirty(true);
     setSaveStatus("idle");
+    setSaveError("");
   }
 
   function setAutoSuggestions(value: boolean) {
@@ -400,33 +404,50 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   }
 
   async function requestMechanicalProposal() {
-    const revision = character.data?.sheetRevision;
-    if (!revision) {
-      setChapterError("Salve e confirme o personagem antes de pedir uma proposta.");
+    if (!form.playStylePreference) {
+      setMechanicalProposalError("Escolha primeiro como voce gostaria de jogar.");
       return;
     }
-    setChapterError("");
+    setMechanicalProposalError("");
     try {
+      const saved = dirty ? await saveDraft("ai-preparation") : character.data;
+      if (!saved) {
+        setMechanicalProposalError("Nao foi possivel salvar suas escolhas antes da proposta. Tente novamente.");
+        return;
+      }
+      const revision = saved?.sheetRevision;
+      if (!revision) {
+        setMechanicalProposalError("Nao foi possivel confirmar o rascunho antes da proposta.");
+        return;
+      }
       const proposal = await generateMechanicalProposal.mutateAsync(revision);
       setMechanicalProposalBaseline(form);
       setMechanicalBlockStatus({});
       setAiPendingConfirmation(false);
+      setSelectedProposalArchetypeKey(proposal.archetypes[0]?.key ?? "");
       setMechanicalProposal(proposal);
     } catch (error) {
-      setChapterError(error instanceof Error ? error.message : "A proposta nao ficou disponivel agora.");
+      setMechanicalProposalError(
+        error instanceof ApiRequestError && error.statusCode === 409
+          ? "O rascunho mudou enquanto a proposta era preparada. Salve novamente e tente outra vez."
+          : error instanceof Error
+            ? error.message
+            : "A proposta nao ficou disponivel agora. Voce ainda pode montar a ficha manualmente."
+      );
     }
   }
 
   function applyMechanicalBlock(block: MechanicalBlock) {
     if (!mechanicalProposal) return;
     setForm((current) => {
-      if (block === "archetype") return { ...current, archetypeKey: mechanicalProposal.archetypes[0]?.key ?? current.archetypeKey };
+      if (block === "archetype") return { ...current, archetypeKey: selectedProposalArchetypeKey || mechanicalProposal.archetypes[0]?.key || current.archetypeKey };
       if (block === "attributes") return { ...current, attributes: mechanicalProposal.attributes as CharacterBuilderFormState["attributes"] };
       if (block === "traits") return { ...current, positiveTrait: mechanicalProposal.positiveTrait, negativeTrait: mechanicalProposal.negativeTrait };
       if (block === "trainings") return { ...current, trainings: mechanicalProposal.trainings };
       return { ...current, equipment: mechanicalProposal.equipment };
     });
     setMechanicalBlockStatus((current) => ({ ...current, [block]: "applied" }));
+    setManualMechanicsOpen(true);
     setAiPendingConfirmation(true);
     setDirty(true);
   }
@@ -452,10 +473,11 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     if (!mechanicalProposal || mechanicalBlocks.some((block) => !mechanicalBlockStatus[block])) return;
     const saved = await saveDraft("ai-confirmed");
     if (!saved) return;
+    const usedAnyBlock = mechanicalBlocks.some((block) => mechanicalBlockStatus[block] === "applied");
     decideChapterSuggestion.mutate({
       suggestionId: mechanicalProposal.id,
-      decision: "EDITED",
-      appliedContent: JSON.stringify({ blocks: mechanicalBlockStatus })
+      decision: usedAnyBlock ? "EDITED" : "DISCARDED",
+      appliedContent: usedAnyBlock ? JSON.stringify({ blocks: mechanicalBlockStatus }) : undefined
     });
     setAiPendingConfirmation(false);
     setMechanicalProposal(null);
@@ -463,7 +485,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     setMechanicalBlockStatus({});
   }
 
-  async function saveDraft(mode: "manual" | "auto" | "navigation" | "ai-confirmed" = "manual") {
+  async function saveDraft(mode: "manual" | "auto" | "navigation" | "ai-preparation" | "ai-confirmed" = "manual") {
     if (!tableId || !editable || saveInFlight.current) return false;
     if (aiPendingConfirmation && mode !== "ai-confirmed") {
       setChapterError("Confirme ou descarte todos os blocos sugeridos antes de salvar.");
@@ -518,11 +540,13 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
       }
       const saved = await saveDraft("navigation");
       if (!saved) return;
-      if (autoSuggestionsEnabled) {
+      if (autoSuggestionsEnabled && next === 1) {
         await requestChapterSuggestions(next, saved.sheetRevision ?? character.data?.sheetRevision);
       }
     }
     setChapter(next);
+    setChapterError("");
+    setMechanicalProposalError("");
     setSuggestions([]);
     setAiInstruction("");
   }
@@ -700,6 +724,18 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   }
 
   const readOnly = !editable;
+  const hasMechanicalProgress = Boolean(
+    form.archetypeKey ||
+    form.trainings.length ||
+    form.positiveTrait ||
+    form.negativeTrait ||
+    form.equipment.length
+  );
+  const mechanicsEditorOpen = manualMechanicsOpen;
+  const archetypeName = (key: string) =>
+    config.data?.archetypes.find((item) => item.key === key)?.name ?? "Arquetipo sugerido";
+  const trainingName = (key: string) =>
+    config.data?.trainings?.options?.find((item) => item.key === key)?.name ?? "Treinamento sugerido";
 
   return (
     <>
@@ -751,7 +787,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+        {chapter <= 1 ? <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
           <label className="flex items-start gap-3 text-sm">
             <input
               type="checkbox"
@@ -770,7 +806,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
               </span>
             </span>
           </label>
-          <Button
+          {chapter === 1 ? <Button
             type="button"
             variant="outline"
             onClick={() => void requestChapterSuggestions(chapter)}
@@ -779,23 +815,12 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           >
             <Bot className="mr-2 h-4 w-4" />
             {loadingChapter === chapter ? "Pedindo ajuda..." : "Pedir ajuda neste capitulo"}
-          </Button>
-        </div>
+          </Button> : null}
+        </div> : null}
 
         {chapterError ? (
           <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-50/90">
             {chapterError}
-            <div className="mt-3">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => void requestChapterSuggestions(chapter)}
-                disabled={readOnly || loadingChapter !== null}
-              >
-                Tentar novamente
-              </Button>
-            </div>
           </div>
         ) : null}
 
@@ -946,13 +971,20 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           ) : null}
 
           {chapter === 2 ? (
-            <Section title="3. Como voce quer jogar?" description="Escolha uma intencao. Isso orienta a proposta, mas nao limita seu personagem.">
+            <Section title="3. Veja a ficha que combina com sua historia" description="Escolha uma intencao de jogo. Depois, a IA transforma somente o que voce confirmou em uma proposta que pode ser usada, editada ou descartada.">
+              <div className="space-y-2">
+                <p className="font-semibold">Como voce gostaria de agir durante a aventura?</p>
+                <p className="text-sm text-muted-foreground">Essa escolha orienta a proposta, mas nunca limita seu personagem.</p>
+              </div>
               <div className="grid gap-3 md:grid-cols-3">
                 {(config.data?.narrativeFlow?.playStyleOptions ?? []).map((option) => (
                   <button
                     key={option.key}
                     type="button"
-                    onClick={() => update("playStylePreference", option.key)}
+                    onClick={() => {
+                      setMechanicalProposalError("");
+                      update("playStylePreference", option.key);
+                    }}
                     disabled={readOnly}
                     className={`rounded-xl border p-4 text-left ${form.playStylePreference === option.key ? "border-primary bg-primary/15" : "border-white/10 bg-black/20"}`}
                   >
@@ -962,31 +994,65 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                 ))}
               </div>
               {validation.errors.playStylePreference ? <p className="text-sm text-destructive">{validation.errors.playStylePreference}</p> : null}
-              <div className="flex flex-wrap items-center gap-3">
-                <Button type="button" variant="outline" onClick={() => void requestMechanicalProposal()} disabled={readOnly || generateMechanicalProposal.isPending}>
+              <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
+                <div>
+                  <p className="font-semibold">Montar uma proposta a partir da sua historia</p>
+                  <p className="mt-1 text-sm text-muted-foreground">A IA sugere arquetipo, atributos, Traits, treinamentos e equipamentos. Nada entra na ficha sem sua validacao.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                <Button type="button" onClick={() => void requestMechanicalProposal()} disabled={readOnly || generateMechanicalProposal.isPending || saveStatus === "saving"}>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  {generateMechanicalProposal.isPending ? "Preparando proposta..." : "Sugerir ficha a partir da historia"}
+                  {generateMechanicalProposal.isPending ? "Analisando sua historia..." : mechanicalProposal ? "Gerar outra proposta" : "Montar minha proposta"}
                 </Button>
-                <span className="text-sm text-muted-foreground">Opcional. Voce pode preencher tudo manualmente.</span>
+                <Button type="button" variant="ghost" onClick={() => setManualMechanicsOpen((current) => !current)}>
+                  {mechanicsEditorOpen ? "Ocultar edicao manual" : "Prefiro montar manualmente"}
+                </Button>
+                </div>
+                {hasMechanicalProgress && !mechanicsEditorOpen ? (
+                  <p className="text-xs text-muted-foreground">Suas escolhas anteriores estao preservadas e podem ser abertas na edicao manual.</p>
+                ) : null}
+                {mechanicalProposalError ? (
+                  <div className="rounded-lg border border-amber-400/30 bg-black/20 p-3 text-sm text-amber-100">
+                    <p>{mechanicalProposalError}</p>
+                    <Button type="button" size="sm" variant="outline" className="mt-3" onClick={() => void requestMechanicalProposal()} disabled={generateMechanicalProposal.isPending}>
+                      Tentar gerar novamente
+                    </Button>
+                  </div>
+                ) : null}
               </div>
               {mechanicalProposal ? (
                 <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
-                  <p className="font-semibold">Proposta da IA</p>
+                  <p className="font-semibold">Proposta para voce validar</p>
                   <p className="text-sm text-muted-foreground">{mechanicalProposal.rationale}</p>
+                  <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                    <p className="font-medium">Arquetipo</p>
+                    <div className="space-y-2">
+                      {mechanicalProposal.archetypes.map((item) => (
+                        <label key={item.key} className="flex gap-3 rounded-lg border border-white/10 p-3 text-sm">
+                          <input type="radio" name="proposal-archetype" value={item.key} checked={selectedProposalArchetypeKey === item.key} onChange={() => setSelectedProposalArchetypeKey(item.key)} />
+                          <span><span className="block font-medium">{archetypeName(item.key)}</span><span className="mt-1 block text-muted-foreground">{item.rationale}</span></span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" onClick={() => applyMechanicalBlock("archetype")}>Usar e revisar</Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => discardMechanicalBlock("archetype")}>Nao usar</Button>
+                      {mechanicalBlockStatus.archetype ? <span className="self-center text-xs text-primary">{mechanicalBlockStatus.archetype === "applied" ? "Adicionado para sua revisao" : "Nao sera usado"}</span> : null}
+                    </div>
+                  </div>
                   {([
-                    ["archetype", "Arquétipo", mechanicalProposal.archetypes.map((item) => item.key).join(", ")],
-                    ["attributes", "Atributos", Object.entries(mechanicalProposal.attributes).map(([key, value]) => `${key}: ${value}`).join(", ")],
+                    ["attributes", "Atributos", Object.entries(mechanicalProposal.attributes).map(([key, value]) => `${ATTRIBUTE_LABELS[key as AttributeKey] ?? "Atributo"}: ${value}`).join(", ")],
                     ["traits", "Traits", `${mechanicalProposal.positiveTrait} · ${mechanicalProposal.negativeTrait}`],
-                    ["trainings", "Treinamentos", mechanicalProposal.trainings.join(", ")],
+                    ["trainings", "Treinamentos", mechanicalProposal.trainings.map(trainingName).join(", ")],
                     ["equipment", "Equipamentos", mechanicalProposal.equipment.map((item) => item.name).join(", ")]
                   ] as Array<[MechanicalBlock, string, string]>).map(([block, label, content]) => (
                     <div key={block} className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
                       <p className="font-medium">{label}</p>
                       <p className="text-sm text-muted-foreground">{content}</p>
                       <div className="flex gap-2">
-                        <Button type="button" size="sm" onClick={() => applyMechanicalBlock(block)}>Usar</Button>
-                        <Button type="button" size="sm" variant="outline" onClick={() => discardMechanicalBlock(block)}>Descartar</Button>
-                        {mechanicalBlockStatus[block] ? <span className="self-center text-xs text-primary">{mechanicalBlockStatus[block] === "applied" ? "Usado — você ainda pode editar" : "Descartado"}</span> : null}
+                        <Button type="button" size="sm" onClick={() => applyMechanicalBlock(block)}>Usar e revisar</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => discardMechanicalBlock(block)}>Nao usar</Button>
+                        {mechanicalBlockStatus[block] ? <span className="self-center text-xs text-primary">{mechanicalBlockStatus[block] === "applied" ? "Adicionado para sua revisao" : "Nao sera usado"}</span> : null}
                       </div>
                     </div>
                   ))}
@@ -995,10 +1061,11 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                     onClick={() => void confirmMechanicalChoices()}
                     disabled={mechanicalBlocks.some((block) => !mechanicalBlockStatus[block])}
                   >
-                    Confirmar escolhas e salvar
+                    Salvar os blocos escolhidos
                   </Button>
                 </div>
               ) : null}
+              {mechanicsEditorOpen ? <>
               <div className="grid gap-4 lg:grid-cols-2">
                 <label className={fieldLabelClass(validation.errors.archetypeKey)}>
                   <span className="text-sm font-medium">Arquetipo</span>
@@ -1125,6 +1192,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   })}
                 </div>
               </div>
+              </> : null}
             </Section>
           ) : null}
 
