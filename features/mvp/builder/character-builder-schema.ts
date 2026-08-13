@@ -252,6 +252,32 @@ export function serializeCharacterPayload(
       markReaction: state.markReaction.trim(),
       markAttitude: state.markAttitude.trim()
     };
+    const equipment = state.equipment
+      .filter((item) => item.name.trim())
+      .map((item) => ({
+        slot: item.slot.trim() || undefined,
+        name: item.name.trim(),
+        description: item.description?.trim() || undefined
+      }));
+    const attributeTotal = ATTRIBUTE_KEYS.reduce((total, key) => total + state.attributes[key], 0);
+    const attributesReady =
+      attributeTotal === (config.attributes?.totalPoints ?? 12) &&
+      ATTRIBUTE_KEYS.every((key) =>
+        Number.isInteger(state.attributes[key]) &&
+        state.attributes[key] >= (config.attributes?.min ?? 0) &&
+        state.attributes[key] <= (config.attributes?.maxInitialWithoutApproval ?? 4)
+      );
+    const mechanicsPayload: Partial<MvpTableCharacter> = {
+      ...(state.playStylePreference ? { playStylePreference: state.playStylePreference } : {}),
+      ...(state.archetypeKey.trim() ? { archetypeKey: state.archetypeKey.trim() } : {}),
+      ...(attributesReady ? { attributes: state.attributes } : {}),
+      ...(state.trainings.length === (config.trainings?.requiredCount ?? 3)
+        ? { trainings: state.trainings }
+        : {}),
+      ...(state.positiveTrait.trim() ? { positiveTrait: state.positiveTrait.trim() } : {}),
+      ...(state.negativeTrait.trim() ? { negativeTrait: state.negativeTrait.trim() } : {}),
+      ...(equipment.length ? { initialEquipment: equipment } : {})
+    };
     const payloadByStep: Record<number, Partial<MvpTableCharacter>> = {
       0: { narrativeResponses: state.narrativeResponses },
       1: {
@@ -261,21 +287,7 @@ export function serializeCharacterPayload(
           fields: Object.fromEntries(Object.entries(confirmedFields).filter(([, value]) => value))
         }
       },
-      2: {
-        playStylePreference: state.playStylePreference,
-        archetypeKey: state.archetypeKey.trim(),
-        attributes: state.attributes,
-        trainings: state.trainings,
-        positiveTrait: state.positiveTrait.trim(),
-        negativeTrait: state.negativeTrait.trim(),
-        initialEquipment: state.equipment
-          .filter((item) => item.name.trim() || item.slot.trim())
-          .map((item) => ({
-            slot: item.slot.trim() || undefined,
-            name: item.name.trim() || undefined,
-            description: item.description?.trim() || undefined
-          }))
-      },
+      2: mechanicsPayload,
       3: {}
     };
     return Object.fromEntries(
