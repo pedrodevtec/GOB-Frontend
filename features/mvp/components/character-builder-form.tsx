@@ -327,7 +327,9 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const resume = useCampaignResume(slug);
   const tableId = resume.data?.membership?.tableId;
   const character = useMyMvpCharacter(tableId);
-  const config = useBuilderConfig(campaign.data?.builderConfigVersion);
+  const config = useBuilderConfig(
+    character.data?.builderConfigVersion ?? campaign.data?.builderConfigVersion
+  );
   const saveCharacter = useSaveMvpCharacter(tableId, character.data?.id);
   const generateChapterSuggestions = useGenerateChapterSuggestions(tableId, character.data?.id);
   const generateMechanicalProposal = useGenerateMechanicalProposal(tableId, character.data?.id);
