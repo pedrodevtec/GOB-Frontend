@@ -1,19 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { campaignFlowPath } from "@/features/mvp/campaign-flow";
-import { useCampaignResume, usePublicCampaign } from "@/features/mvp/hooks/use-mvp";
+import {
+  useCampaignResume,
+  usePublicCampaign,
+  useStartMvpCharacter
+} from "@/features/mvp/hooks/use-mvp";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { useAuthStore } from "@/stores/auth-store";
 
 export function EpisodeContextPanel({ slug }: { slug: string }) {
+  const router = useRouter();
   const campaign = usePublicCampaign(slug);
   const accessToken = useAuthStore((state) => state.accessToken);
   const resume = useCampaignResume(slug);
+  const tableId = resume.data?.membership?.tableId;
+  const startCharacter = useStartMvpCharacter(slug, tableId);
 
   if (campaign.isLoading) return <MvpState variant="loading" title="Carregando contexto" />;
   if (campaign.isError) {
@@ -52,11 +60,27 @@ export function EpisodeContextPanel({ slug }: { slug: string }) {
         <div className="rounded-xl border border-white/10 p-3"><p className="font-semibold">Seu personagem</p><p className="mt-1 text-sm text-muted-foreground">Crie uma pessoa deste mundo; o Mestre conectara sua historia ao episodio.</p></div>
       </div>
       <div className="pt-2">
-        <Button asChild>
-          <Link href={campaignFlowPath(slug, canCreate ? "/personagem" : "/consentimento")}>
-            {canCreate ? "Criar meu personagem" : "Confirmar participacao"}
-          </Link>
-        </Button>
+        {canCreate ? (
+          <Button
+            type="button"
+            disabled={startCharacter.isPending}
+            onClick={async () => {
+              try {
+                await startCharacter.mutateAsync();
+                router.push(campaignFlowPath(slug, "/personagem"));
+              } catch {
+                // The mutation already displays a useful error and keeps the
+                // participant on this safe, retryable step.
+              }
+            }}
+          >
+            {startCharacter.isPending ? "Preparando personagem..." : "Criar meu personagem"}
+          </Button>
+        ) : (
+          <Button asChild>
+            <Link href={campaignFlowPath(slug, "/consentimento")}>Confirmar participacao</Link>
+          </Button>
+        )}
       </div>
     </Card>
   );

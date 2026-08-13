@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { mvpService } from "@/features/mvp/services/mvp.service";
+import type { CampaignResume } from "@/features/mvp/types";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -249,6 +250,53 @@ export function useMyMvpCharacter(tableId?: string) {
     queryFn: () => mvpService.getMyCharacter(tableId ?? ""),
     enabled: Boolean(tableId && hasUsableAccessToken(accessToken)),
     retry: false
+  });
+}
+
+export function useStartMvpCharacter(slug: string, tableId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!tableId) throw new Error("Entre na campanha antes de criar seu personagem.");
+
+      // The action is idempotent from the participant's perspective. If a draft
+      // was created but the previous navigation failed, resume that draft
+      // instead of creating a duplicate character.
+      const existing = await mvpService.getMyCharacter(tableId);
+      return existing ?? mvpService.createCharacterDraft(tableId, {});
+    },
+    onSuccess: (character) => {
+      if (!tableId) return;
+
+      queryClient.setQueryData(mvpKeys.myCharacter(tableId), character);
+      queryClient.setQueryData<CampaignResume>(mvpKeys.resume(slug), (current) =>
+        current
+          ? {
+              ...current,
+              character: {
+                id: character.id,
+                name: character.name,
+                sheetStatus: character.sheetStatus ?? "DRAFT",
+                sheetRevision: character.sheetRevision,
+                submittedRevision: character.submittedRevision,
+                submittedAt: character.submittedAt,
+                approvedAt: character.approvedAt,
+                builderConfigVersion: character.builderConfigVersion
+              },
+              journeyState: "CHARACTER_DRAFT",
+              nextRoute: `/campanhas/${slug}/personagem`,
+              nextRecommendedAction: {
+                key: "EDIT_CHARACTER",
+                title: "Continuar personagem",
+                description: "Seu rascunho está salvo e pode ser retomado."
+              }
+            }
+          : current
+      );
+      toast.success("Personagem iniciado.");
+    },
+    onError: (error: Error) => toast.error(error.message)
   });
 }
 
