@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { MvpFlowShell } from "@/components/layout/mvp-flow-shell";
 import { Button } from "@/components/ui/button";
-import { AnalyticsEvent } from "@/features/mvp/components/analytics-event";
 import { CampaignFlowAside } from "@/features/mvp/components/campaign-flow-aside";
 import { FinalSurveyPanel } from "@/features/mvp/components/final-survey-panel";
 import { JourneyRouteGuard } from "@/features/mvp/components/journey-route-guard";
@@ -27,8 +26,10 @@ export default async function SurveyPage({ params }: SurveyPageProps) {
       }
       aside={<CampaignFlowAside currentStep="survey" blockedSteps={["done"]} />}
     >
-      <AnalyticsEvent slug={slug} eventKey="final_survey_submitted" metadata={{ page: "survey" }} />
-      <JourneyRouteGuard slug={slug} allow={["SURVEY_REQUIRED"]}>
+      <JourneyRouteGuard
+        slug={slug}
+        allow={["SURVEY_REQUIRED", "COMPLETED_PENDING_REVIEW", "COMPLETED_APPROVED"]}
+      >
         <FinalSurveyPanel slug={slug} />
       </JourneyRouteGuard>
     </MvpFlowShell>

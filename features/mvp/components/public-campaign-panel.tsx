@@ -6,6 +6,7 @@ import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { campaignFlowPath } from "@/features/mvp/campaign-flow";
+import { CompletionExperiencePanel } from "@/features/mvp/components/completion-experience-panel";
 import {
   useCampaignResume,
   useMyMvpCharacter,
@@ -65,6 +66,7 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
   const hasMembership = resume.data?.membership?.status === "ACTIVE";
   const isSubmitted = Boolean(character.data?.submittedAt);
   const journeyStarted = Boolean(hasConsent || hasMembership || character.data);
+  const journeyCompleted = Boolean(resume.data?.journeyState?.startsWith("COMPLETED_"));
   const continueHref =
     resume.data?.nextRoute ??
     (hasMembership
@@ -203,6 +205,10 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
           <CardDescription>Conte sua historia e receba ajuda opcional da IA.</CardDescription>
         </Card>
       </div>
+
+      {isAuthenticated && journeyCompleted ? (
+        <CompletionExperiencePanel slug={slug} mode="dashboard" />
+      ) : null}
 
       {data.world ? (
         <Card className="space-y-2">

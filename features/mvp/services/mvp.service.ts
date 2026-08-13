@@ -28,7 +28,9 @@ import type {
   AiUsageFilters,
   AiUsageSummary,
   AiUsageTimeseries,
-  CharacterCardArtPreparation
+  CharacterCardArtPreparation,
+  CharacterCardArtGallery,
+  CharacterCardArtGeneration
 } from "@/features/mvp/types";
 
 type Dict = Record<string, unknown>;
@@ -605,9 +607,34 @@ function mapCardArtPreparation(input: unknown): CharacterCardArtPreparation {
     usageEventId: text(source.usageEventId) || undefined,
     provider: source.provider ?? null,
     storage: source.storage ?? null,
+    generationLimit: num(source.generationLimit),
     pending: Array.isArray(source.pending) ? source.pending.map(String) : [],
     fields: isObject(source.fields) ? source.fields : undefined,
     prompt: text(source.prompt) || undefined
+  };
+}
+
+function mapCardArtGeneration(input: unknown): CharacterCardArtGeneration {
+  const source = record(input);
+  return {
+    id: text(source.id),
+    attemptNumber: num(source.attemptNumber) ?? 0,
+    promptVersion: text(source.promptVersion) || undefined,
+    provider: text(source.provider) || null,
+    model: text(source.model) || null,
+    mimeType: text(source.mimeType) || null,
+    imagePath: text(source.imagePath),
+    createdAt: text(source.createdAt) || undefined,
+    completedAt: text(source.completedAt) || null
+  };
+}
+
+function mapCardArtGallery(input: unknown): CharacterCardArtGallery {
+  const source = record(input);
+  return {
+    limit: num(source.limit) ?? 1,
+    remaining: num(source.remaining) ?? 0,
+    items: arr(source.items, mapCardArtGeneration)
   };
 }
 
@@ -835,6 +862,24 @@ export const mvpService = {
       ),
       (data) => mapCardArtPreparation(unwrap(data, "preview"))
     ),
+  listCharacterCardArt: (tableId: string, characterId: string) =>
+    request(
+      apiClient.get(`/api/v1/tables/${tableId}/characters/${characterId}/card-art`),
+      (data) => mapCardArtGallery(unwrap(data, "generations"))
+    ),
+  generateCharacterCardArt: (tableId: string, characterId: string) =>
+    request(
+      apiClient.post(`/api/v1/tables/${tableId}/characters/${characterId}/card-art`, {}),
+      (data) => mapCardArtGeneration(unwrap(data, "generation"))
+    ),
+  getCharacterCardArtContent: async (imagePath: string) => {
+    try {
+      const response = await apiClient.get<Blob>(imagePath, { responseType: "blob" });
+      return response.data;
+    } catch (error) {
+      throw apiError(error, "Nao foi possivel carregar a imagem do personagem.");
+    }
+  },
   getOperationalOverview: (campaignId: string) =>
     request(apiClient.get(`/api/v1/campaigns/admin/${campaignId}/operations`), (data) => {
       const overview = record(unwrap(data, "operationalOverview")) as OperationalOverview;

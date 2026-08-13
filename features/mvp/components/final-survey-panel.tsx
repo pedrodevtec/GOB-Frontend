@@ -38,22 +38,17 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
     );
   }
 
-  if (mySurvey.data) {
-    return (
-      <MvpState
-        variant="submitted"
-        title="Pesquisa ja enviada"
-        description={`Resposta registrada para a versao ${mySurvey.data.surveyVersion}.`}
-      />
-    );
-  }
+  const previous = mySurvey.data?.answers ?? {};
+  const previousScore = (key: string, fallback = "3") => String(previous[key] ?? fallback);
 
   return (
     <Card className="space-y-5">
       <div>
         <CardTitle>Pesquisa {survey.data?.version}</CardTitle>
         <CardDescription className="mt-2">
-          Suas respostas ajudam a melhorar a criacao de personagem e a experiencia do playtest.
+          {mySurvey.data
+            ? "Você já respondeu, mas pode revisar suas respostas antes de seguir."
+            : "Suas respostas ajudam a melhorar a criação de personagem e a experiência do playtest."}
         </CardDescription>
       </div>
       <form
@@ -88,7 +83,13 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
               <span className="text-sm font-medium">{label}</span>
               <select
                 name={name}
-                defaultValue="3"
+                defaultValue={previousScore(
+                  name === "characterUnderstandingScore"
+                    ? "character_understanding_score"
+                    : name === "creationExperienceScore"
+                      ? "creation_experience_score"
+                      : "story_impact_score"
+                )}
                 className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
               >
                 {[1, 2, 3, 4, 5].map((value) => (
@@ -103,7 +104,7 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
             <span className="text-sm font-medium">Ajuda da IA</span>
             <select
               name="aiHelpfulnessScore"
-              defaultValue="NOT_USED"
+              defaultValue={previousScore("ai_helpfulness_score", "NOT_USED")}
               className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
             >
               <option value="NOT_USED">Nao usei</option>
@@ -116,7 +117,12 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
           </label>
         </div>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="aiBoundaryProblem" value="true" />
+          <input
+            type="checkbox"
+            name="aiBoundaryProblem"
+            value="true"
+            defaultChecked={previous.ai_boundary_problem === true}
+          />
           A IA pareceu ultrapassar limites ou soar obrigatoria.
         </label>
         <textarea
@@ -124,15 +130,21 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
           rows={3}
           className="flex w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
           placeholder="Detalhes opcionais sobre a IA."
+          defaultValue={String(previous.ai_boundary_problem_details ?? "")}
         />
         <textarea
           name="finalComment"
           rows={4}
           className="flex w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
           placeholder="Comentario final opcional."
+          defaultValue={String(previous.final_comment ?? "")}
         />
         <Button type="submit" disabled={saveSurvey.isPending}>
-          {saveSurvey.isPending ? "Enviando..." : "Enviar pesquisa"}
+          {saveSurvey.isPending
+            ? "Salvando..."
+            : mySurvey.data
+              ? "Atualizar e continuar"
+              : "Enviar pesquisa e continuar"}
         </Button>
       </form>
     </Card>
