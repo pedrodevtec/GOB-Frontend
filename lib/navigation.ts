@@ -21,7 +21,7 @@ export const participantSidebarItems: NavItem[] = [
   { label: "Minha Jornada", href: "/dashboard", icon: LayoutDashboard },
   {
     label: "Meu Personagem",
-    href: "/campanhas/pilot-v1/personagem/revisao",
+    href: "/meu-personagem",
     icon: WandSparkles,
     requiresCharacter: true
   },
