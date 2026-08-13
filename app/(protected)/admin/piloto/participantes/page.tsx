@@ -7,7 +7,7 @@ export default function PilotParticipantsPage() {
       <PageHeader
         eyebrow="Operação do piloto"
         title="Participantes"
-        description="Acompanhe cada etapa e trate personagens legados ou removidos com uma decisão explícita."
+        description="Encontre rapidamente quem precisa de acompanhamento e abra detalhes somente quando necessário."
       />
       <PilotParticipantsPanel slug="pilot-v1" />
     </div>

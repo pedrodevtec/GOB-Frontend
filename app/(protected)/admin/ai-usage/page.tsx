@@ -6,8 +6,8 @@ export default function AdminAiUsagePage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Admin"
-        title="Consumo de IA"
-        description="Acompanhe tokens, custos, erros e decisoes de sugestoes sem expor prompts ou narrativas."
+        title="Uso e custos de IA"
+        description="Acompanhe gasto estimado, volume, erros e aproveitamento das sugestões."
       />
       <AdminAiUsagePanel />
     </div>
