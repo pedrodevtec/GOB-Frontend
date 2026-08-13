@@ -93,7 +93,7 @@ export function MyCharacterProfilePanel() {
         </Card>
       )}
 
-      <MyCharacterReadonlyPanel character={character.data} tableId={tableId} />
+      <MyCharacterReadonlyPanel character={character.data} tableId={tableId} layout="tabs" />
     </div>
   );
 }
