@@ -6,7 +6,6 @@ import { AnalyticsEvent } from "@/features/mvp/components/analytics-event";
 import { CampaignFlowAside } from "@/features/mvp/components/campaign-flow-aside";
 import { CompletionExperiencePanel } from "@/features/mvp/components/completion-experience-panel";
 import { JourneyRouteGuard } from "@/features/mvp/components/journey-route-guard";
-import { campaignFlowPath } from "@/features/mvp/campaign-flow";
 
 interface CompletionPageProps {
   params: Promise<{ slug: string }>;
@@ -22,7 +21,7 @@ export default async function CompletionPage({ params }: CompletionPageProps) {
       description="Suas respostas foram registradas. A jornada do personagem continua na campanha."
       actions={
         <Button asChild variant="outline">
-          <Link href={campaignFlowPath(slug)}>Voltar a campanha</Link>
+          <Link href="/dashboard">Ir para Minha Jornada</Link>
         </Button>
       }
       aside={<CampaignFlowAside currentStep="done" />}

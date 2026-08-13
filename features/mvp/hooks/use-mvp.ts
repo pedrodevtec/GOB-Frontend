@@ -20,6 +20,7 @@ export const mvpKeys = {
   reviewQueue: (tableId: string) => ["mvp", "tables", tableId, "character-reviews"] as const,
   myCharacter: (tableId: string) => ["mvp", "tables", tableId, "characters", "me"] as const,
   aiUsage: (filters?: unknown) => ["mvp", "admin", "ai-usage", filters ?? {}] as const,
+  cardArt: (tableId: string, characterId: string) => ["mvp", "tables", tableId, "characters", characterId, "card-art"] as const,
   technical: ["mvp", "technical"] as const,
   docsJson: ["mvp", "docs-json"] as const
 };
@@ -134,8 +135,11 @@ export function useSaveFinalSurvey(slug: string) {
   return useMutation({
     mutationFn: (input: Parameters<typeof mvpService.saveFinalSurvey>[1]) =>
       mvpService.saveFinalSurvey(slug, input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: mvpKeys.myFinalSurvey(slug) });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: mvpKeys.myFinalSurvey(slug) }),
+        queryClient.invalidateQueries({ queryKey: mvpKeys.resume(slug) })
+      ]);
       toast.success("Pesquisa salva.");
     },
     onError: (error: Error) => toast.error(error.message)
@@ -226,6 +230,31 @@ export function usePreviewCharacterCardArt(tableId?: string, characterId?: strin
     mutationFn: () => {
       if (!tableId || !characterId) throw new Error("Personagem enviado indisponível para a imagem.");
       return mvpService.previewCharacterCardArt(tableId, characterId);
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useCharacterCardArt(tableId?: string, characterId?: string | null) {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useQuery({
+    queryKey: mvpKeys.cardArt(tableId ?? "", characterId ?? ""),
+    queryFn: () => mvpService.listCharacterCardArt(tableId ?? "", characterId ?? ""),
+    enabled: Boolean(tableId && characterId && hasUsableAccessToken(accessToken)),
+    retry: false
+  });
+}
+
+export function useGenerateCharacterCardArt(tableId?: string, characterId?: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => {
+      if (!tableId || !characterId) throw new Error("Personagem enviado indisponivel para a imagem.");
+      return mvpService.generateCharacterCardArt(tableId, characterId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: mvpKeys.cardArt(tableId ?? "", characterId ?? "") });
+      toast.success("Imagem criada e adicionada a sua galeria.");
     },
     onError: (error: Error) => toast.error(error.message)
   });

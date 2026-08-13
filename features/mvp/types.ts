@@ -343,9 +343,28 @@ export interface CharacterCardArtPreparation {
   usageEventId?: string;
   provider?: unknown;
   storage?: unknown;
+  generationLimit?: number;
   pending?: string[];
   fields?: Record<string, unknown>;
   prompt?: string;
+}
+
+export interface CharacterCardArtGeneration {
+  id: string;
+  attemptNumber: number;
+  promptVersion?: string;
+  provider?: string | null;
+  model?: string | null;
+  mimeType?: string | null;
+  imagePath: string;
+  createdAt?: string;
+  completedAt?: string | null;
+}
+
+export interface CharacterCardArtGallery {
+  limit: number;
+  remaining: number;
+  items: CharacterCardArtGeneration[];
 }
 
 export type MvpSheetStatus = "DRAFT" | "SUBMITTED" | "CHANGES_REQUESTED" | "APPROVED" | string;
