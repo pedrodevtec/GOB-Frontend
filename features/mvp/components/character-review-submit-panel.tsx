@@ -28,7 +28,9 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
   const resume = useCampaignResume(slug);
   const tableId = resume.data?.membership?.tableId;
   const character = useMyMvpCharacter(tableId);
-  const config = useBuilderConfig(campaign.data?.builderConfigVersion);
+  const config = useBuilderConfig(
+    character.data?.builderConfigVersion ?? campaign.data?.builderConfigVersion
+  );
   const submit = useSubmitMvpCharacter(tableId, character.data?.id);
 
   if (campaign.isLoading || resume.isLoading || character.isLoading || config.isLoading) {
