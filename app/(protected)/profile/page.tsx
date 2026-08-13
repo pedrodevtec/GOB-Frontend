@@ -6,9 +6,9 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Profile"
-        title="Perfil da conta"
-        description="Gerencie informações do usuário autenticado e preferências básicas."
+        eyebrow="Perfil"
+        title="Sua conta"
+        description="Atualize seus dados de acesso e as preferências visuais da plataforma. As informações do personagem ficam em Meu Personagem."
       />
       <Card>
         <ProfileForm />

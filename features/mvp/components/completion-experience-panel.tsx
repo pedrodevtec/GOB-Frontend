@@ -40,7 +40,7 @@ export function CompletionExperiencePanel({
   mode = "completion"
 }: {
   slug: string;
-  mode?: "completion" | "dashboard";
+  mode?: "completion" | "dashboard" | "character";
 }) {
   const resume = useCampaignResume(slug);
   const tableId = resume.data?.membership?.tableId;
@@ -90,7 +90,7 @@ export function CompletionExperiencePanel({
         />
       ) : null}
 
-      <div className="grid gap-3 md:grid-cols-3">
+      {mode !== "character" ? <div className="grid gap-3 md:grid-cols-3">
         <Card className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-primary">Personagem</p>
           <CardTitle>{character?.name || "Personagem enviado"}</CardTitle>
@@ -106,7 +106,7 @@ export function CompletionExperiencePanel({
           <CardTitle>{masterStatus(character?.sheetStatus)}</CardTitle>
           <CardDescription>Esta etapa não bloqueia a carta.</CardDescription>
         </Card>
-      </div>
+      </div> : null}
 
       <Card className="space-y-4">
         <div>
