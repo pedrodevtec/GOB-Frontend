@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
   const survey = useFinalSurvey();
   const mySurvey = useMyFinalSurvey(slug);
   const saveSurvey = useSaveFinalSurvey(slug);
+  const [feltOverruled, setFeltOverruled] = useState<boolean | null>(null);
 
   if (survey.isLoading || mySurvey.isLoading) {
     return <MvpState variant="loading" title="Preparando as perguntas" />;
@@ -39,6 +41,7 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
 
   const previous = mySurvey.data?.answers ?? {};
   const previousScore = (key: string, fallback = "3") => String(previous[key] ?? fallback);
+  const boundaryProblem = feltOverruled ?? previous.ai_boundary_problem === true;
 
   return (
     <Card className="space-y-5">
@@ -74,12 +77,13 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
       >
         <div className="grid gap-4 md:grid-cols-2">
           {[
-            ["characterUnderstandingScore", "Entendi bem quem é meu personagem"],
-            ["creationExperienceScore", "Foi fácil criar meu personagem"],
-            ["storyImpactScore", "Senti que minhas escolhas importam"]
-          ].map(([name, label]) => (
+            ["characterUnderstandingScore", "Ao terminar, consegui explicar quem é meu personagem e o que o move.", "Pense na identidade, no objetivo e nos vínculos que ficaram na ficha."],
+            ["creationExperienceScore", "Consegui avançar pela criação sem ficar perdido ou sem saber o que responder.", "Considere as perguntas, os textos de apoio e a indicação da próxima ação."],
+            ["storyImpactScore", "A ficha deixou ganchos que o Mestre poderá aproveitar durante a aventura.", "Pense em objetivos, vínculos, conflitos e escolhas que poderiam aparecer em jogo."]
+          ].map(([name, label, helper]) => (
             <label key={name} className="space-y-2">
               <span className="text-sm font-medium">{label}</span>
+              <span className="block text-xs leading-5 text-muted-foreground">{helper}</span>
               <select
                 name={name}
                 defaultValue={previousScore(
@@ -104,7 +108,8 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
             </label>
           ))}
           <label className="space-y-2">
-            <span className="text-sm font-medium">A ajuda criativa foi útil</span>
+            <span className="text-sm font-medium">A ajuda criativa transformou minhas ideias em sugestões que eu consegui entender e avaliar.</span>
+            <span className="block text-xs leading-5 text-muted-foreground">Avalie apenas as sugestões de texto, habilidades ou equipamentos que você chegou a usar.</span>
             <select
               name="aiHelpfulnessScore"
               defaultValue={previousScore("ai_helpfulness_score", "NOT_USED")}
@@ -123,29 +128,44 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
             </select>
           </label>
         </div>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-4 text-sm">
           <input
             type="checkbox"
             name="aiBoundaryProblem"
             value="true"
-            defaultChecked={previous.ai_boundary_problem === true}
+            checked={boundaryProblem}
+            onChange={(event) => setFeltOverruled(event.target.checked)}
+            className="mt-1"
           />
-          Em algum momento, senti que a ajuda tentou decidir por mim.
+          <span>
+            <span className="block font-medium">Em algum momento, a ajuda criativa trouxe algo como definitivo ou tentou decidir por mim.</span>
+            <span className="mt-1 block text-xs leading-5 text-muted-foreground">Marque apenas se uma sugestão pareceu obrigatória, inventou algo importante ou ignorou uma escolha sua.</span>
+          </span>
         </label>
-        <textarea
-          name="aiBoundaryProblemDetails"
-          rows={3}
-          className="flex w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
-          placeholder="Se quiser, conte o que aconteceu."
-          defaultValue={String(previous.ai_boundary_problem_details ?? "")}
-        />
-        <textarea
-          name="finalComment"
-          rows={4}
-          className="flex w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
-          placeholder="Quer nos contar mais alguma coisa? (opcional)"
-          defaultValue={String(previous.final_comment ?? "")}
-        />
+        {boundaryProblem ? (
+          <label className="space-y-2">
+            <span className="text-sm font-medium">O que a ajuda sugeriu e por que isso não combinou com sua escolha?</span>
+            <span className="block text-xs leading-5 text-muted-foreground">Sua resposta ajuda a corrigir exatamente o momento em que a ajuda ultrapassou o limite.</span>
+            <textarea
+              name="aiBoundaryProblemDetails"
+              rows={3}
+              className="flex w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
+              placeholder="Ex.: apresentou uma origem como verdadeira mesmo sem eu ter escolhido isso."
+              defaultValue={String(previous.ai_boundary_problem_details ?? "")}
+            />
+          </label>
+        ) : null}
+        <label className="space-y-2">
+          <span className="text-sm font-medium">Qual foi a principal dificuldade ou melhoria que você gostaria de ver? (opcional)</span>
+          <span className="block text-xs leading-5 text-muted-foreground">Pode comentar uma pergunta confusa, uma etapa cansativa, um erro ou algo que tornaria a criação mais divertida.</span>
+          <textarea
+            name="finalComment"
+            rows={4}
+            className="flex w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
+            placeholder="Ex.: eu gostaria de ver exemplos menores antes de responder sobre a Marca."
+            defaultValue={String(previous.final_comment ?? "")}
+          />
+        </label>
         <Button type="submit" disabled={saveSurvey.isPending}>
           {saveSurvey.isPending
             ? "Salvando..."
