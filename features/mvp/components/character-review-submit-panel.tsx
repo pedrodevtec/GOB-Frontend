@@ -99,6 +99,9 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
     editable &&
     (status === "DRAFT" || status === "CHANGES_REQUESTED") &&
     !submit.isPending;
+  const archetypeName = config.data?.archetypes.find(
+    (item) => item.key === character.data?.archetypeKey
+  )?.name;
 
   function submitCharacter() {
     if (!canSubmit) return;
@@ -143,7 +146,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
         </Card>
       ) : null}
 
-      <MyCharacterReadonlyPanel character={character.data} />
+      <MyCharacterReadonlyPanel character={character.data} archetypeName={archetypeName} />
 
       <Card className="space-y-4">
         <div>

@@ -26,8 +26,45 @@ const tabs: Array<{ key: CharacterTab; label: string; icon: typeof UserRound }> 
   { key: "journey", label: "Jornada", icon: History }
 ];
 
+const archetypeLabels: Record<string, string> = {
+  guardian_blade: "Guardião da Lâmina"
+};
+
+const equipmentSlotLabels: Record<string, string> = {
+  MAIN_HAND: "Mão principal",
+  OFF_HAND: "Mão secundária",
+  ARMOR: "Armadura",
+  BOOTS: "Botas",
+  BELT: "Cinto",
+  AMULET: "Amuleto",
+  NECKLACE: "Amuleto"
+};
+
 function valueOrEmpty(value?: string | number | null) {
   return value === undefined || value === null || value === "" ? "Não informado" : String(value);
+}
+
+function friendlyArchetype(value?: string | null, configuredName?: string) {
+  if (configuredName) return configuredName;
+  if (!value) return undefined;
+  return archetypeLabels[value] ?? value
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toLocaleUpperCase("pt-BR"));
+}
+
+function friendlyEquipmentSlot(value?: string | null) {
+  if (!value) return "Equipamento";
+  return equipmentSlotLabels[value] ?? value
+    .replaceAll("_", " ")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/^\w/, (letter) => letter.toLocaleUpperCase("pt-BR"));
+}
+
+function friendlyDate(value?: string | null) {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(date);
 }
 
 function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
@@ -42,12 +79,27 @@ function Section({ title, description, children }: { title: string; description?
   );
 }
 
-function Detail({ label, value, prominent = false }: { label: string; value?: string | number | null; prominent?: boolean }) {
+function Detail({
+  label,
+  value,
+  prominent = false,
+  required = false
+}: {
+  label: string;
+  value?: string | number | null;
+  prominent?: boolean;
+  required?: boolean;
+}) {
+  const missing = value === undefined || value === null || String(value).trim() === "";
   return (
-    <div>
+    <div className={cn(required && missing && "rounded-lg border border-amber-400/30 bg-amber-500/10 p-3")}>
       <p className="text-xs uppercase tracking-wide text-primary">{label}</p>
-      <p className={cn("mt-1 leading-6 text-muted-foreground", prominent ? "text-base text-foreground" : "text-sm")}>
-        {valueOrEmpty(value)}
+      <p className={cn(
+        "mt-1 leading-6 text-muted-foreground",
+        prominent ? "text-base text-foreground" : "text-sm",
+        required && missing && "font-medium text-amber-100"
+      )}>
+        {required && missing ? "Precisa ser definido" : valueOrEmpty(value)}
       </p>
     </div>
   );
@@ -67,12 +119,14 @@ function equipmentIcon(slot?: string) {
 export function MyCharacterReadonlyPanel({
   character,
   layout = "full",
+  archetypeName,
   emptyTitle = "Nenhum personagem encontrado",
   emptyDescription = "Crie e salve um rascunho para visualizar a ficha consolidada aqui."
 }: {
   character?: MvpTableCharacter | null;
   tableId?: string;
   layout?: "full" | "tabs";
+  archetypeName?: string;
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
@@ -85,6 +139,23 @@ export function MyCharacterReadonlyPanel({
   const derived = backendDerivedResources(character);
   const latest = character.latestSubmission;
   const approved = character.approvedSubmission;
+  const archetype = friendlyArchetype(character.archetypeKey, archetypeName);
+  const importantFields = [
+    ["Nome", character.name],
+    ["Conceito", character.concept],
+    ["Origem", character.origin],
+    ["Aparência", character.appearance],
+    ["História", character.history],
+    ["Objetivo", character.motivation],
+    ["Vínculo", character.bond ?? character.narrativeBond],
+    ["Promessa, culpa ou dever", character.promiseOrGuilt],
+    ["Motivo para agir com o grupo", character.reasonToActWithGroup],
+    ["Local da Marca", character.markLocation],
+    ["Aparência da Marca", character.markAppearance],
+    ["Reação da Marca", character.markReaction],
+    ["Relação com a Marca", character.markAttitude]
+  ] as const;
+  const missingImportantFields = importantFields.filter(([, value]) => !String(value ?? "").trim());
   const episodeAnswers = EPISODE_ONE_KEYS.map((key) => ({
     key,
     label: EPISODE_ONE_FALLBACK_PROMPTS[key],
@@ -130,14 +201,14 @@ export function MyCharacterReadonlyPanel({
           {activeTab === "summary" ? (
             <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
               <Section title="Quem é" description="A essência confirmada do personagem.">
-                <Detail label="Conceito" value={character.concept} prominent />
-                <div className="grid gap-4 sm:grid-cols-2"><Detail label="Origem" value={character.origin} /><Detail label="Arquétipo" value={character.archetypeKey} /></div>
-                <Detail label="Aparência" value={character.appearance} />
+                <Detail required label="Conceito" value={character.concept} prominent />
+                <div className="grid gap-4 sm:grid-cols-2"><Detail required label="Origem" value={character.origin} /><Detail label="Arquétipo" value={archetype} /></div>
+                <Detail required label="Aparência" value={character.appearance} />
               </Section>
               <div className="grid gap-4">
                 <Section title="Traços marcantes">
-                  <Detail label="Força" value={character.positiveTrait} />
-                  <Detail label="Desafio" value={character.negativeTrait} />
+                  <Detail required label="Força" value={character.positiveTrait} />
+                  <Detail required label="Desafio" value={character.negativeTrait} />
                 </Section>
                 <Section title="Recursos">
                   <div className="grid grid-cols-3 gap-3">
@@ -153,17 +224,17 @@ export function MyCharacterReadonlyPanel({
           {activeTab === "story" ? (
             <div className="grid gap-4 lg:grid-cols-2">
               <Section title="História e motivação">
-                <Detail label="História" value={character.history} prominent />
-                <Detail label="Motivação" value={character.motivation} />
-                <Detail label="Vínculo" value={character.bond ?? character.narrativeBond} />
-                <Detail label="Promessa ou culpa" value={character.promiseOrGuilt} />
-                <Detail label="Razão para agir com o grupo" value={character.reasonToActWithGroup} />
+                <Detail required label="História" value={character.history} prominent />
+                <Detail required label="Objetivo" value={character.motivation} />
+                <Detail required label="Vínculo" value={character.bond ?? character.narrativeBond} />
+                <Detail required label="Promessa, culpa ou dever" value={character.promiseOrGuilt} />
+                <Detail required label="Motivo para agir com o grupo" value={character.reasonToActWithGroup} />
               </Section>
               <Section title="A Marca">
-                <Detail label="Local" value={character.markLocation} />
-                <Detail label="Aparência" value={character.markAppearance} />
-                <Detail label="Reação" value={character.markReaction} />
-                <Detail label="Atitude" value={character.markAttitude} />
+                <Detail required label="Local" value={character.markLocation} />
+                <Detail required label="Aparência" value={character.markAppearance} />
+                <Detail required label="Reação" value={character.markReaction} />
+                <Detail required label="Relação com a Marca" value={character.markAttitude} />
                 <Detail label="Medo das Almas Guardiãs" value={character.guardianSoulsFear} />
               </Section>
             </div>
@@ -177,10 +248,10 @@ export function MyCharacterReadonlyPanel({
                 </div>
               </Section>
               <Section title="Especialidades">
-                <Detail label="Arquétipo" value={character.archetypeKey} />
+                <Detail required label="Arquétipo" value={archetype} />
                 <Detail label="Treinamentos" value={character.trainings?.join(", ")} />
-                <Detail label="Trait positiva" value={character.positiveTrait} />
-                <Detail label="Trait negativa" value={character.negativeTrait} />
+                <Detail required label="Força marcante" value={character.positiveTrait} />
+                <Detail required label="Desafio marcante" value={character.negativeTrait} />
               </Section>
             </div>
           ) : null}
@@ -192,7 +263,7 @@ export function MyCharacterReadonlyPanel({
                   {character.equipment.map((item, index) => (
                     <div key={`${item.slot}-${item.name}-${index}`} className="flex gap-3 rounded-xl border border-white/10 bg-slate-950/40 p-3">
                       <Image src={equipmentIcon(item.slot)} width={48} height={48} alt="" aria-hidden className="h-12 w-12 shrink-0 [image-rendering:pixelated]" />
-                      <div className="min-w-0"><p className="text-xs uppercase tracking-wide text-primary">{item.slot || "Equipamento"}</p><p className="mt-1 font-semibold">{item.name}</p>{item.description ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.description}</p> : null}</div>
+                      <div className="min-w-0"><p className="text-xs uppercase tracking-wide text-primary">{friendlyEquipmentSlot(item.slot)}</p><p className="mt-1 font-semibold">{item.name}</p>{item.description ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.description}</p> : null}</div>
                     </div>
                   ))}
                 </div>
@@ -206,10 +277,8 @@ export function MyCharacterReadonlyPanel({
                 <section className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 lg:col-span-2"><p className="text-sm font-semibold text-amber-100">Retorno do Mestre</p><p className="mt-2 text-sm leading-6 text-amber-50/80">{character.masterFeedback}</p></section>
               ) : null}
               <Section title="Envio e aprovação">
-                <Detail label="Última revisão enviada" value={latest?.submittedRevision ?? character.submittedRevision} />
-                <Detail label="Enviada em" value={latest?.submittedAt ?? character.submittedAt} />
-                <Detail label="Revisão aprovada" value={approved?.submittedRevision} />
-                <Detail label="Aprovada em" value={approved?.approvedAt ?? character.approvedAt} />
+                <Detail label="Enviado ao Mestre" value={friendlyDate(latest?.submittedAt ?? character.submittedAt)} />
+                <Detail label="Aprovado pelo Mestre" value={friendlyDate(approved?.approvedAt ?? character.approvedAt)} />
                 <Detail label="Próxima ação" value={playerNextActionLabel(character.nextAction)} />
               </Section>
               <Section title="Conexões com o Episódio 1" description="Respostas opcionais registradas durante a criação.">
@@ -229,13 +298,37 @@ export function MyCharacterReadonlyPanel({
         <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm"><p className="font-semibold">{playerSheetStatusLabel(character.sheetStatus)}</p><p className="text-muted-foreground">{character.editable ? "Você ainda pode ajustar" : "Ficha disponível para consulta"}</p></div>
       </div>
       {character.masterFeedback ? <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4"><p className="text-sm font-semibold text-amber-100">Feedback do Mestre</p><p className="mt-2 text-sm leading-6 text-amber-50/80">{character.masterFeedback}</p></div> : null}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Identidade"><Detail label="Conceito" value={character.concept} /><Detail label="Origem" value={character.origin} /><Detail label="Aparência" value={character.appearance} /></Section>
-        <Section title="História e motivação"><Detail label="Motivação" value={character.motivation} /><Detail label="Vínculo" value={character.bond ?? character.narrativeBond} /><Detail label="História" value={character.history} /></Section>
-        <Section title="A Marca"><Detail label="Local" value={character.markLocation} /><Detail label="Aparência" value={character.markAppearance} /><Detail label="Reação" value={character.markReaction} /></Section>
-        <Section title="Ficha mecânica"><Detail label="Arquétipo" value={character.archetypeKey} /><div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{ATTRIBUTE_KEYS.map((key) => <Detail key={key} label={ATTRIBUTE_LABELS[key]} value={character.attributes?.[key]} />)}</div><Detail label="Treinamentos" value={character.trainings?.join(", ")} /><Detail label="Trait positiva" value={character.positiveTrait} /><Detail label="Trait negativa" value={character.negativeTrait} /></Section>
+      <div className={cn(
+        "rounded-xl border p-4",
+        missingImportantFields.length
+          ? "border-amber-400/30 bg-amber-500/10"
+          : "border-emerald-400/30 bg-emerald-500/10"
+      )}>
+        <p className="font-semibold">
+          {missingImportantFields.length
+            ? `${importantFields.length - missingImportantFields.length} de ${importantFields.length} partes essenciais definidas`
+            : "História essencial completa"}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {missingImportantFields.length
+            ? "Volte à criação para definir os pontos destacados antes de enviar ao Mestre."
+            : "As informações principais estão prontas para a sua conferência."}
+        </p>
+        {missingImportantFields.length ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {missingImportantFields.map(([label]) => (
+              <span key={label} className="rounded-full border border-amber-300/30 bg-black/20 px-3 py-1 text-xs text-amber-100">{label}</span>
+            ))}
+          </div>
+        ) : null}
       </div>
-      <Section title="Equipamentos">{character.equipment?.length ? <div className="grid gap-3 md:grid-cols-2">{character.equipment.map((item, index) => <div key={`${item.slot}-${item.name}-${index}`} className="rounded-lg border border-white/10 p-3"><Detail label={item.slot || "Slot"} value={item.name} />{item.description ? <Detail label="Descrição" value={item.description} /> : null}</div>)}</div> : <p className="text-sm text-muted-foreground">Não informado</p>}</Section>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Section title="Identidade"><Detail required label="Conceito" value={character.concept} prominent /><Detail required label="Origem" value={character.origin} /><Detail required label="Aparência" value={character.appearance} /></Section>
+        <Section title="História e motivação"><Detail required label="Objetivo" value={character.motivation} /><Detail required label="Vínculo" value={character.bond ?? character.narrativeBond} /><Detail required label="História" value={character.history} prominent /><Detail required label="Promessa, culpa ou dever" value={character.promiseOrGuilt} /><Detail required label="Motivo para agir com o grupo" value={character.reasonToActWithGroup} /></Section>
+        <Section title="A Marca"><Detail required label="Local" value={character.markLocation} /><Detail required label="Aparência" value={character.markAppearance} /><Detail required label="Reação" value={character.markReaction} /><Detail required label="Relação com a Marca" value={character.markAttitude} /><Detail label="Medo pessoal" value={character.guardianSoulsFear} /></Section>
+        <Section title="Habilidades"><Detail required label="Arquétipo" value={archetype} /><div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{ATTRIBUTE_KEYS.map((key) => <Detail key={key} label={ATTRIBUTE_LABELS[key]} value={character.attributes?.[key]} />)}</div><Detail label="Treinamentos" value={character.trainings?.join(", ")} /><Detail required label="Força marcante" value={character.positiveTrait} /><Detail required label="Desafio marcante" value={character.negativeTrait} /></Section>
+      </div>
+      <Section title="Equipamentos">{character.equipment?.length ? <div className="grid gap-3 md:grid-cols-2">{character.equipment.map((item, index) => <div key={`${item.slot}-${item.name}-${index}`} className="rounded-lg border border-white/10 p-3"><Detail label={friendlyEquipmentSlot(item.slot)} value={item.name} />{item.description ? <Detail label="Descrição" value={item.description} /> : null}</div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum equipamento confirmado.</p>}</Section>
     </Card>
   );
 }

@@ -91,6 +91,25 @@ export interface BuilderValidationResult {
   canSubmit: boolean;
 }
 
+const NARRATIVE_REQUIRED_FIELDS: Array<[
+  keyof CharacterBuilderFormState,
+  string
+]> = [
+  ["name", "Nome"],
+  ["concept", "Conceito"],
+  ["origin", "Origem"],
+  ["appearance", "Aparência"],
+  ["history", "História"],
+  ["motivation", "Objetivo"],
+  ["bond", "Vínculo"],
+  ["promiseOrGuilt", "Promessa, culpa ou dever"],
+  ["reasonToActWithGroup", "Motivo para agir com o grupo"],
+  ["markLocation", "Local da Marca"],
+  ["markAppearance", "Aparência da Marca"],
+  ["markReaction", "Reação da Marca"],
+  ["markAttitude", "Relação com a Marca"]
+];
+
 export function emptyBuilderFormState(): CharacterBuilderFormState {
   return {
     narrativeResponses: {
@@ -389,14 +408,34 @@ export function validateBuilderForm(
     const confirmedValues: Record<string, string> = {
       name: state.name,
       concept: state.concept,
+      origin: state.origin,
+      appearance: state.appearance,
       personalHistory: state.history,
       desire: state.motivation,
       narrativeBond: state.bond,
+      promiseOrGuilt: state.promiseOrGuilt,
+      reasonToActWithGroup: state.reasonToActWithGroup,
+      markLocation: state.markLocation,
       markAppearance: state.markAppearance,
+      markReaction: state.markReaction,
       markAttitude: state.markAttitude
     };
+    const validationKeyByConfirmedField: Record<string, string> = {
+      personalHistory: "history",
+      desire: "motivation",
+      narrativeBond: "bond"
+    };
     for (const field of config.narrativeFlow.requiredConfirmedFields) {
-      if (!confirmedValues[field]?.trim()) errors[field] = "Informacao necessaria antes do envio.";
+      if (!confirmedValues[field]?.trim()) {
+        errors[validationKeyByConfirmedField[field] ?? field] =
+          "Esta informação ainda precisa ser definida.";
+      }
+    }
+    for (const [field, label] of NARRATIVE_REQUIRED_FIELDS) {
+      const value = state[field];
+      if (typeof value === "string" && !value.trim()) {
+        errors[field] = `${label} ainda precisa ser definido.`;
+      }
     }
     if (!state.playStylePreference) errors.playStylePreference = "Escolha como deseja contribuir nas cenas.";
   }
