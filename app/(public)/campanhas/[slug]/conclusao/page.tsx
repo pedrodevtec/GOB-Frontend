@@ -16,9 +16,9 @@ export default async function CompletionPage({ params }: CompletionPageProps) {
 
   return (
     <MvpFlowShell
-      eyebrow="Conclusao"
-      title="Obrigado por construir esta historia"
-      description="Suas respostas foram registradas. A jornada do personagem continua na campanha."
+      eyebrow="Jornada concluída"
+      title="Seu personagem agora faz parte de Bravantus"
+      description="Suas escolhas e sua opinião foram guardadas. Agora você pode acompanhar o Mestre e acessar a carta do personagem pela Minha Jornada."
       actions={
         <Button asChild variant="outline">
           <Link href="/dashboard">Ir para Minha Jornada</Link>

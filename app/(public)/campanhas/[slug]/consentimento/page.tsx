@@ -18,8 +18,8 @@ export default async function ConsentPage({ params }: ConsentPageProps) {
   return (
     <MvpFlowShell
       eyebrow="Consentimento"
-      title="Aceite antes de participar"
-      description="O aceite precisa ser versionado pelo backend antes de liberar o restante do fluxo."
+      title="Confirme que deseja participar"
+      description="Leia como suas informações serão usadas. Depois da confirmação, você conhecerá o ponto de partida da história."
       actions={
         <Button asChild variant="outline">
           <Link href={campaignFlowPath(slug)}>Voltar</Link>

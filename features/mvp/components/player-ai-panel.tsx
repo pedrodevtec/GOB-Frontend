@@ -10,14 +10,14 @@ export function PlayerAiPanel({ slug }: { slug: string }) {
   return (
     <Card className="space-y-5">
       <div>
-        <CardTitle>IA integrada ao Builder</CardTitle>
+        <CardTitle>A ajuda agora fica ao lado de cada escolha</CardTitle>
         <CardDescription className="mt-2">
-          O apoio da IA agora acontece dentro dos cinco capitulos do Character Builder.
-          Cada sugestao precisa ser aceita, editada ou descartada antes de alterar a ficha.
+          Você encontrará a opção de pedir ideias durante a própria criação. Cada sugestão
+          pode ser usada, editada ou descartada antes de fazer parte do personagem.
         </CardDescription>
       </div>
       <Button asChild>
-        <Link href={campaignFlowPath(slug, "/personagem")}>Abrir Builder</Link>
+        <Link href={campaignFlowPath(slug, "/personagem")}>Voltar à criação</Link>
       </Button>
     </Card>
   );

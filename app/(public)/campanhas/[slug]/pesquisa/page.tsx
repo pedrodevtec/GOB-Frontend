@@ -16,9 +16,9 @@ export default async function SurveyPage({ params }: SurveyPageProps) {
 
   return (
     <MvpFlowShell
-      eyebrow="Pesquisa final"
-      title="Feedback do piloto"
-      description="A pesquisa so deve abrir depois da submissao final do personagem."
+      eyebrow="Sua experiência"
+      title="Conte como foi criar seu personagem"
+      description="Suas respostas nos ajudam a tornar esta jornada mais simples, envolvente e acolhedora para outras pessoas."
       actions={
         <Button asChild variant="outline">
           <Link href={campaignFlowPath(slug, "/personagem/revisao")}>Voltar</Link>

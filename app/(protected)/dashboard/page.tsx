@@ -5,9 +5,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Piloto MVP"
+        eyebrow="Sua aventura"
         title="Minha Jornada"
-        description="Retome o playtest do ponto em que parou. A próxima ação é definida pelo estado salvo da sua participação."
+        description="Continue de onde parou e veja com clareza o que já foi concluído e o que vem agora."
       />
       <PublicCampaignPanel slug="pilot-v1" />
     </div>

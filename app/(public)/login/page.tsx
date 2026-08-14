@@ -13,10 +13,10 @@ export default function LoginPage() {
       }}
     >
       <Card className="w-full max-w-md p-8">
-        <p className="text-xs uppercase tracking-[0.32em] text-primary">Welcome Back</p>
-        <CardTitle className="mt-4 text-4xl">Entrar no reino</CardTitle>
+        <p className="text-xs uppercase tracking-[0.32em] text-primary">Bem-vindo de volta</p>
+        <CardTitle className="mt-4 text-4xl">Continue sua jornada</CardTitle>
         <CardDescription className="mt-3">
-          Acesse sua conta, carregue seu herói e continue a jornada.
+          Entre para voltar exatamente ao ponto em que parou.
         </CardDescription>
         <div className="mt-8">
           <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando acesso...</p>}>

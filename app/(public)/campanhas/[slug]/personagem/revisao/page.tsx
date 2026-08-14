@@ -17,11 +17,11 @@ export default async function BuilderReviewPage({ params }: BuilderReviewPagePro
   return (
     <MvpFlowShell
       eyebrow="Revisao final"
-      title="Enviar personagem"
-      description="Confira o que voce criou e envie quando estiver satisfeito. O Mestre ainda podera solicitar ajustes."
+      title="Confira seu personagem"
+      description="Leia a ficha como ela será apresentada ao Mestre. Você ainda pode voltar e ajustar qualquer parte antes de enviar."
       actions={
         <Button asChild variant="outline">
-          <Link href={campaignFlowPath(slug, "/personagem")}>Voltar ao Builder</Link>
+          <Link href={campaignFlowPath(slug, "/personagem")}>Voltar e ajustar</Link>
         </Button>
       }
       aside={<CampaignFlowAside currentStep="review" blockedSteps={["survey"]} />}

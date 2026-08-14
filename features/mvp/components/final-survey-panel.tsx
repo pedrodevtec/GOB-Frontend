@@ -24,16 +24,15 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
   const saveSurvey = useSaveFinalSurvey(slug);
 
   if (survey.isLoading || mySurvey.isLoading) {
-    return <MvpState variant="loading" title="Carregando pesquisa" />;
+    return <MvpState variant="loading" title="Preparando as perguntas" />;
   }
 
   if (survey.isError || mySurvey.isError) {
-    const error = survey.error ?? mySurvey.error;
     return (
       <MvpState
         variant="error"
-        title="Pesquisa indisponivel"
-        description={(error as Error)?.message}
+        title="Não foi possível abrir as perguntas"
+        description="Suas respostas anteriores continuam guardadas. Tente novamente em alguns instantes."
       />
     );
   }
@@ -44,11 +43,11 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
   return (
     <Card className="space-y-5">
       <div>
-        <CardTitle>Pesquisa {survey.data?.version}</CardTitle>
+        <CardTitle>Sua opinião importa</CardTitle>
         <CardDescription className="mt-2">
           {mySurvey.data
             ? "Você já respondeu, mas pode revisar suas respostas antes de seguir."
-            : "Suas respostas ajudam a melhorar a criação de personagem e a experiência do playtest."}
+            : "Suas respostas ajudam a melhorar a criação de personagem para as próximas pessoas."}
         </CardDescription>
       </div>
       <form
@@ -75,9 +74,9 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
       >
         <div className="grid gap-4 md:grid-cols-2">
           {[
-            ["characterUnderstandingScore", "Entendimento do personagem"],
-            ["creationExperienceScore", "Experiencia de criacao"],
-            ["storyImpactScore", "Impacto de historia"]
+            ["characterUnderstandingScore", "Entendi bem quem é meu personagem"],
+            ["creationExperienceScore", "Foi fácil criar meu personagem"],
+            ["storyImpactScore", "Senti que minhas escolhas importam"]
           ].map(([name, label]) => (
             <label key={name} className="space-y-2">
               <span className="text-sm font-medium">{label}</span>
@@ -92,26 +91,34 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
                 )}
                 className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
               >
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
+                {[
+                  [1, "Discordo totalmente"],
+                  [2, "Discordo"],
+                  [3, "Nem concordo, nem discordo"],
+                  [4, "Concordo"],
+                  [5, "Concordo totalmente"]
+                ].map(([value, text]) => (
+                  <option key={value} value={value}>{value} — {text}</option>
                 ))}
               </select>
             </label>
           ))}
           <label className="space-y-2">
-            <span className="text-sm font-medium">Ajuda da IA</span>
+            <span className="text-sm font-medium">A ajuda criativa foi útil</span>
             <select
               name="aiHelpfulnessScore"
               defaultValue={previousScore("ai_helpfulness_score", "NOT_USED")}
               className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
             >
-              <option value="NOT_USED">Nao usei</option>
-              {[1, 2, 3, 4, 5].map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
+              <option value="NOT_USED">Não usei essa ajuda</option>
+              {[
+                [1, "Não ajudou"],
+                [2, "Ajudou pouco"],
+                [3, "Ajudou em parte"],
+                [4, "Ajudou bastante"],
+                [5, "Ajudou muito"]
+              ].map(([value, text]) => (
+                <option key={value} value={value}>{value} — {text}</option>
               ))}
             </select>
           </label>
@@ -123,20 +130,20 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
             value="true"
             defaultChecked={previous.ai_boundary_problem === true}
           />
-          A IA pareceu ultrapassar limites ou soar obrigatoria.
+          Em algum momento, senti que a ajuda tentou decidir por mim.
         </label>
         <textarea
           name="aiBoundaryProblemDetails"
           rows={3}
           className="flex w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
-          placeholder="Detalhes opcionais sobre a IA."
+          placeholder="Se quiser, conte o que aconteceu."
           defaultValue={String(previous.ai_boundary_problem_details ?? "")}
         />
         <textarea
           name="finalComment"
           rows={4}
           className="flex w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
-          placeholder="Comentario final opcional."
+          placeholder="Quer nos contar mais alguma coisa? (opcional)"
           defaultValue={String(previous.final_comment ?? "")}
         />
         <Button type="submit" disabled={saveSurvey.isPending}>

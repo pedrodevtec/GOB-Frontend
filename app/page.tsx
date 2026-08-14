@@ -4,43 +4,53 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   ArrowRight,
-  BookOpen,
   Castle,
-  Sparkles,
-  ShieldCheck,
-  UserRound,
-  WandSparkles
+  Check,
+  ChevronRight,
+  ShieldCheck
 } from "lucide-react";
 
 import { Logo } from "@/components/common/logo";
 import { Button } from "@/components/ui/button";
 import { appConfig } from "@/lib/api/config";
 
-const highlights = [
+const journeySteps = [
   {
-    title: "Entrada guiada",
+    title: "Garanta seu lugar",
     description:
-      "Conheca a proposta do piloto e avance pelas etapas iniciais com clareza.",
-    icon: Sparkles
+      "Crie sua conta, confirme seu e-mail e escolha participar da experiência.",
+    image: "/images/pixel-assets/slots/shield.png"
   },
   {
-    title: "Criacao de personagem",
+    title: "Conheça o ponto de partida",
     description:
-      "Prepare uma ficha para o Episodio 1 usando apenas os dados oficiais do Builder.",
-    icon: UserRound
+      "Leia apenas o necessário sobre Bravantus antes de imaginar seu personagem.",
+    image: "/images/pixel-assets/slots/necklace.png"
   },
   {
-    title: "IA sob seu controle",
+    title: "Conte quem você quer interpretar",
     description:
-      "Receba sugestoes opcionais, revise cada escolha e decida o que entra na ficha.",
-    icon: ShieldCheck
+      "Responda perguntas simples sobre história, desejos, medos e jeito de agir.",
+    image: "/images/pixel-assets/slots/armor.png"
+  },
+  {
+    title: "Escolha o que combina",
+    description:
+      "Receba ajuda opcional para completar sua ficha. Nada entra sem sua aprovação.",
+    image: "/images/pixel-assets/slots/sword.png"
+  },
+  {
+    title: "Envie ao Mestre",
+    description:
+      "Confira seu personagem como uma ficha pronta. O Mestre aprova ou explica o que ajustar.",
+    image: "/images/pixel-assets/slots/belt.png"
+  },
+  {
+    title: "Receba sua carta",
+    description:
+      "Conte como foi a experiência e, ao final, crie e baixe a carta do personagem.",
+    image: "/images/pixel-assets/hud/reward-chest.png"
   }
-];
-
-const flows = [
-  "Conheca Bravantus e o contexto publico do Episodio 1.",
-  "Crie seu personagem com orientacao opcional da IA.",
-  "Revise suas escolhas, envie a ficha e compartilhe sua experiencia."
 ];
 
 export default async function HomePage() {
@@ -71,7 +81,7 @@ export default async function HomePage() {
                 <Link href="/login">Entrar</Link>
               </Button>
               <Button asChild>
-                <Link href="/register">Criar conta</Link>
+                <Link href="/register">Começar minha jornada</Link>
               </Button>
             </nav>
           </header>
@@ -79,24 +89,30 @@ export default async function HomePage() {
           <div className="grid flex-1 items-center gap-10 py-20 lg:grid-cols-[minmax(0,1.02fr)_minmax(340px,0.68fr)] lg:py-28">
             <div className="max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary">
-                Piloto de criacao de personagem
+                Uma história começa com uma escolha
               </p>
               <h1 className="mt-5 font-display text-5xl font-semibold leading-tight text-white sm:text-6xl lg:text-7xl">
-                Entre no mundo de {appConfig.appName}
+                Crie alguém que pertença a {appConfig.appName}
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200 sm:text-xl">
-                Conheca o contexto do Episodio 1, crie seu personagem e prepare sua
-                entrada na historia. Durante a jornada, voce podera receber sugestoes
-                da IA, revisar cada escolha e decidir o que fara parte da sua ficha.
+                Você não precisa conhecer RPG nem decorar a história do mundo. Conte
+                quem deseja interpretar e nós ajudamos a transformar suas ideias em
+                um personagem pronto para encontrar o Mestre.
               </p>
-              <p className="mt-5 text-sm font-medium text-primary">
-                A IA sugere. Voce decide. A plataforma registra suas escolhas.
-              </p>
+
+              <div className="mt-6 flex flex-wrap gap-2 text-sm text-slate-200">
+                {["Sem experiência necessária", "Ajuda sempre opcional", "Você confirma cada escolha"].map((item) => (
+                  <span key={item} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/55 px-3 py-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    {item}
+                  </span>
+                ))}
+              </div>
 
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="gap-2">
                   <Link href="/register">
-                    Participar do piloto
+                    Começar minha jornada
                     <ArrowRight className="h-5 w-5" />
                   </Link>
                 </Button>
@@ -112,58 +128,48 @@ export default async function HomePage() {
             <aside className="glass-panel section-grid rounded-2xl p-5 shadow-panel">
               <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.28em] text-primary">
-                    Sua jornada no piloto
-                  </p>
+                  <p className="text-xs uppercase tracking-[0.28em] text-primary">Antes de começar</p>
                   <h2 className="mt-2 font-display text-2xl font-semibold">
-                    Prepare seu personagem
+                    Você sempre saberá o próximo passo
                   </h2>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary/30 bg-primary/15 text-primary">
-                  <WandSparkles className="h-6 w-6" />
+                  <ShieldCheck className="h-6 w-6" />
                 </div>
               </div>
 
-              <div className="mt-5 space-y-3">
-                {flows.map((flow, index) => (
-                  <div
-                    key={flow}
-                    className="flex gap-3 rounded-xl border border-white/10 bg-slate-950/50 p-4"
-                  >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-                      {index + 1}
-                    </span>
-                    <p className="text-sm leading-6 text-slate-200">{flow}</p>
-                  </div>
-                ))}
+              <div className="mt-5 space-y-4 text-sm leading-6 text-slate-200">
+                <p><strong className="text-white">Você cria:</strong> a identidade, a história e as escolhas do seu personagem.</p>
+                <p><strong className="text-white">A ajuda criativa sugere:</strong> ideias para os pontos em que você tiver dúvida.</p>
+                <p><strong className="text-white">O Mestre acompanha:</strong> depois do envio, ele aprova ou pede ajustes com uma explicação.</p>
+                <p><strong className="text-white">No final:</strong> sua jornada fica salva e você pode gerar a carta do personagem.</p>
               </div>
             </aside>
           </div>
         </div>
       </section>
 
-      <section className="bg-slate-950 px-5 pb-20 sm:px-8 lg:px-10">
-        <div className="mx-auto grid max-w-7xl gap-5 md:grid-cols-3">
-          {highlights.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <article
-                key={item.title}
-                className="glass-panel rounded-2xl p-6 shadow-panel"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-accent/30 bg-accent/15 text-accent">
-                  <Icon className="h-5 w-5" />
+      <section className="bg-slate-950 px-5 pb-20 pt-6 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Como funciona</p>
+            <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Do primeiro acesso à sua carta</h2>
+            <p className="mt-3 leading-7 text-muted-foreground">Cada etapa tem um objetivo claro e apenas uma ação principal. Se você sair, poderá continuar de onde parou.</p>
+          </div>
+          <ol className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {journeySteps.map((item, index) => (
+              <li key={item.title} className="glass-panel group rounded-2xl p-5 shadow-panel">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10">
+                    <Image src={item.image} alt="" width={40} height={40} className="[image-rendering:pixelated]" />
+                  </div>
+                  <span className="text-sm font-semibold text-primary">{String(index + 1).padStart(2, "0")}</span>
                 </div>
-                <h2 className="mt-5 font-display text-2xl font-semibold">
-                  {item.title}
-                </h2>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  {item.description}
-                </p>
-              </article>
-            );
-          })}
+                <h3 className="mt-5 font-display text-xl font-semibold">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
@@ -171,16 +177,16 @@ export default async function HomePage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
-              Pronto para entrar no piloto?
+              Pronto para conhecer Bravantus?
             </p>
             <h2 className="mt-3 font-display text-3xl font-semibold">
-              Crie sua conta e prepare seu personagem para o Episodio 1.
+              Comece com suas próprias ideias. Você poderá ajustar tudo antes de enviar ao Mestre.
             </h2>
           </div>
           <Button asChild size="lg" className="w-full gap-2 sm:w-auto">
             <Link href="/register">
-              Participar do piloto
-              <BookOpen className="h-5 w-5" />
+              Começar minha jornada
+              <ChevronRight className="h-5 w-5" />
             </Link>
           </Button>
         </div>
@@ -188,7 +194,7 @@ export default async function HomePage() {
 
       <footer className="border-t border-white/10 bg-slate-950 px-5 py-8 text-sm text-muted-foreground sm:px-8 lg:px-10">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p>{appConfig.appName} - RPG Dashboard</p>
+          <p>{appConfig.appName} — sua história, suas escolhas.</p>
           <nav className="flex flex-wrap gap-x-5 gap-y-2">
             <Link href="/termos" className="hover:text-white">
               Termos

@@ -76,7 +76,7 @@ export function CompletionExperiencePanel({
 
   if (resume.isLoading) return <MvpState variant="loading" title="Preparando sua conclusão" />;
   if (resume.isError) {
-    return <MvpState variant="error" title="Conclusão indisponível" description={(resume.error as Error).message} />;
+    return <MvpState variant="error" title="Não foi possível abrir sua conclusão" description="Sua jornada continua guardada. Tente novamente em alguns instantes." />;
   }
 
   const character = resume.data?.character;
@@ -88,7 +88,7 @@ export function CompletionExperiencePanel({
         <MvpState
           variant="success"
           title="Participação concluída"
-          description="Sua pesquisa foi registrada. Você pode gerar uma carta para este personagem e acompanhar a revisão do Mestre pela Minha Jornada."
+          description="Obrigado por contar como foi. Agora você pode criar a carta deste personagem e acompanhar o retorno do Mestre pela Minha Jornada."
           actions={[{ label: "Ir para Minha Jornada", href: "/dashboard" }]}
         />
       ) : null}
@@ -97,7 +97,7 @@ export function CompletionExperiencePanel({
         <Card className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-primary">Personagem</p>
           <CardTitle>{character?.name || "Personagem enviado"}</CardTitle>
-          <CardDescription>Revisão {character?.submittedRevision ?? character?.sheetRevision ?? "-"}</CardDescription>
+          <CardDescription>Sua criação foi enviada com sucesso.</CardDescription>
         </Card>
         <Card className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-primary">Pesquisa</p>
@@ -107,7 +107,7 @@ export function CompletionExperiencePanel({
         <Card className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-primary">Revisão do Mestre</p>
           <CardTitle>{masterStatus(character?.sheetStatus)}</CardTitle>
-          <CardDescription>Esta etapa não bloqueia a carta.</CardDescription>
+          <CardDescription>Você pode criar a carta enquanto aguarda.</CardDescription>
         </Card>
       </div> : null}
 
@@ -154,7 +154,7 @@ export function CompletionExperiencePanel({
                 <Button asChild variant="outline"><a href={imageUrl} download={`${character?.name || "personagem"}-carta.webp`}><Download className="mr-2 h-4 w-4" />Baixar imagem</a></Button>
               ) : null}
               <Button type="button" variant="outline" onClick={() => preview.mutate()} disabled={preview.isPending}>
-                {preview.isPending ? "Preparando prompt..." : preview.data ? "Atualizar parecer" : "Ver parecer da imagem"}
+                {preview.isPending ? "Preparando a ideia..." : preview.data ? "Atualizar ideia da imagem" : "Ver como a imagem será criada"}
               </Button>
             </div>
           </div>
@@ -172,13 +172,13 @@ export function CompletionExperiencePanel({
 
         {generate.isError ? (
           <p className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
-            {(generate.error as Error).message} Seu progresso continua salvo.
+            Não foi possível criar a carta agora. Seu progresso continua guardado e você pode tentar novamente mais tarde.
           </p>
         ) : null}
 
         {preview.data ? (
           <details className="group rounded-xl border border-white/10 bg-black/20 p-4" open>
-            <summary className="cursor-pointer list-none text-sm font-semibold">Parecer visual e prompt</summary>
+            <summary className="cursor-pointer list-none text-sm font-semibold">Como sua imagem será criada</summary>
             <div className="mt-4 space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
               {Object.entries(preview.data.fields ?? {}).filter(([key]) => visualFieldLabels[key]).map(([key, value]) => (
@@ -189,7 +189,8 @@ export function CompletionExperiencePanel({
               ))}
             </div>
             <div className="rounded-xl border border-white/10 bg-slate-950/70 p-4">
-              <p className="mb-2 text-sm font-semibold">Prompt usado para criar a carta</p>
+              <p className="mb-1 text-sm font-semibold">Instruções usadas para criar a imagem</p>
+              <p className="mb-3 text-xs leading-5 text-muted-foreground">Este texto, também chamado de prompt, reúne apenas as informações que você confirmou.</p>
               <pre className="max-h-80 overflow-auto whitespace-pre-wrap font-sans text-sm leading-6 text-muted-foreground">{preview.data.prompt}</pre>
               <Button
                 className="mt-3"
@@ -201,7 +202,7 @@ export function CompletionExperiencePanel({
                   setCopied(true);
                 }}
               >
-                {copied ? "Prompt copiado" : "Copiar prompt"}
+                {copied ? "Instruções copiadas" : "Copiar instruções"}
               </Button>
             </div>
             </div>

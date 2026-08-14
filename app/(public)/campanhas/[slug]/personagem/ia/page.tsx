@@ -16,12 +16,12 @@ export default async function BuilderAiPage({ params }: BuilderAiPageProps) {
 
   return (
     <MvpFlowShell
-      eyebrow="IA assistiva"
-      title="Sugestoes opcionais"
-      description="A IA sugere; o jogador decide. Nada deve alterar a ficha automaticamente."
+      eyebrow="Ajuda criativa"
+      title="Ideias apenas quando você quiser"
+      description="Peça sugestões para os pontos em que tiver dúvida. Nada muda no personagem até você confirmar."
       actions={
         <Button asChild variant="outline">
-          <Link href={campaignFlowPath(slug, "/personagem")}>Voltar ao Builder</Link>
+          <Link href={campaignFlowPath(slug, "/personagem")}>Voltar à criação</Link>
         </Button>
       }
       aside={<CampaignFlowAside currentStep="builder" blockedSteps={["review"]} />}

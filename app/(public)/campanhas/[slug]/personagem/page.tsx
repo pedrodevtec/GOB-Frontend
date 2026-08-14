@@ -17,9 +17,9 @@ export default async function CharacterBuilderPage({ params }: CharacterBuilderP
 
   return (
     <MvpFlowShell
-      eyebrow="Chamado aos Marcados"
-      title="Dossie criativo"
-      description="Transforme o kit do teste fechado em um personagem original ligado a Bravantus, sem revelar segredos do Mestre."
+      eyebrow="Seu personagem"
+      title="Conte quem você quer interpretar"
+      description="Comece pela história, pelos desejos e pelo jeito de agir. As escolhas de jogo serão apresentadas depois, com ajuda opcional."
       actions={
         <Button asChild variant="outline">
           <Link href={campaignFlowPath(slug, "/episodio-1")}>Voltar</Link>
