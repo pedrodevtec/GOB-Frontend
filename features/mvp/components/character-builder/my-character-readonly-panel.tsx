@@ -166,15 +166,21 @@ export function MyCharacterReadonlyPanel({
   if (layout === "tabs") {
     return (
       <Card className="space-y-5 p-4 sm:p-5">
-        <div className="flex flex-col gap-3 border-b border-white/10 pb-5 md:flex-row md:items-center md:justify-between">
+        <div className="grid gap-4 border-b border-white/10 pb-5 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Ficha do personagem</p>
             <CardTitle className="mt-2">{character.name || "Personagem sem nome"}</CardTitle>
-            <CardDescription className="mt-1">Escolha uma seção para consultar sem percorrer a ficha inteira.</CardDescription>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-foreground">{valueOrEmpty(character.concept)}</p>
+            <CardDescription className="mt-2">A ficha foi dividida em seções para manter as informações essenciais sempre fáceis de encontrar.</CardDescription>
           </div>
-          <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
-            <p className="font-semibold">{playerSheetStatusLabel(character.sheetStatus)}</p>
-            <p className="text-xs text-muted-foreground">{character.editable ? "Você ainda pode ajustar" : "Ficha disponível para consulta"}</p>
+          <div className="grid grid-cols-3 gap-2">
+            <Resource label="PV" value={derived.pv} />
+            <Resource label="Energia" value={derived.energy} />
+            <Resource label="Ascensão" value={derived.ascensionPoints} />
+            <div className="col-span-3 rounded-xl border border-white/10 bg-black/20 px-4 py-2 text-center text-xs">
+              <p className="font-semibold text-foreground">{playerSheetStatusLabel(character.sheetStatus)}</p>
+              <p className="text-muted-foreground">{character.editable ? "Ainda pode ser ajustada" : "Disponível para consulta"}</p>
+            </div>
           </div>
         </div>
 

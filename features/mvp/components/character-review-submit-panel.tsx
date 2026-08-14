@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,7 @@ import { authPathWithReturnTo } from "@/lib/routing/auth-redirects";
 import { useAuthStore } from "@/stores/auth-store";
 
 export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
+  const router = useRouter();
   const accessToken = useAuthStore((state) => state.accessToken);
   const campaign = usePublicCampaign(slug);
   const resume = useCampaignResume(slug);
@@ -107,7 +110,10 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
     if (!canSubmit) return;
     const action = status === "CHANGES_REQUESTED" ? "ressubmeter" : "submeter";
     if (!window.confirm(`Confirmar ${action} do personagem para avaliacao do Mestre?`)) return;
-    submit.mutate({ expectedRevision: character.data?.sheetRevision });
+    submit.mutate(
+      { expectedRevision: character.data?.sheetRevision },
+      { onSuccess: () => router.push(campaignFlowPath(slug, "/pesquisa")) }
+    );
   }
 
   return (
@@ -117,6 +123,13 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
           variant="submitted"
           title="Personagem ja enviado"
           description="Sua parte está concluída. Agora o Mestre fará a leitura e poderá aprovar ou pedir ajustes."
+          actions={[
+            {
+              label: "Responder pesquisa e concluir",
+              href: campaignFlowPath(slug, "/pesquisa"),
+              variant: "default"
+            }
+          ]}
         />
       ) : null}
 
@@ -146,13 +159,13 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
         </Card>
       ) : null}
 
-      <MyCharacterReadonlyPanel character={character.data} archetypeName={archetypeName} />
+      <MyCharacterReadonlyPanel character={character.data} archetypeName={archetypeName} layout="tabs" />
 
-      <Card className="space-y-4">
+      <Card className="sticky bottom-3 z-20 space-y-4 border-primary/30 bg-slate-950/95 shadow-2xl backdrop-blur">
         <div>
           <CardTitle>Enviar ao Mestre</CardTitle>
           <CardDescription className="mt-2">
-            Confira a história e as escolhas do personagem. Depois do envio, o Mestre poderá aprovar ou explicar o que precisa ser ajustado.
+            Use as seções da ficha acima para conferir suas escolhas. Ao enviar, você seguirá para a pesquisa enquanto o Mestre faz a leitura.
           </CardDescription>
         </div>
 
@@ -178,7 +191,8 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
               ? "Enviando..."
               : status === "CHANGES_REQUESTED"
                 ? "Enviar ajustes ao Mestre"
-                : "Enviar ao Mestre"}
+                : "Enviar ao Mestre e ir para a pesquisa"}
+            {!submit.isPending ? <ArrowRight className="ml-2 h-4 w-4" /> : null}
           </Button>
         </div>
       </Card>

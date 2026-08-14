@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bot, MessageCircle, RotateCcw, Sparkles, X } from "lucide-react";
+import { ArrowRight, Bot, CheckCircle2, MessageCircle, RotateCcw, Sparkles, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -53,6 +53,29 @@ const chapters = [
   { id: "confirmation", title: "Confirme o personagem" },
   { id: "play", title: "Como quer jogar" },
   { id: "review", title: "Revisao" }
+] as const;
+
+const chapterGuidance = [
+  {
+    title: "Conte três partes da vida do personagem",
+    description: "Não precisa escrever muito. Algumas frases sobre passado, motivo e Marca já dão um ponto de partida.",
+    next: "Depois, a ajuda criativa organiza o que você contou para sua confirmação."
+  },
+  {
+    title: "Leia, ajuste e confirme cada grupo",
+    description: "Nada vira parte do personagem sem sua decisão. Vá até o fim de cada grupo e confirme logo abaixo dos campos.",
+    next: "Depois, você escolhe como prefere agir e recebe uma proposta de ficha."
+  },
+  {
+    title: "Escolha seu jeito de participar da aventura",
+    description: "A escolha orienta a proposta de habilidades e equipamentos, mas não limita suas decisões durante o jogo.",
+    next: "Depois, você confere tudo em uma ficha organizada antes de enviar."
+  },
+  {
+    title: "Confira a ficha e siga para o envio",
+    description: "Veja o que ainda falta ou abra a revisão final. O envio ao Mestre acontece na próxima tela.",
+    next: "Depois do envio, você seguirá diretamente para a pesquisa do playtest."
+  }
 ] as const;
 
 const narrativeQuestionCopy = {
@@ -153,6 +176,7 @@ function fieldLabelClass(error?: string) {
 
 function Field({
   label,
+  helper,
   value,
   onChange,
   disabled,
@@ -164,6 +188,7 @@ function Field({
   required = false
 }: {
   label: string;
+  helper?: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
@@ -184,6 +209,7 @@ function Field({
           <span className="text-xs font-normal text-amber-300">Aguardando definição</span>
         ) : null}
       </span>
+      {helper ? <span className="block text-xs leading-5 text-muted-foreground">{helper}</span> : null}
       <Control
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -344,12 +370,18 @@ function ConfirmationBlock({
             {confirmed ? "Leitura confirmada por você." : "Confira os campos antes de confirmar este bloco."}
           </p>
         </div>
-        <Button type="button" size="sm" variant={confirmed ? "default" : "outline"} onClick={onToggle}>
-          {confirmed ? "Confirmado" : "Confirmar este bloco"}
-        </Button>
+        <span className={`inline-flex min-h-8 items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${confirmed ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-100" : "border-white/10 text-muted-foreground"}`}>
+          {confirmed ? <CheckCircle2 className="h-4 w-4" /> : null}
+          {confirmed ? "Grupo confirmado" : "Confirmação pendente"}
+        </span>
       </div>
       <div className="grid gap-4 md:grid-cols-2">{children}</div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <div className="border-t border-white/10 pt-4">
+        <Button type="button" className="min-h-11 w-full sm:w-auto" variant={confirmed ? "outline" : "default"} onClick={onToggle}>
+          {confirmed ? "Reabrir este grupo para ajustar" : "Confirmar este grupo e continuar"}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -995,6 +1027,18 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           ))}
         </div>
 
+        <div className="grid gap-3 rounded-xl border border-primary/30 bg-primary/[0.08] p-4 md:grid-cols-[1fr_auto] md:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">O que fazer nesta etapa</p>
+            <p className="mt-2 font-semibold text-foreground">{chapterGuidance[chapter].title}</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">{chapterGuidance[chapter].description}</p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm md:max-w-xs">
+            <p className="font-medium text-foreground">O que acontece depois</p>
+            <p className="mt-1 leading-5 text-muted-foreground">{chapterGuidance[chapter].next}</p>
+          </div>
+        </div>
+
         <div className="space-y-5">
           {chapter === 0 ? (
             <Section
@@ -1015,6 +1059,13 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                       })}
                       disabled={readOnly}
                       aria-invalid={Boolean(visibleError(`narrativeResponses.${question.key}`))}
+                      placeholder={
+                        question.key === "before_mark"
+                          ? "Ex.: vivia em uma vila pequena, trabalhava com a família e sempre protegeu quem precisava..."
+                          : question.key === "motivation_and_bonds"
+                            ? "Ex.: quer encontrar alguém desaparecido e não abandona quem confia nele..."
+                            : "Ex.: a Marca surge no braço quando sente medo; ele tenta escondê-la dos outros..."
+                      }
                     />
                     {visibleError(`narrativeResponses.${question.key}`) ? (
                       <span className="block text-xs text-destructive">{visibleError(`narrativeResponses.${question.key}`)}</span>
@@ -1058,11 +1109,11 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   onToggle={() => toggleConfirmation("identity")}
                   error={visibleError("confirmedBlocks.identity")}
                 >
-                  <Field required label="Nome" value={form.name} onChange={(value) => update("name", value)} disabled={readOnly} error={visibleError("name")} suggestion={suggestionNode("name")} />
-                  <Field required label="Conceito em uma frase" value={form.concept} onChange={(value) => update("concept", value)} disabled={readOnly} error={visibleError("concept")} suggestion={suggestionNode("concept")} />
-                  <Field required label="De onde veio" value={form.origin} onChange={(value) => update("origin", value)} disabled={readOnly} error={visibleError("origin")} suggestion={suggestionNode("origin")} />
-                  <Field required label="Como é sua aparência" value={form.appearance} onChange={(value) => update("appearance", value)} disabled={readOnly} error={visibleError("appearance")} multiline suggestion={suggestionNode("appearance")} />
-                  <Field required label="Passado que mais o definiu" value={form.history} onChange={(value) => update("history", value)} disabled={readOnly} error={visibleError("history")} multiline suggestion={suggestionNode("history")} />
+                  <Field required label="Nome" helper="Como essa pessoa será chamada durante a aventura." value={form.name} onChange={(value) => update("name", value)} disabled={readOnly} error={visibleError("name")} suggestion={suggestionNode("name")} />
+                  <Field required label="Quem é, em uma frase" helper="Resuma a ideia central: quem é essa pessoa e o que a torna interessante." value={form.concept} onChange={(value) => update("concept", value)} disabled={readOnly} error={visibleError("concept")} suggestion={suggestionNode("concept")} />
+                  <Field required label="De onde veio" helper="Pode ser uma cidade, comunidade, família, ofício ou modo de vida." value={form.origin} onChange={(value) => update("origin", value)} disabled={readOnly} error={visibleError("origin")} suggestion={suggestionNode("origin")} />
+                  <Field required label="Como as pessoas o reconhecem" helper="Descreva aparência, roupas, postura ou algum detalhe marcante." value={form.appearance} onChange={(value) => update("appearance", value)} disabled={readOnly} error={visibleError("appearance")} multiline suggestion={suggestionNode("appearance")} />
+                  <Field required label="O acontecimento que mais o marcou" helper="Conte o fato do passado que ajuda a entender quem ele se tornou." value={form.history} onChange={(value) => update("history", value)} disabled={readOnly} error={visibleError("history")} multiline suggestion={suggestionNode("history")} />
                 </ConfirmationBlock>
                 <ConfirmationBlock
                   title="O que o move"
@@ -1070,11 +1121,11 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   onToggle={() => toggleConfirmation("motivations")}
                   error={visibleError("confirmedBlocks.motivations")}
                 >
-                  <Field required label="O que deseja alcançar ou proteger" value={form.motivation} onChange={(value) => update("motivation", value)} disabled={readOnly} error={visibleError("motivation")} multiline suggestion={suggestionNode("motivation")} />
-                  <Field required label="Quem ou o que ainda o liga ao mundo" value={form.bond} onChange={(value) => update("bond", value)} disabled={readOnly} error={visibleError("bond")} multiline suggestion={suggestionNode("bond")} />
-                  <Field required label="Promessa, culpa ou dever que carrega" value={form.promiseOrGuilt} onChange={(value) => update("promiseOrGuilt", value)} disabled={readOnly} error={visibleError("promiseOrGuilt")} multiline suggestion={suggestionNode("promiseOrGuilt")} />
-                  <Field required label="Por que aceitaria agir com o grupo" value={form.reasonToActWithGroup} onChange={(value) => update("reasonToActWithGroup", value)} disabled={readOnly} error={visibleError("reasonToActWithGroup")} multiline suggestion={suggestionNode("reasonToActWithGroup")} />
-                  <Field label="Medo pessoal (opcional)" value={form.guardianSoulsFear} onChange={(value) => update("guardianSoulsFear", value)} disabled={readOnly} multiline suggestion={suggestionNode("guardianSoulsFear")} />
+                  <Field required label="O que deseja alcançar ou proteger" helper="Esse objetivo dá ao Mestre um motivo claro para colocar o personagem em movimento." value={form.motivation} onChange={(value) => update("motivation", value)} disabled={readOnly} error={visibleError("motivation")} multiline suggestion={suggestionNode("motivation")} />
+                  <Field required label="Quem ou o que não quer perder" helper="Pode ser uma pessoa, lugar, lembrança, crença ou comunidade." value={form.bond} onChange={(value) => update("bond", value)} disabled={readOnly} error={visibleError("bond")} multiline suggestion={suggestionNode("bond")} />
+                  <Field required label="O peso que carrega" helper="Escolha uma promessa, culpa ou dever que ainda influencia suas decisões." value={form.promiseOrGuilt} onChange={(value) => update("promiseOrGuilt", value)} disabled={readOnly} error={visibleError("promiseOrGuilt")} multiline suggestion={suggestionNode("promiseOrGuilt")} />
+                  <Field required label="Por que aceitaria ajuda de um grupo" helper="Explique o que faria essa pessoa confiar, colaborar ou precisar de outros." value={form.reasonToActWithGroup} onChange={(value) => update("reasonToActWithGroup", value)} disabled={readOnly} error={visibleError("reasonToActWithGroup")} multiline suggestion={suggestionNode("reasonToActWithGroup")} />
+                  <Field label="O que teme enfrentar (opcional)" helper="Um medo pessoal que pode aparecer durante a jornada." value={form.guardianSoulsFear} onChange={(value) => update("guardianSoulsFear", value)} disabled={readOnly} multiline suggestion={suggestionNode("guardianSoulsFear")} />
                 </ConfirmationBlock>
                 <ConfirmationBlock
                   title="A Marca"
@@ -1082,10 +1133,10 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   onToggle={() => toggleConfirmation("mark")}
                   error={visibleError("confirmedBlocks.mark")}
                 >
-                  <Field required label="Onde a Marca fica" value={form.markLocation} onChange={(value) => update("markLocation", value)} disabled={readOnly} error={visibleError("markLocation")} suggestion={suggestionNode("markLocation")} />
-                  <Field required label="Como a Marca aparece" value={form.markAppearance} onChange={(value) => update("markAppearance", value)} disabled={readOnly} error={visibleError("markAppearance")} multiline suggestion={suggestionNode("markAppearance")} />
-                  <Field required label="O que acontece quando ela reage" value={form.markReaction} onChange={(value) => update("markReaction", value)} disabled={readOnly} error={visibleError("markReaction")} multiline suggestion={suggestionNode("markReaction")} />
-                  <Field required label="Como o personagem se sente sobre ela" value={form.markAttitude} onChange={(value) => update("markAttitude", value)} disabled={readOnly} error={visibleError("markAttitude")} multiline suggestion={suggestionNode("markAttitude")} />
+                  <Field required label="Onde a Marca fica" helper="Escolha uma parte visível ou escondida do corpo." value={form.markLocation} onChange={(value) => update("markLocation", value)} disabled={readOnly} error={visibleError("markLocation")} suggestion={suggestionNode("markLocation")} />
+                  <Field required label="Como ela é quando está calma" helper="Descreva cor, formato, textura, brilho ou outro sinal visual." value={form.markAppearance} onChange={(value) => update("markAppearance", value)} disabled={readOnly} error={visibleError("markAppearance")} multiline suggestion={suggestionNode("markAppearance")} />
+                  <Field required label="Como ela reage em momentos intensos" helper="Conte o que muda quando há perigo, emoção forte ou uso de poder." value={form.markReaction} onChange={(value) => update("markReaction", value)} disabled={readOnly} error={visibleError("markReaction")} multiline suggestion={suggestionNode("markReaction")} />
+                  <Field required label="O que a Marca significa para ele" helper="Ela é aceita, temida, escondida, estudada ou vista como uma responsabilidade?" value={form.markAttitude} onChange={(value) => update("markAttitude", value)} disabled={readOnly} error={visibleError("markAttitude")} multiline suggestion={suggestionNode("markAttitude")} />
                 </ConfirmationBlock>
               </div>
             </Section>
@@ -1329,25 +1380,32 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   <p className="mt-2 text-sm text-muted-foreground">Seu personagem esta pronto para a revisao final.</p>
                 )}
               </div>
-              <Button asChild>
-                <Link href={campaignFlowPath(slug, "/personagem/revisao")}>Abrir revisao final</Link>
-              </Button>
             </Section>
           ) : null}
         </div>
 
         {saveError ? <p className="text-sm text-destructive">{saveError}</p> : null}
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-xl border border-white/15 bg-slate-950/95 p-3 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" disabled={chapter === 0} onClick={() => void goToChapter(chapter - 1)}>
               Voltar
             </Button>
-            <Button type="button" variant="outline" disabled={chapter === chapters.length - 1} onClick={() => void goToChapter(chapter + 1)}>
-              Avancar
-            </Button>
+            {chapter < chapters.length - 1 ? (
+              <Button type="button" onClick={() => void goToChapter(chapter + 1)}>
+                Continuar: {chapters[chapter + 1].title}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button asChild>
+                <Link href={campaignFlowPath(slug, "/personagem/revisao")}>
+                  Abrir revisão e enviar
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
           </div>
-          <Button type="button" onClick={() => void saveDraft("manual")} disabled={readOnly || saveStatus === "saving"}>
+          <Button type="button" variant="outline" onClick={() => void saveDraft("manual")} disabled={readOnly || saveStatus === "saving"}>
             {saveStatus === "saving" ? "Salvando..." : "Salvar agora"}
           </Button>
         </div>
