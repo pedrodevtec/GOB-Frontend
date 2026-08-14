@@ -14,7 +14,7 @@ const sections = [
   {
     title: "Como usamos os dados",
     content:
-      "Usamos os dados para operar a plataforma, autenticar usuarios, manter a seguranca, melhorar a experiencia, entender o uso das campanhas, responder solicitacoes e cumprir obrigacoes legais. Dados de jornada e personagem podem ser usados para manter a continuidade da experiencia dentro do RPG."
+      "Usamos os dados para operar a plataforma, autenticar usuarios, manter a seguranca, melhorar a experiencia, entender o uso das campanhas, responder solicitacoes e cumprir obrigacoes legais. Tambem podemos enviar mensagens de servico sobre sua participacao, como confirmacao de cadastro, recebimento da ficha, pedidos de ajuste e aprovacao do personagem. Essas mensagens nao sao publicidade. Dados de jornada e personagem podem ser usados para manter a continuidade da experiencia dentro do RPG."
   },
   {
     title: "Cookies, analytics e anuncios",
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
         </div>
 
         <div className="border-t border-white/10 pt-5 text-sm leading-7 text-muted-foreground">
-          Ultima atualizacao: 6 de agosto de 2026. Esta pagina pode ser atualizada
+          Ultima atualizacao: 14 de agosto de 2026. Esta pagina pode ser atualizada
           para refletir mudancas no produto, em fornecedores ou em requisitos legais.
         </div>
       </Card>
