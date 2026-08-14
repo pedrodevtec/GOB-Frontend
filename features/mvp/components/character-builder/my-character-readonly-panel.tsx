@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { BookOpenText, Box, History, Shield, UserRound } from "lucide-react";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { CharacterSheetDownloadButton } from "@/features/mvp/components/character-sheet-download-button";
 import {
   ATTRIBUTE_KEYS,
   ATTRIBUTE_LABELS,
@@ -177,6 +178,10 @@ export function MyCharacterReadonlyPanel({
           </div>
         </div>
 
+        <div className="flex justify-end">
+          <CharacterSheetDownloadButton character={character} archetypeName={archetypeName} />
+        </div>
+
         <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Seções da ficha">
           {tabs.map(({ key, label, icon: Icon }) => (
             <button
@@ -295,7 +300,10 @@ export function MyCharacterReadonlyPanel({
     <Card className="space-y-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div><CardTitle>{character.name || "Personagem sem nome"}</CardTitle><CardDescription className="mt-2">Ficha consolidada para conferência antes do envio.</CardDescription></div>
-        <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm"><p className="font-semibold">{playerSheetStatusLabel(character.sheetStatus)}</p><p className="text-muted-foreground">{character.editable ? "Você ainda pode ajustar" : "Ficha disponível para consulta"}</p></div>
+        <div className="flex flex-col items-start gap-3 md:items-end">
+          <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm"><p className="font-semibold">{playerSheetStatusLabel(character.sheetStatus)}</p><p className="text-muted-foreground">{character.editable ? "Você ainda pode ajustar" : "Ficha disponível para consulta"}</p></div>
+          <CharacterSheetDownloadButton character={character} archetypeName={archetypeName} />
+        </div>
       </div>
       {character.masterFeedback ? <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4"><p className="text-sm font-semibold text-amber-100">Feedback do Mestre</p><p className="mt-2 text-sm leading-6 text-amber-50/80">{character.masterFeedback}</p></div> : null}
       <div className={cn(

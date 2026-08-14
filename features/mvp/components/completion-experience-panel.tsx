@@ -9,10 +9,12 @@ import { MvpState } from "@/components/states/mvp-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { CharacterSheetDownloadButton } from "@/features/mvp/components/character-sheet-download-button";
 import {
   useCampaignResume,
   useCharacterCardArt,
   useGenerateCharacterCardArt,
+  useMyMvpCharacter,
   usePreviewCharacterCardArt
 } from "@/features/mvp/hooks/use-mvp";
 import { mvpService } from "@/features/mvp/services/mvp.service";
@@ -47,6 +49,7 @@ export function CompletionExperiencePanel({
   const resume = useCampaignResume(slug);
   const tableId = resume.data?.membership?.tableId;
   const characterId = resume.data?.character?.id;
+  const fullCharacter = useMyMvpCharacter(tableId);
   const preview = usePreviewCharacterCardArt(tableId, characterId);
   const gallery = useCharacterCardArt(tableId, characterId);
   const generate = useGenerateCharacterCardArt(tableId, characterId);
@@ -152,6 +155,9 @@ export function CompletionExperiencePanel({
               )}
               {imageUrl ? (
                 <Button asChild variant="outline"><a href={imageUrl} download={`${character?.name || "personagem"}-carta.webp`}><Download className="mr-2 h-4 w-4" />Baixar imagem</a></Button>
+              ) : null}
+              {mode !== "character" && fullCharacter.data ? (
+                <CharacterSheetDownloadButton character={fullCharacter.data} />
               ) : null}
               <Button type="button" variant="outline" onClick={() => preview.mutate()} disabled={preview.isPending}>
                 {preview.isPending ? "Preparando a ideia..." : preview.data ? "Atualizar ideia da imagem" : "Ver como a imagem será criada"}
