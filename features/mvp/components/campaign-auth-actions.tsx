@@ -18,7 +18,7 @@ export function CampaignAuthActions({ slug }: { slug: string }) {
   if (!hydrated) {
     return (
       <Button variant="outline" disabled>
-        Verificando sessao
+        Preparando seu acesso
       </Button>
     );
   }
@@ -27,10 +27,10 @@ export function CampaignAuthActions({ slug }: { slug: string }) {
     return (
       <>
         <Button asChild variant="outline">
-          <Link href="/dashboard">Painel</Link>
+          <Link href="/dashboard">Minha Jornada</Link>
         </Button>
         <Button asChild>
-          <Link href={campaignPath}>Continuar campanha</Link>
+          <Link href={campaignPath}>Continuar minha jornada</Link>
         </Button>
       </>
     );
@@ -42,7 +42,7 @@ export function CampaignAuthActions({ slug }: { slug: string }) {
         <Link href={authPathWithReturnTo("/login", campaignPath)}>Entrar</Link>
       </Button>
       <Button asChild>
-        <Link href={authPathWithReturnTo("/register", campaignPath)}>Criar conta</Link>
+        <Link href={authPathWithReturnTo("/register", campaignPath)}>Começar minha jornada</Link>
       </Button>
     </>
   );

@@ -23,13 +23,13 @@ export function EpisodeContextPanel({ slug }: { slug: string }) {
   const tableId = resume.data?.membership?.tableId;
   const startCharacter = useStartMvpCharacter(slug, tableId);
 
-  if (campaign.isLoading) return <MvpState variant="loading" title="Carregando contexto" />;
+  if (campaign.isLoading) return <MvpState variant="loading" title="Preparando a história" />;
   if (campaign.isError) {
     return (
       <MvpState
         variant="error"
-        title="Contexto indisponivel"
-        description={(campaign.error as Error).message}
+        title="Não foi possível abrir a história"
+        description="Tente novamente. Você só poderá criar o personagem depois de conhecer este começo."
       />
     );
   }
@@ -39,8 +39,8 @@ export function EpisodeContextPanel({ slug }: { slug: string }) {
     return (
       <MvpState
         variant="empty"
-        title="Contexto publico nao retornado"
-        description="A campanha carregou, mas nao trouxe bloco publico de mundo."
+        title="O começo da história ainda não está disponível"
+        description="Volte mais tarde ou peça ajuda à equipe responsável pela experiência."
       />
     );
   }
@@ -48,16 +48,16 @@ export function EpisodeContextPanel({ slug }: { slug: string }) {
 
   return (
     <Card className="space-y-4">
-      <p className="text-xs uppercase tracking-wide text-primary">Onde sua historia comeca</p>
+      <p className="text-xs uppercase tracking-wide text-primary">Onde sua história começa</p>
       <CardTitle>{world.title ?? "Guardian of Bravantus"}</CardTitle>
       <CardDescription className="text-base leading-7">{world.summary}</CardDescription>
       {world.tone ? (
-        <p className="text-sm text-muted-foreground">Atmosfera da historia: {world.tone}</p>
+        <p className="text-sm text-muted-foreground">O clima desta história: {world.tone}</p>
       ) : null}
       <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-xl border border-white/10 p-3"><p className="font-semibold">O mundo</p><p className="mt-1 text-sm text-muted-foreground">Bravantus e o lugar onde esta experiencia acontece.</p></div>
-        <div className="rounded-xl border border-white/10 p-3"><p className="font-semibold">O episodio</p><p className="mt-1 text-sm text-muted-foreground">E o acontecimento que o Mestre conduz nesta mesa.</p></div>
-        <div className="rounded-xl border border-white/10 p-3"><p className="font-semibold">Seu personagem</p><p className="mt-1 text-sm text-muted-foreground">Crie uma pessoa deste mundo; o Mestre conectara sua historia ao episodio.</p></div>
+        <div className="rounded-xl border border-white/10 p-3"><p className="font-semibold">O mundo</p><p className="mt-1 text-sm text-muted-foreground">Bravantus é o lugar onde sua aventura acontece.</p></div>
+        <div className="rounded-xl border border-white/10 p-3"><p className="font-semibold">A situação</p><p className="mt-1 text-sm text-muted-foreground">Este é o acontecimento que reunirá os personagens.</p></div>
+        <div className="rounded-xl border border-white/10 p-3"><p className="font-semibold">Seu papel</p><p className="mt-1 text-sm text-muted-foreground">Você cria alguém deste mundo; depois, o Mestre conecta essa história à aventura.</p></div>
       </div>
       <div className="pt-2">
         {canCreate ? (
@@ -74,11 +74,11 @@ export function EpisodeContextPanel({ slug }: { slug: string }) {
               }
             }}
           >
-            {startCharacter.isPending ? "Preparando personagem..." : "Criar meu personagem"}
+            {startCharacter.isPending ? "Preparando sua criação..." : "Criar meu personagem"}
           </Button>
         ) : (
           <Button asChild>
-            <Link href={campaignFlowPath(slug, "/consentimento")}>Confirmar participacao</Link>
+            <Link href={campaignFlowPath(slug, "/consentimento")}>Confirmar participação</Link>
           </Button>
         )}
       </div>

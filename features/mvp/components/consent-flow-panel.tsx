@@ -22,7 +22,7 @@ export function ConsentFlowPanel({ slug }: { slug: string }) {
   const joinCampaign = useJoinCampaign(slug);
 
   if (document.isLoading || resume.isLoading) {
-    return <MvpState variant="loading" title="Carregando consentimento" />;
+    return <MvpState variant="loading" title="Preparando as informações" />;
   }
 
   if (!hasUsableAccessToken(accessToken)) {
@@ -44,8 +44,8 @@ export function ConsentFlowPanel({ slug }: { slug: string }) {
     return (
       <MvpState
         variant="error"
-        title="Consentimento indisponivel"
-        description={(document.error as Error).message}
+        title="Não foi possível abrir as informações"
+        description="Tente novamente antes de confirmar sua participação."
       />
     );
   }
@@ -56,11 +56,11 @@ export function ConsentFlowPanel({ slug }: { slug: string }) {
   return (
     <Card className="space-y-5">
       <div>
-        <CardTitle>Confirme sua participacao</CardTitle>
+        <CardTitle>Confirme sua participação</CardTitle>
         <CardDescription className="mt-2">
           {document.data?.requiresLegalReviewBeforeExternalPilot
-            ? "Leia com atencao antes de participar do teste."
-            : "Leia os termos e confirme para entrar na campanha."}
+            ? "Leia com atenção antes de decidir se deseja participar."
+            : "Leia as informações abaixo e confirme somente se estiver de acordo."}
         </CardDescription>
       </div>
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-muted-foreground">
@@ -69,9 +69,9 @@ export function ConsentFlowPanel({ slug }: { slug: string }) {
       {joined ? (
         <MvpState
           variant="success"
-          title="Voce ja esta na campanha"
+          title="Sua participação já está confirmada"
           actions={[
-            { label: "Abrir Episodio 1", href: campaignFlowPath(slug, "/episodio-1"), variant: "default" }
+            { label: "Conhecer o começo da história", href: campaignFlowPath(slug, "/episodio-1"), variant: "default" }
           ]}
         />
       ) : (
@@ -85,16 +85,16 @@ export function ConsentFlowPanel({ slug }: { slug: string }) {
             disabled={acceptConsent.isPending || joinCampaign.isPending}
           >
             {acceptConsent.isPending || joinCampaign.isPending
-              ? "Confirmando participacao..."
+              ? "Confirmando participação..."
               : accepted
-                ? "Entrar na campanha"
+                ? "Continuar para a história"
                 : "Li e quero participar"}
           </Button>
         </div>
       )}
       {!accepted ? (
         <p className="text-sm text-muted-foreground">
-          Sua entrada so sera registrada depois desta confirmacao.
+          Nada será confirmado até você escolher “Li e quero participar”.
         </p>
       ) : null}
     </Card>

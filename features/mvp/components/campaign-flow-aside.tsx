@@ -13,16 +13,14 @@ export function CampaignFlowAside({
     <div className="space-y-5">
       <div>
         <p className="text-xs uppercase tracking-[0.28em] text-primary">
-          Fluxo do participante
+          Seu caminho
         </p>
-        <CardTitle className="mt-2 text-2xl">Piloto MVP</CardTitle>
+        <CardTitle className="mt-2 text-2xl">Sua jornada em Bravantus</CardTitle>
         <CardDescription className="mt-2">
-          Etapas preparadas para integracao sem expor conteudo secreto ou regras
-          no frontend.
+          Avance no seu ritmo. Ao voltar, abriremos a etapa certa para você.
         </CardDescription>
       </div>
       <MvpStepList steps={stepStatus(currentStep, blockedSteps)} />
     </div>
   );
 }
-

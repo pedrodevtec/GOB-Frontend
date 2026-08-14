@@ -11,15 +11,13 @@ export function campaignReturnTo(slug: string) {
 }
 
 export const participantFlowSteps = [
-  { id: "proposal", label: "Proposta" },
-  { id: "legal", label: "Termos e privacidade" },
-  { id: "account", label: "Cadastro e e-mail" },
-  { id: "consent", label: "Consentimento" },
-  { id: "episode", label: "Episodio 1" },
-  { id: "builder", label: "Personagem" },
-  { id: "review", label: "Revisao" },
-  { id: "survey", label: "Pesquisa" },
-  { id: "done", label: "Conclusao" }
+  { id: "proposal", label: "Boas-vindas" },
+  { id: "consent", label: "Confirme sua participação" },
+  { id: "episode", label: "Conheça Bravantus" },
+  { id: "builder", label: "Crie seu personagem" },
+  { id: "review", label: "Confira e envie" },
+  { id: "survey", label: "Conte como foi" },
+  { id: "done", label: "Tudo pronto" }
 ] as const;
 
 export function stepStatus(

@@ -33,49 +33,49 @@ function stateFor(status: EmailConfirmationStatus): {
       return {
         variant: "success",
         title: "E-mail confirmado",
-        description: "A confirmacao foi concluida e o participante pode continuar o fluxo."
+        description: "Tudo certo. Você já pode continuar sua jornada."
       };
     case "already-confirmed":
       return {
         variant: "submitted",
         title: "E-mail ja confirmado",
-        description: "Este e-mail ja estava confirmado. Voce pode continuar o fluxo."
+        description: "Este e-mail já estava confirmado. Você pode continuar de onde parou."
       };
     case "invalid-token":
       return {
         variant: "error",
-        title: "Token invalido",
-        description: "O link de confirmacao nao e valido. Solicite um novo envio."
+        title: "Este link não funciona",
+        description: "Peça um novo link de confirmação para continuar."
       };
     case "expired-token":
       return {
         variant: "error",
-        title: "Token expirado",
-        description: "O link de confirmacao expirou. Solicite um novo envio para continuar."
+        title: "Este link perdeu a validade",
+        description: "Peça um novo link de confirmação para continuar."
       };
     case "campaign-closed":
       return {
         variant: "campaign-closed",
-        title: "Campanha encerrada",
-        description: "A campanha vinculada a este cadastro nao esta recebendo novas confirmacoes."
+        title: "Esta jornada foi encerrada",
+        description: "Não é mais possível confirmar uma nova participação."
       };
     case "error":
       return {
         variant: "error",
-        title: "Nao foi possivel confirmar",
-        description: "A confirmacao nao pode ser concluida agora. Tente novamente mais tarde."
+        title: "Não foi possível confirmar seu e-mail",
+        description: "Tente novamente ou peça um novo link."
       };
     case "token-received":
       return {
         variant: "loading",
         title: "Verificando seu e-mail",
-        description: "Aguarde enquanto confirmamos seu acesso."
+        description: "Aguarde enquanto verificamos o link que você recebeu."
       };
     default:
       return {
         variant: "empty",
         title: "Confirme seu e-mail",
-        description: "Abra o link enviado ao seu e-mail ou solicite um novo envio."
+        description: "Abra o link que enviamos para sua caixa de entrada. Se não encontrar, verifique o lixo eletrônico ou peça outro."
       };
   }
 }
@@ -99,7 +99,7 @@ export default async function ConfirmEmailPage({ searchParams }: ConfirmEmailPag
     <MvpFlowShell
       eyebrow="Confirmacao de e-mail"
       title="Confirme seu acesso"
-      description="Depois da confirmacao, voce volta ao ponto em que parou."
+      description="Depois da confirmação, você volta ao ponto em que parou."
       actions={
         <Button asChild variant="outline">
           <Link href="/login">Entrar</Link>
@@ -108,9 +108,9 @@ export default async function ConfirmEmailPage({ searchParams }: ConfirmEmailPag
     >
       <Card className="space-y-5">
         <div>
-          <CardTitle>Confirmacao de e-mail</CardTitle>
+          <CardTitle>Proteja seu acesso</CardTitle>
           <CardDescription className="mt-2">
-            Estamos protegendo sua conta antes de continuar a jornada.
+            Esta confirmação garante que somente você possa acessar sua jornada.
           </CardDescription>
         </div>
         {emailConfirmationCanContinue(status) ? (

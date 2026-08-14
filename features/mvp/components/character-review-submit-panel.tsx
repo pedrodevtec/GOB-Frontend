@@ -34,7 +34,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
   const submit = useSubmitMvpCharacter(tableId, character.data?.id);
 
   if (campaign.isLoading || resume.isLoading || character.isLoading || config.isLoading) {
-    return <MvpState variant="loading" title="Carregando revisao" />;
+    return <MvpState variant="loading" title="Preparando seu personagem" />;
   }
 
   if (!hasUsableAccessToken(accessToken)) {
@@ -56,8 +56,8 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
     return (
       <MvpState
         variant="access-denied"
-        title="Entre no teste primeiro"
-        description="A submissao exige participacao ativa na campanha."
+        title="Confirme sua participação primeiro"
+        description="Antes de enviar o personagem, conclua as etapas anteriores da sua jornada."
       />
     );
   }
@@ -66,8 +66,8 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
     return (
       <MvpState
         variant="error"
-        title="Revisao indisponivel"
-        description={(character.error as Error)?.message || (config.error as Error)?.message}
+        title="Não foi possível abrir seu personagem"
+        description="Seu trabalho continua guardado. Tente novamente em alguns instantes."
       />
     );
   }
@@ -77,10 +77,10 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
       <MvpState
         variant="empty"
         title="Nenhum personagem encontrado"
-        description="Preencha e salve o Builder antes de submeter."
+        description="Comece a criação e salve suas respostas antes de conferir a ficha."
         actions={[
           {
-            label: "Abrir Builder",
+            label: "Criar meu personagem",
             href: campaignFlowPath(slug, "/personagem"),
             variant: "default"
           }
@@ -113,7 +113,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
         <MvpState
           variant="submitted"
           title="Personagem ja enviado"
-          description={`Revisao ${character.data.submittedRevision ?? character.data.sheetRevision ?? 1} aguardando analise do Mestre.`}
+          description="Sua parte está concluída. Agora o Mestre fará a leitura e poderá aprovar ou pedir ajustes."
         />
       ) : null}
 
@@ -121,7 +121,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
         <MvpState
           variant="success"
           title="Personagem aprovado"
-          description="A ficha aprovada permanece somente leitura neste fluxo."
+          description="A ficha está pronta e pode ser consultada em Meu Personagem."
         />
       ) : null}
 
@@ -147,15 +147,15 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
 
       <Card className="space-y-4">
         <div>
-          <CardTitle>Submissao</CardTitle>
+          <CardTitle>Enviar ao Mestre</CardTitle>
           <CardDescription className="mt-2">
-            Revise a historia e as escolhas de jogo. Depois do envio, o Mestre podera aprovar ou solicitar ajustes.
+            Confira a história e as escolhas do personagem. Depois do envio, o Mestre poderá aprovar ou explicar o que precisa ser ajustado.
           </CardDescription>
         </div>
 
         {validation.missing.length ? (
           <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">
-            <p className="font-semibold text-destructive">Campos pendentes</p>
+            <p className="font-semibold text-destructive">Falta completar</p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-destructive">
               {validation.missing.map((item) => <li key={item}>{item}</li>)}
             </ul>
@@ -168,7 +168,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button asChild variant="outline">
-            <Link href={campaignFlowPath(slug, "/personagem")}>Voltar ao Builder</Link>
+            <Link href={campaignFlowPath(slug, "/personagem")}>Voltar e ajustar</Link>
           </Button>
           <Button type="button" onClick={submitCharacter} disabled={!canSubmit}>
             {submit.isPending

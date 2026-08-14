@@ -34,12 +34,11 @@ export function MyCharacterProfilePanel() {
   }
 
   if (resume.isError || character.isError) {
-    const error = resume.error ?? character.error;
     return (
       <MvpState
         variant="error"
         title="Não foi possível carregar seu personagem"
-        description={(error as Error)?.message}
+        description="Sua ficha continua guardada. Tente novamente em alguns instantes."
         actions={[{ label: "Tentar novamente", onClick: () => void Promise.all([resume.refetch(), character.refetch()]) }]}
       />
     );

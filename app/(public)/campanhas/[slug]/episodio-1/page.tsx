@@ -17,9 +17,9 @@ export default async function EpisodeOnePage({ params }: EpisodeOnePageProps) {
 
   return (
     <MvpFlowShell
-      eyebrow="Episodio 1"
-      title="Conheca o ponto de partida"
-      description="Voce so precisa deste contexto para criar alguem que pertence a Bravantus. Nao precisa conhecer toda a historia."
+      eyebrow="O começo da história"
+      title="Conheça apenas o necessário"
+      description="Este é o ponto de partida para imaginar alguém que pertence a Bravantus. Você não precisa conhecer RPG nem toda a história do mundo."
       actions={
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline">

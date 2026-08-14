@@ -102,7 +102,7 @@ export function MyCharacterReadonlyPanel({
           </div>
           <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
             <p className="font-semibold">{playerSheetStatusLabel(character.sheetStatus)}</p>
-            <p className="text-xs text-muted-foreground">Revisão {valueOrEmpty(character.sheetRevision)}</p>
+            <p className="text-xs text-muted-foreground">{character.editable ? "Você ainda pode ajustar" : "Ficha disponível para consulta"}</p>
           </div>
         </div>
 
@@ -226,7 +226,7 @@ export function MyCharacterReadonlyPanel({
     <Card className="space-y-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div><CardTitle>{character.name || "Personagem sem nome"}</CardTitle><CardDescription className="mt-2">Ficha consolidada para conferência antes do envio.</CardDescription></div>
-        <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm"><p className="font-semibold">{playerSheetStatusLabel(character.sheetStatus)}</p><p className="text-muted-foreground">Revisão {valueOrEmpty(character.sheetRevision)}</p></div>
+        <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm"><p className="font-semibold">{playerSheetStatusLabel(character.sheetStatus)}</p><p className="text-muted-foreground">{character.editable ? "Você ainda pode ajustar" : "Ficha disponível para consulta"}</p></div>
       </div>
       {character.masterFeedback ? <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4"><p className="text-sm font-semibold text-amber-100">Feedback do Mestre</p><p className="mt-2 text-sm leading-6 text-amber-50/80">{character.masterFeedback}</p></div> : null}
       <div className="grid gap-4 lg:grid-cols-2">

@@ -17,7 +17,7 @@ export function Topbar({ mode }: { mode: "participant" | "admin" }) {
     <header className="glass-panel flex flex-col gap-4 rounded-[1.75rem] p-5 md:flex-row md:items-center md:justify-between">
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.32em] text-primary">
-          {mode === "admin" ? "Operação do playtest" : "Playtest Bravantus"}
+          {mode === "admin" ? "Operação do playtest" : "Sua jornada em Bravantus"}
         </p>
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-2">

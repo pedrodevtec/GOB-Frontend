@@ -2,10 +2,10 @@
 
 import { useEffect } from "react";
 
-const googleAdsenseAccount =
-  process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ACCOUNT ?? "ca-pub-1860520355492237";
-const googleAdsenseSlot =
-  process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_SLOT ?? "8419006487";
+const googleAdsenseEnabled =
+  process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ENABLED === "true";
+const googleAdsenseAccount = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ACCOUNT;
+const googleAdsenseSlot = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_SLOT;
 
 declare global {
   interface Window {
@@ -15,7 +15,7 @@ declare global {
 
 export function GoogleAdsenseAd() {
   useEffect(() => {
-    if (!googleAdsenseAccount || !googleAdsenseSlot) {
+    if (!googleAdsenseEnabled || !googleAdsenseAccount || !googleAdsenseSlot) {
       return;
     }
 
@@ -27,7 +27,7 @@ export function GoogleAdsenseAd() {
     }
   }, []);
 
-  if (!googleAdsenseAccount || !googleAdsenseSlot) {
+  if (!googleAdsenseEnabled || !googleAdsenseAccount || !googleAdsenseSlot) {
     return null;
   }
 

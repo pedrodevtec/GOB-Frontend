@@ -16,7 +16,7 @@ export function MyMvpCharacterPanel({ tableId }: { tableId: string }) {
       <MvpState
         variant="error"
         title="Meu personagem indisponivel"
-        description={(character.error as Error)?.message}
+        description="Sua ficha continua guardada. Tente novamente em alguns instantes."
       />
     );
   }
@@ -26,7 +26,7 @@ export function MyMvpCharacterPanel({ tableId }: { tableId: string }) {
       character={character.data}
       tableId={tableId}
       emptyTitle="Voce ainda nao tem personagem neste piloto"
-      emptyDescription="Quando o rascunho for salvo no Builder, a ficha consolidada aparecera aqui em modo somente leitura."
+      emptyDescription="Quando você começar a criação e salvar suas respostas, a ficha aparecerá aqui para consulta."
     />
   );
 }

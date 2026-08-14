@@ -36,8 +36,8 @@ export function RegisterForm() {
       )}
     >
       <div className="space-y-2">
-        <label className="text-sm font-medium">Nome de usuário</label>
-        <Input placeholder="Ex.: bravantus" {...form.register("username")} />
+        <label className="text-sm font-medium">Como quer ser chamado</label>
+        <Input placeholder="Ex.: Pedro" {...form.register("username")} />
         <p className="text-xs text-rose-300">{form.formState.errors.username?.message}</p>
       </div>
       <div className="space-y-2">
@@ -65,9 +65,9 @@ export function RegisterForm() {
         {register.isPending ? "Criando..." : "Criar conta"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
-        Já tem acesso?{" "}
+        Já criou sua conta?{" "}
         <Link href={loginHref} className="text-primary hover:text-primary/80">
-          Fazer login
+          Entrar
         </Link>
       </p>
     </form>

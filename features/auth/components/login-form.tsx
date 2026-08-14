@@ -45,9 +45,9 @@ export function LoginForm() {
         {login.isPending ? "Entrando..." : "Entrar"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
-        Novo no reino?{" "}
+        Ainda não começou?{" "}
         <Link href={registerHref} className="text-primary hover:text-primary/80">
-          Criar conta
+          Começar minha jornada
         </Link>
       </p>
     </form>

@@ -179,7 +179,7 @@ function AiFieldSuggestion({
   if (status === "discarded") {
     return (
       <p className="rounded-lg border border-white/10 bg-black/20 p-3 text-xs text-muted-foreground">
-        Sugestao da IA descartada para este campo.
+        Esta ideia foi descartada e não será usada.
       </p>
     );
   }
@@ -191,7 +191,7 @@ function AiFieldSuggestion({
     >
       <div className="flex items-center gap-2 font-semibold text-primary">
         <Bot className="h-4 w-4" />
-        <span>Sugestao da IA</span>
+        <span>Ideia sugerida</span>
       </div>
       {editing ? (
         <Textarea rows={3} value={draft} onChange={(event) => setDraft(event.target.value)} />
@@ -430,9 +430,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
       setMechanicalProposalError(
         error instanceof ApiRequestError && error.statusCode === 409
           ? "O rascunho mudou enquanto a proposta era preparada. Salve novamente e tente outra vez."
-          : error instanceof Error
-            ? error.message
-            : "A proposta nao ficou disponivel agora. Voce ainda pode montar a ficha manualmente."
+          : "A ajuda não conseguiu preparar uma proposta agora. Você ainda pode montar a ficha manualmente."
       );
     }
   }
@@ -508,7 +506,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
       return saved;
     } catch (error) {
       setSaveStatus("error");
-      setSaveError(error instanceof Error ? error.message : "Falha ao salvar.");
+      setSaveError("Não foi possível guardar as alterações agora. Tente novamente antes de sair desta página.");
       return false;
     } finally {
       saveInFlight.current = false;
@@ -567,7 +565,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   async function requestChapterSuggestions(targetChapter = chapter, revision = character.data?.sheetRevision) {
     if (!editable || status === "SUBMITTED" || status === "APPROVED") return;
     if (!tableId || !character.data?.id || !revision) {
-      setChapterError("Salve o rascunho antes de pedir sugestoes da IA.");
+      setChapterError("Guarde suas respostas antes de pedir novas ideias.");
       return;
     }
     const targetGroups = targetChapter === 1
@@ -611,9 +609,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
       const message =
         error instanceof ApiRequestError && error.statusCode === 409
           ? "Existe uma versao mais recente do personagem. Seus dados locais foram preservados; recarregue ou salve novamente antes de pedir sugestoes."
-          : error instanceof Error
-            ? error.message
-            : "A IA nao conseguiu gerar sugestoes agora.";
+          : "A ajuda criativa não conseguiu trazer sugestões agora. Você pode continuar normalmente ou tentar outra vez.";
       setChapterError(message);
     } finally {
       setLoadingChapter(null);
@@ -684,7 +680,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   }
 
   if (campaign.isLoading || resume.isLoading || character.isLoading || config.isLoading) {
-    return <MvpState variant="loading" title="Carregando builder" />;
+    return <MvpState variant="loading" title="Abrindo sua criação" />;
   }
 
   if (!hasUsableAccessToken(accessToken)) {
@@ -706,9 +702,9 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     return (
       <MvpState
         variant="access-denied"
-        title="Entre no teste primeiro"
-        description="A criacao do personagem exige participacao ativa na campanha."
-        actions={[{ label: "Validar participacao", href: campaignFlowPath(slug, "/entrada") }]}
+        title="Confirme sua participação primeiro"
+        description="Antes de criar o personagem, conclua as etapas anteriores da sua jornada."
+        actions={[{ label: "Continuar minha jornada", href: campaignFlowPath(slug, "/entrada") }]}
       />
     );
   }
@@ -717,8 +713,8 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     return (
       <MvpState
         variant="error"
-        title="Builder indisponivel"
-        description={(character.error as Error)?.message || (config.error as Error)?.message}
+        title="Não foi possível abrir sua criação"
+        description="Seu rascunho continua guardado. Tente novamente em alguns instantes."
       />
     );
   }
@@ -744,35 +740,31 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           <div>
             <CardTitle>Crie seu personagem</CardTitle>
             <CardDescription className="mt-2">
-              A IA sugere. O Mestre decide. O jogador personaliza. A plataforma registra.
+              Conte sua ideia com liberdade. Peça ajuda quando quiser e confirme cada escolha antes de continuar.
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={() => setAssistantOpen(true)} disabled={readOnly}>
               <MessageCircle className="mr-2 h-4 w-4" />
-              IA
+              Ajuda criativa
             </Button>
             <Button asChild variant="outline">
-              <Link href={campaignFlowPath(slug, "/personagem/revisao")}>Revisao</Link>
+              <Link href={campaignFlowPath(slug, "/personagem/revisao")}>Ver ficha completa</Link>
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <p className="text-xs uppercase tracking-wide text-primary">Estado</p>
+            <p className="text-xs uppercase tracking-wide text-primary">Seu personagem</p>
             <p className="mt-1 font-semibold">{playerSheetStatusLabel(status)}</p>
           </div>
           <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <p className="text-xs uppercase tracking-wide text-primary">Revisao</p>
-            <p className="mt-1 font-semibold">{character.data?.sheetRevision ?? 0}</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <p className="text-xs uppercase tracking-wide text-primary">Proxima acao</p>
+            <p className="text-xs uppercase tracking-wide text-primary">O que fazer agora</p>
             <p className="mt-1 font-semibold">{playerNextActionLabel(character.data?.nextAction)}</p>
           </div>
           <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <p className="text-xs uppercase tracking-wide text-primary">Salvamento</p>
+            <p className="text-xs uppercase tracking-wide text-primary">Suas alterações</p>
             <p className="mt-1 font-semibold">
               {saveStatus === "saving"
                 ? "Salvando..."
@@ -781,8 +773,8 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   : saveStatus === "error"
                     ? "Erro"
                     : dirty
-                      ? "Alteracoes locais"
-                      : "Sem alteracoes"}
+                      ? "Ainda não salvas"
+                      : "Tudo salvo"}
             </p>
           </div>
         </div>
@@ -799,10 +791,10 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
             <span>
               <span className="flex items-center gap-2 font-medium">
                 <Sparkles className="h-4 w-4 text-primary" />
-                Receber sugestoes da IA ao avancar
+                Receber ajuda ao avançar
               </span>
               <span className="mt-1 block text-muted-foreground">
-                A IA sugere apenas para campos vazios do proximo capitulo, depois do salvamento confirmado.
+                A ajuda completa apenas os espaços vazios da próxima etapa. Você poderá aceitar, editar ou descartar cada ideia.
               </span>
             </span>
           </label>
@@ -814,7 +806,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
             aria-busy={loadingChapter === chapter}
           >
             <Bot className="mr-2 h-4 w-4" />
-            {loadingChapter === chapter ? "Pedindo ajuda..." : "Pedir ajuda neste capitulo"}
+            {loadingChapter === chapter ? "Buscando ideias..." : "Pedir ajuda nesta etapa"}
           </Button> : null}
         </div> : null}
 
@@ -933,7 +925,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           {chapter === 1 ? (
             <Section
               title="2. Confirme quem entendemos que ele e"
-              description="Revise os campos. A IA pode sugerir, mas somente o que voce confirmar fara parte do personagem."
+              description="Confira se entendemos sua ideia. Somente o que você confirmar fará parte do personagem."
             >
               <div className="space-y-6">
                 <ConfirmationBlock
@@ -971,7 +963,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           ) : null}
 
           {chapter === 2 ? (
-            <Section title="3. Veja a ficha que combina com sua historia" description="Escolha uma intencao de jogo. Depois, a IA transforma somente o que voce confirmou em uma proposta que pode ser usada, editada ou descartada.">
+            <Section title="3. Veja a ficha que combina com sua história" description="Escolha como gostaria de agir na aventura. Depois, a ajuda criativa transforma somente o que você confirmou em uma proposta que pode ser usada, editada ou descartada.">
               <div className="space-y-2">
                 <p className="font-semibold">Como voce gostaria de agir durante a aventura?</p>
                 <p className="text-sm text-muted-foreground">Essa escolha orienta a proposta, mas nunca limita seu personagem.</p>
@@ -997,7 +989,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
               <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
                 <div>
                   <p className="font-semibold">Montar uma proposta a partir da sua historia</p>
-                  <p className="mt-1 text-sm text-muted-foreground">A IA sugere arquetipo, atributos, Traits, treinamentos e equipamentos. Nada entra na ficha sem sua validacao.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Você receberá uma sugestão de estilo, capacidades, características, treinamentos e equipamentos. Nada entra na ficha sem sua confirmação.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                 <Button type="button" onClick={() => void requestMechanicalProposal()} disabled={readOnly || generateMechanicalProposal.isPending || saveStatus === "saving"}>
@@ -1068,7 +1060,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
               {mechanicsEditorOpen ? <>
               <div className="grid gap-4 lg:grid-cols-2">
                 <label className={fieldLabelClass(validation.errors.archetypeKey)}>
-                  <span className="text-sm font-medium">Arquetipo</span>
+                  <span className="text-sm font-medium">Estilo do personagem</span>
                   <select
                     value={form.archetypeKey}
                     onChange={(event) => update("archetypeKey", event.target.value)}
@@ -1083,7 +1075,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   {validation.errors.archetypeKey ? <span className="text-xs text-destructive">{validation.errors.archetypeKey}</span> : null}
                 </label>
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-sm font-medium">Recursos derivados</p>
+                  <p className="text-sm font-medium">Recursos do personagem</p>
                   <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
                     <div><p className="text-muted-foreground">PV</p><p className="font-semibold">{backendResources.pv ?? preview.pv}</p></div>
                     <div><p className="text-muted-foreground">Energia</p><p className="font-semibold">{backendResources.energy ?? preview.energy}</p></div>
@@ -1243,7 +1235,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   Sugestoes nao sao canon e nunca alteram a ficha sem confirmacao.
                 </CardDescription>
               </div>
-              <Button type="button" variant="ghost" size="icon" onClick={() => setAssistantOpen(false)} aria-label="Fechar IA">
+              <Button type="button" variant="ghost" size="icon" onClick={() => setAssistantOpen(false)} aria-label="Fechar ajuda criativa">
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -1270,7 +1262,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
               {generateAi.isPending ? "Gerando..." : "Gerar sugestoes"}
             </Button>
             {generateAi.isError ? (
-              <p className="text-sm text-muted-foreground">IA indisponivel no momento. O Builder continua funcional.</p>
+              <p className="text-sm text-muted-foreground">A ajuda criativa não está disponível agora. Você pode continuar preenchendo tudo normalmente.</p>
             ) : null}
             {suggestions.length ? (
               <div className="max-h-80 space-y-3 overflow-y-auto pr-1">

@@ -13,26 +13,26 @@ export default async function PublicCampaignPage({ params }: CampaignPageProps) 
 
   return (
     <MvpFlowShell
-      eyebrow="Piloto de criacao de personagem"
-      title="Entre no mundo de Bravantus"
-      description="Conheca o contexto do Episodio 1, crie seu personagem e prepare sua entrada na historia. Durante a jornada, voce podera receber sugestoes da IA, revisar cada escolha e decidir o que fara parte da sua ficha."
+      eyebrow="Seu chamado começa aqui"
+      title="Crie seu lugar em Bravantus"
+      description="Conheça o começo da história, imagine seu personagem e escolha o que realmente combina com ele. Você terá ajuda quando quiser e controle sobre cada decisão."
       actions={<CampaignAuthActions slug={slug} />}
       aside={
         <div className="space-y-5">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-primary">
-              Sua jornada no piloto
+              O que vai acontecer
             </p>
-            <CardTitle className="mt-2 text-2xl">Prepare seu personagem</CardTitle>
+            <CardTitle className="mt-2 text-2xl">Um caminho simples e guiado</CardTitle>
             <CardDescription className="mt-2">
-              A IA sugere. Voce decide. A plataforma registra suas escolhas.
+              Você cria. A ajuda criativa sugere. O Mestre acompanha.
             </CardDescription>
           </div>
           <MvpStepList
             steps={[
-              { id: "proposal", label: "Conheca Bravantus e o contexto publico do Episodio 1.", status: "current" },
-              { id: "builder", label: "Crie seu personagem com orientacao opcional da IA." },
-              { id: "review", label: "Revise suas escolhas, envie a ficha e compartilhe sua experiencia." }
+              { id: "proposal", label: "Confirme sua participação e conheça Bravantus.", status: "current" },
+              { id: "builder", label: "Conte sua história e receba ajuda apenas se quiser." },
+              { id: "review", label: "Confira tudo, envie ao Mestre e receba sua carta." }
             ]}
           />
         </div>

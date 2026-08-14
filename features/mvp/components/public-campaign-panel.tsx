@@ -23,6 +23,34 @@ function statusCode(error: unknown) {
     : undefined;
 }
 
+function journeyMessage(state?: string) {
+  switch (state) {
+    case "CONSENT_REQUIRED":
+      return "Leia as informações de participação e confirme para continuar.";
+    case "JOIN_REQUIRED":
+      return "Confirme sua entrada para conhecer o ponto de partida da história.";
+    case "CONTEXT_REQUIRED":
+      return "Conheça o começo da história antes de criar seu personagem.";
+    case "CHARACTER_DRAFT":
+      return "Continue criando seu personagem de onde parou.";
+    case "CHANGES_REQUIRED":
+    case "COMPLETED_CHANGES_REQUIRED":
+      return "O Mestre deixou orientações. Confira e ajuste seu personagem.";
+    case "SURVEY_REQUIRED":
+      return "Seu personagem foi enviado. Agora conte como foi a experiência.";
+    case "COMPLETED_PENDING_REVIEW":
+      return "Sua parte está concluída. O personagem aguarda a avaliação do Mestre.";
+    case "COMPLETED_APPROVED":
+      return "Seu personagem foi aprovado e está pronto para a aventura.";
+    case "LEGACY_REVIEW":
+      return "Este personagem precisa ser atualizado antes de continuar.";
+    case "BLOCKED":
+      return "Esta etapa precisa de ajuda da equipe antes que você possa continuar.";
+    default:
+      return "Continue exatamente do ponto em que parou.";
+  }
+}
+
 export function PublicCampaignPanel({ slug }: { slug: string }) {
   const accessToken = useAuthStore((state) => state.accessToken);
   const hydrated = useAuthStore((state) => state.hydrated);
@@ -37,21 +65,21 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
   const tableId = resume.data?.membership?.tableId;
   const character = useMyMvpCharacter(tableId);
 
-  if (campaign.isLoading) return <MvpState variant="loading" title="Carregando campanha" />;
+  if (campaign.isLoading) return <MvpState variant="loading" title="Preparando Bravantus" />;
 
   if (campaign.isError) {
     return (
       <MvpState
         variant="error"
-        title="Campanha inexistente ou indisponivel"
-        description={(campaign.error as Error).message}
+        title="Não foi possível abrir esta jornada"
+        description="Tente novamente. Se o problema continuar, volte mais tarde."
         actions={[{ label: "Tentar novamente", onClick: () => void campaign.refetch() }]}
       />
     );
   }
 
   const data = campaign.data;
-  if (!data) return <MvpState variant="empty" title="Campanha nao encontrada" />;
+  if (!data) return <MvpState variant="empty" title="Esta jornada não está disponível" />;
 
   const isDraft = data.status === "DRAFT";
   const isClosed = data.status === "CLOSED";
@@ -91,7 +119,7 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
       ? "Ver meu personagem"
       : isAuthenticated && journeyStarted
         ? "Continuar minha jornada"
-        : "Participar do piloto",
+        : "Começar minha jornada",
     href: journeyCompleted
       ? "/meu-personagem"
       : isAuthenticated
@@ -114,7 +142,7 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
           <div>
             <CardTitle>{data.title}</CardTitle>
             <CardDescription className="mt-2">{data.description}</CardDescription>
-            <p className="mt-3 text-sm font-medium text-primary">A IA sugere. Você decide. A plataforma registra suas escolhas.</p>
+            <p className="mt-3 text-sm font-medium text-primary">A ajuda criativa sugere. Você confirma. O Mestre acompanha.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
@@ -129,13 +157,13 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
         {isDraft ? (
           <MvpState
             variant="empty"
-            title="Campanha ainda nao iniciada"
-            description="O piloto ainda nao esta aberto para participacao."
+            title="Esta jornada ainda não começou"
+            description="As inscrições serão liberadas quando tudo estiver pronto."
           />
         ) : isClosed ? (
           <MvpState
             variant="campaign-closed"
-            description="Esta campanha foi encerrada e nao permite nova entrada."
+            description="Esta jornada foi encerrada e não recebe novas participações."
           />
         ) : isFull ? (
           <MvpState
@@ -147,13 +175,13 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
           <MvpState
             variant="loading"
             title="Verificando sessao"
-            description="Estamos restaurando sua sessao antes de mostrar as acoes da campanha."
+            description="Aguarde um instante enquanto preparamos sua jornada."
           />
         ) : isAuthenticated && resume.isLoading ? (
           <MvpState
             variant="loading"
             title="Carregando sua jornada"
-            description="Estamos consultando a etapa registrada para esta campanha."
+            description="Estamos abrindo o ponto em que você parou."
           />
         ) : isAuthenticated && resume.isError && resumeStatus === 401 ? (
           <MvpState
@@ -170,7 +198,7 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
           <MvpState
             variant="error"
             title="Nao foi possivel carregar sua jornada"
-            description={(resume.error as Error).message}
+            description="Seu progresso continua guardado. Tente novamente em alguns instantes."
             actions={[{ label: "Tentar novamente", onClick: () => void resume.refetch() }]}
           />
         ) : character.isLoading ? (
@@ -187,17 +215,12 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
                 ? "Personagem enviado"
                 : journeyStarted
                   ? journeyCompleted ? "Jornada concluída" : "Jornada já iniciada"
-                  : "Piloto disponível"
+                  : "Jornada disponível"
             }
             description={
-              (typeof resume.data?.nextRecommendedAction?.description === "string"
-                ? resume.data.nextRecommendedAction.description
-                : undefined) ??
-              (isSubmitted
-                ? "Sua ficha foi enviada. Continue para a próxima etapa."
-                : journeyStarted
-                  ? "Continue exatamente do ponto em que parou."
-                  : "Entre no piloto para conhecer o contexto público e criar seu personagem.")
+              journeyStarted
+                ? journeyMessage(resume.data?.journeyState)
+                : "Entre em Bravantus, conheça o começo da história e crie seu personagem."
             }
             actions={secondaryAction ? [primaryAction, secondaryAction] : [primaryAction]}
           />
@@ -233,19 +256,19 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
         <Card className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-primary">Entrada</p>
           <CardTitle>{data.table?.name ?? "Não informada"}</CardTitle>
-          <CardDescription>Sua mesa para esta experiência.</CardDescription>
+          <CardDescription>O grupo que viverá esta experiência com você.</CardDescription>
         </Card>
         <Card className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-primary">Vagas</p>
           <CardTitle>
             {data.table?.seats?.activeMembers ?? "-"} / {data.table?.seats?.maxPlayers ?? "-"}
           </CardTitle>
-          <CardDescription>Participantes confirmados e limite da mesa.</CardDescription>
+          <CardDescription>Pessoas confirmadas e lugares disponíveis.</CardDescription>
         </Card>
         <Card className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-primary">Criação</p>
           <CardTitle>Personagem guiado</CardTitle>
-          <CardDescription>Conte sua história e receba ajuda opcional da IA.</CardDescription>
+          <CardDescription>Conte sua história e peça ajuda criativa somente quando quiser.</CardDescription>
         </Card>
       </div>
       )}
@@ -256,7 +279,7 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
 
       {data.world ? (
         <details className="glass-panel section-grid rounded-2xl p-5 shadow-panel">
-          <summary className="cursor-pointer list-none"><p className="text-xs uppercase tracking-wide text-primary">Contexto do piloto</p><CardTitle className="mt-2 text-lg">{data.world.title ?? "Guardian of Bravantus"}</CardTitle><CardDescription className="mt-1">Abra para relembrar o cenário do Episódio 1.</CardDescription></summary>
+          <summary className="cursor-pointer list-none"><p className="text-xs uppercase tracking-wide text-primary">O começo da história</p><CardTitle className="mt-2 text-lg">{data.world.title ?? "Guardian of Bravantus"}</CardTitle><CardDescription className="mt-1">Abra quando quiser relembrar o mundo e a situação inicial.</CardDescription></summary>
           <div className="mt-4 border-t border-white/10 pt-4"><CardDescription>{data.world.summary}</CardDescription>{data.world.tone ? <p className="mt-2 text-sm text-muted-foreground">Tom: {data.world.tone}</p> : null}</div>
         </details>
       ) : null}

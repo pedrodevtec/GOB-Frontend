@@ -51,7 +51,7 @@ export function JourneyRouteGuard({
       <MvpState
         variant="error"
         title="Não foi possível retomar sua jornada"
-        description={(resume.error as Error).message}
+        description="Seu progresso continua guardado. Tente novamente em alguns instantes."
         actions={[{ label: "Tentar novamente", onClick: () => void resume.refetch() }]}
       />
     );

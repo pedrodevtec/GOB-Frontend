@@ -49,7 +49,7 @@ export function EmailConfirmationClient({
       <MvpState
         variant="error"
         title="Nao foi possivel confirmar"
-        description={(confirm.error as Error).message}
+        description="O link pode ter perdido a validade. Peça um novo envio para continuar."
         actions={[
           { label: "Solicitar reenvio", href: "/confirmar-email/reenvio", variant: "outline" },
           { label: "Voltar ao login", href: "/login", variant: "ghost" }
@@ -113,7 +113,7 @@ export function ResendEmailClient({ returnTo }: { returnTo: string }) {
         <MvpState variant="success" title="Solicitacao enviada" description={resend.data.message} />
       ) : null}
       {resend.isError ? (
-        <MvpState variant="error" title="Falha no reenvio" description={(resend.error as Error).message} />
+        <MvpState variant="error" title="Não foi possível enviar outro link" description="Confira o e-mail informado e tente novamente em alguns instantes." />
       ) : null}
     </form>
   );

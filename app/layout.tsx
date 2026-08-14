@@ -8,14 +8,16 @@ import { getSiteUrl } from "@/lib/seo/site-url";
 
 const googleTagManagerId = "GTM-KMNCWCDF";
 const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
-const googleAdsenseAccount =
-  process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ACCOUNT ?? "ca-pub-1860520355492237";
+const googleAdsenseEnabled =
+  process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ENABLED === "true";
+const googleAdsenseAccount = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ACCOUNT;
 const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
-  title: `${appConfig.appName} | RPG Dashboard`,
-  description: "Frontend do web game RPG em Next.js.",
+  title: `${appConfig.appName} | Crie seu personagem`,
+  description:
+    "Conheça Bravantus, crie seu personagem e participe de uma história guiada pelo Mestre.",
   icons: {
     icon: [
       {
@@ -30,9 +32,10 @@ export const metadata: Metadata = {
         google: googleSiteVerification
       }
     : undefined,
-  other: {
-    "google-adsense-account": googleAdsenseAccount
-  }
+  other:
+    googleAdsenseEnabled && googleAdsenseAccount
+      ? { "google-adsense-account": googleAdsenseAccount }
+      : undefined
 };
 
 export default function RootLayout({
@@ -67,7 +70,7 @@ export default function RootLayout({
             </Script>
           </>
         ) : null}
-        {googleAdsenseAccount ? (
+        {googleAdsenseEnabled && googleAdsenseAccount ? (
           <Script
             id="google-adsense"
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${googleAdsenseAccount}`}
