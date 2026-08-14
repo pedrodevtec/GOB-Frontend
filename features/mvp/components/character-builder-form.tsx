@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bot, CheckCircle2, MessageCircle, RotateCcw, Sparkles, X } from "lucide-react";
+import { ArrowRight, Bot, CheckCircle2, RotateCcw, Sparkles } from "lucide-react";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -28,24 +28,17 @@ import {
   useBuilderConfig,
   useCampaignResume,
   useDecideChapterSuggestion,
-  useDecidePlayerAiSuggestion,
   useGenerateChapterSuggestions,
   useGenerateMechanicalProposal,
-  useGeneratePlayerAiSuggestion,
   useMyMvpCharacter,
   usePublicCampaign,
   useSaveMvpCharacter
 } from "@/features/mvp/hooks/use-mvp";
-import type {
-  CharacterChapterSuggestionResponse,
-  CharacterMechanicalProposal,
-  PlayerAiSuggestion
-} from "@/features/mvp/types";
+import type { CharacterChapterSuggestionResponse, CharacterMechanicalProposal } from "@/features/mvp/types";
 import type { CharacterAiSuggestion } from "@/features/mvp/types";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { ApiRequestError } from "@/lib/api/errors";
 import { authPathWithReturnTo } from "@/lib/routing/auth-redirects";
-import { playerNextActionLabel, playerSheetStatusLabel } from "@/lib/campaign/player-journey";
 import { useAuthStore } from "@/stores/auth-store";
 
 const chapters = [
@@ -393,11 +386,6 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const [dirty, setDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState("");
-  const [selectedAiField, setSelectedAiField] = useState("Conceito");
-  const [aiInstruction, setAiInstruction] = useState("");
-  const [assistantOpen, setAssistantOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<PlayerAiSuggestion[]>([]);
-  const [editedSuggestions, setEditedSuggestions] = useState<Record<string, string>>({});
   const [suggestionsByField, setSuggestionsByField] = useState<Record<string, CharacterAiSuggestion[]>>({});
   const [suggestionStatusById, setSuggestionStatusById] = useState<Record<string, SuggestionStatus>>({});
   const [previousValueByField, setPreviousValueByField] = useState<Record<string, string>>({});
@@ -414,10 +402,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     Partial<Record<MechanicalBlock, "applied" | "discarded">>
   >({});
   const [aiPendingConfirmation, setAiPendingConfirmation] = useState(false);
-  const [autoSuggestionsEnabled, setAutoSuggestionsEnabled] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(autoSuggestionPreferenceKey) === "true";
-  });
+  const [autoSuggestionsEnabled, setAutoSuggestionsEnabled] = useState(true);
   const saveInFlight = useRef(false);
   const loadedKey = useRef("");
 
@@ -432,8 +417,6 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const generateChapterSuggestions = useGenerateChapterSuggestions(tableId, character.data?.id);
   const generateMechanicalProposal = useGenerateMechanicalProposal(tableId, character.data?.id);
   const decideChapterSuggestion = useDecideChapterSuggestion(tableId, character.data?.id);
-  const generateAi = useGeneratePlayerAiSuggestion(tableId);
-  const decideAi = useDecidePlayerAiSuggestion(tableId);
 
   const editable = character.data ? character.data.editable === true : true;
   const status = character.data?.sheetStatus ?? "WORKFLOW_UNAVAILABLE";
@@ -453,6 +436,13 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const preview = previewDerivedResources(form);
   const backendResources = backendDerivedResources(character.data);
   const attributeTotal = ATTRIBUTE_KEYS.reduce((sum, key) => sum + form.attributes[key], 0);
+
+  useEffect(() => {
+    const storedPreference = window.localStorage.getItem(autoSuggestionPreferenceKey);
+    if (storedPreference !== null) {
+      setAutoSuggestionsEnabled(storedPreference === "true");
+    }
+  }, []);
 
   useEffect(() => {
     const key = `${character.data?.id ?? "new"}:${character.data?.sheetRevision ?? 0}:${character.data?.sheetStatus ?? ""}`;
@@ -654,8 +644,6 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     setAttemptedAdvanceChapter(null);
     setChapterError("");
     setMechanicalProposalError("");
-    setSuggestions([]);
-    setAiInstruction("");
   }
 
   function emptyTargetFieldsForChapter(targetChapter: number) {
@@ -871,79 +859,12 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   return (
     <>
       <Card className="space-y-5" aria-busy={saveStatus === "saving"}>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <CardTitle>Crie seu personagem</CardTitle>
-            <CardDescription className="mt-2">
-              Conte sua ideia com liberdade. Peça ajuda quando quiser e confirme cada escolha antes de continuar.
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => setAssistantOpen(true)} disabled={readOnly}>
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Ajuda criativa
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={campaignFlowPath(slug, "/personagem/revisao")}>Ver ficha completa</Link>
-            </Button>
-          </div>
+        <div>
+          <CardTitle>Crie seu personagem</CardTitle>
+          <CardDescription className="mt-2 max-w-3xl">
+            Conte sua ideia com liberdade e confirme cada escolha antes de continuar.
+          </CardDescription>
         </div>
-
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <p className="text-xs uppercase tracking-wide text-primary">Seu personagem</p>
-            <p className="mt-1 font-semibold">{playerSheetStatusLabel(status)}</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <p className="text-xs uppercase tracking-wide text-primary">O que fazer agora</p>
-            <p className="mt-1 font-semibold">{playerNextActionLabel(character.data?.nextAction)}</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <p className="text-xs uppercase tracking-wide text-primary">Suas alterações</p>
-            <p className="mt-1 font-semibold">
-              {saveStatus === "saving"
-                ? "Salvando..."
-                : saveStatus === "saved"
-                  ? "Salvo"
-                  : saveStatus === "error"
-                    ? "Erro"
-                    : dirty
-                      ? "Ainda não salvas"
-                      : "Tudo salvo"}
-            </p>
-          </div>
-        </div>
-
-        {chapter <= 1 ? <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <label className="flex items-start gap-3 text-sm">
-            <input
-              type="checkbox"
-              checked={autoSuggestionsEnabled}
-              onChange={(event) => setAutoSuggestions(event.target.checked)}
-              disabled={readOnly}
-              className="mt-1 h-4 w-4"
-            />
-            <span>
-              <span className="flex items-center gap-2 font-medium">
-                <Sparkles className="h-4 w-4 text-primary" />
-                Receber ajuda ao avançar
-              </span>
-              <span className="mt-1 block text-muted-foreground">
-                A ajuda completa apenas os espaços vazios da próxima etapa. Você poderá aceitar, editar ou descartar cada ideia.
-              </span>
-            </span>
-          </label>
-          {chapter === 1 ? <Button
-            type="button"
-            variant="outline"
-            onClick={() => void requestChapterSuggestions(chapter, character.data?.sheetRevision, true)}
-            disabled={readOnly || loadingChapter !== null}
-            aria-busy={loadingChapter === chapter}
-          >
-            <Bot className="mr-2 h-4 w-4" />
-            {loadingChapter === chapter ? "Lendo sua história..." : "Refazer a leitura da história"}
-          </Button> : null}
-        </div> : null}
 
         {chapterError ? (
           <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-50/90">
@@ -1317,8 +1238,8 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Trait positiva" value={form.positiveTrait} onChange={(value) => update("positiveTrait", value)} disabled={readOnly} error={validation.errors.positiveTrait} onFocus={() => setSelectedAiField("positiveTrait")} suggestion={suggestionNode("positiveTrait")} />
-                <Field label="Trait negativa" value={form.negativeTrait} onChange={(value) => update("negativeTrait", value)} disabled={readOnly} error={validation.errors.negativeTrait} onFocus={() => setSelectedAiField("negativeTrait")} suggestion={suggestionNode("negativeTrait")} />
+                <Field label="Trait positiva" value={form.positiveTrait} onChange={(value) => update("positiveTrait", value)} disabled={readOnly} error={validation.errors.positiveTrait} suggestion={suggestionNode("positiveTrait")} />
+                <Field label="Trait negativa" value={form.negativeTrait} onChange={(value) => update("negativeTrait", value)} disabled={readOnly} error={validation.errors.negativeTrait} suggestion={suggestionNode("negativeTrait")} />
               </div>
 
               <div className="space-y-3">
@@ -1386,8 +1307,44 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
 
         {saveError ? <p className="text-sm text-destructive">{saveError}</p> : null}
 
-        <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-xl border border-white/15 bg-slate-950/95 p-3 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2">
+        <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-xl border border-white/15 bg-slate-950/95 p-3 shadow-2xl backdrop-blur">
+          {chapter <= 1 ? (
+            <div className="flex flex-col gap-3 border-b border-white/10 pb-3 sm:flex-row sm:items-center sm:justify-between">
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={autoSuggestionsEnabled}
+                  onChange={(event) => setAutoSuggestions(event.target.checked)}
+                  disabled={readOnly}
+                  className="mt-1 h-4 w-4"
+                />
+                <span>
+                  <span className="flex items-center gap-2 font-medium">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Receber ajuda ao continuar
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Você decide se quer usar, editar ou descartar cada ideia.
+                  </span>
+                </span>
+              </label>
+              {chapter === 1 ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void requestChapterSuggestions(chapter, character.data?.sheetRevision, true)}
+                  disabled={readOnly || loadingChapter !== null}
+                  aria-busy={loadingChapter === chapter}
+                >
+                  <Bot className="mr-2 h-4 w-4" />
+                  {loadingChapter === chapter ? "Lendo sua história..." : "Ler minha história novamente"}
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" disabled={chapter === 0} onClick={() => void goToChapter(chapter - 1)}>
               Voltar
             </Button>
@@ -1404,112 +1361,13 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                 </Link>
               </Button>
             )}
+            </div>
+            <Button type="button" variant="outline" onClick={() => void saveDraft("manual")} disabled={readOnly || saveStatus === "saving"}>
+              {saveStatus === "saving" ? "Salvando..." : "Salvar agora"}
+            </Button>
           </div>
-          <Button type="button" variant="outline" onClick={() => void saveDraft("manual")} disabled={readOnly || saveStatus === "saving"}>
-            {saveStatus === "saving" ? "Salvando..." : "Salvar agora"}
-          </Button>
         </div>
       </Card>
-
-      {assistantOpen ? (
-        <div className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] max-w-md">
-          <Card className="space-y-4 border-primary/30 bg-slate-950/95 shadow-2xl">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-primary">Ajuda opcional</p>
-                <CardTitle className="mt-1 text-lg">Pensar em outra possibilidade</CardTitle>
-                <CardDescription className="mt-1">
-                  Sugestoes nao sao canon e nunca alteram a ficha sem confirmacao.
-                </CardDescription>
-              </div>
-              <Button type="button" variant="ghost" size="icon" onClick={() => setAssistantOpen(false)} aria-label="Fechar ajuda criativa">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <Textarea
-              rows={3}
-              value={aiInstruction}
-              onChange={(event) => setAiInstruction(event.target.value)}
-              placeholder="Peca uma sugestao curta para o campo selecionado."
-            />
-            <Button
-              type="button"
-              disabled={!aiInstruction.trim() || generateAi.isPending}
-              onClick={() =>
-                generateAi.mutate(
-                  {
-                    useCase: "PLAYER_CHARACTER_CREATION",
-                    characterId: character.data?.id,
-                    instruction: `Campo alvo: ${selectedAiField}\nPedido do jogador: ${aiInstruction.trim()}\nResponda com no maximo tres sugestoes, sem segredos do Mestre e sem tornar a sugestao canon.`
-                  },
-                  { onSuccess: (items) => setSuggestions(items.slice(0, 3)) }
-                )
-              }
-            >
-              {generateAi.isPending ? "Gerando..." : "Gerar sugestoes"}
-            </Button>
-            {generateAi.isError ? (
-              <p className="text-sm text-muted-foreground">A ajuda criativa não está disponível agora. Você pode continuar preenchendo tudo normalmente.</p>
-            ) : null}
-            {suggestions.length ? (
-              <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
-                {suggestions.map((suggestion) => {
-                  const edited = editedSuggestions[suggestion.id] ?? suggestion.suggestion;
-                  const target = suggestion.targetField ?? selectedAiField;
-                  return (
-                    <div key={suggestion.id} className="space-y-3 rounded-xl border border-white/10 bg-black/30 p-3">
-                      <p className="text-xs uppercase tracking-wide text-primary">{target}</p>
-                      <p className="text-sm leading-6 text-muted-foreground">{suggestion.suggestion}</p>
-                      <Textarea
-                        rows={3}
-                        value={edited}
-                        onChange={(event) =>
-                          setEditedSuggestions((current) => ({
-                            ...current,
-                            [suggestion.id]: event.target.value
-                          }))
-                        }
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => {
-                            decideAi.mutate({ suggestionId: suggestion.id, decision: "ACCEPTED" });
-                          }}
-                          disabled={decideAi.isPending}
-                        >
-                          Aceitar referencia
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            decideAi.mutate({ suggestionId: suggestion.id, decision: "EDITED", editedSuggestion: edited });
-                          }}
-                          disabled={decideAi.isPending}
-                        >
-                          Registrar editada
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => decideAi.mutate({ suggestionId: suggestion.id, decision: "DISCARDED" })}
-                          disabled={decideAi.isPending}
-                        >
-                          Descartar
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-          </Card>
-        </div>
-      ) : null}
     </>
   );
 }
