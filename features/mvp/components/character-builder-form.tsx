@@ -55,6 +55,40 @@ const chapters = [
   { id: "review", title: "Revisao" }
 ] as const;
 
+const narrativeQuestionCopy = {
+  before_mark: {
+    prompt: "Quem era essa pessoa antes de receber a Marca?",
+    helper:
+      "Conte de onde veio, como é por fora e qual acontecimento do passado mais a definiu. Escreva do seu jeito, sem organizar em tópicos."
+  },
+  motivation_and_bonds: {
+    prompt: "O que faz essa pessoa continuar?",
+    helper:
+      "Conte o que deseja proteger ou alcançar, quem é importante, qual promessa, culpa ou dever carrega e por que aceitaria agir com outras pessoas."
+  },
+  mark_change: {
+    prompt: "Como a Marca aparece e o que ela provoca?",
+    helper:
+      "Diga onde ela fica, como se manifesta, o que acontece quando reage e como o personagem se sente sobre isso."
+  }
+} as const;
+
+const confirmationFieldKeys: Array<keyof CharacterBuilderFormState> = [
+  "name",
+  "concept",
+  "origin",
+  "appearance",
+  "history",
+  "motivation",
+  "bond",
+  "promiseOrGuilt",
+  "reasonToActWithGroup",
+  "markLocation",
+  "markAppearance",
+  "markReaction",
+  "markAttitude"
+];
+
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 type SuggestionStatus = "pending" | "applying" | "applied" | "discarded" | "error";
 type MechanicalBlock = "archetype" | "attributes" | "traits" | "trainings" | "equipment";
@@ -75,8 +109,11 @@ const apiFieldToFormField: Record<string, keyof CharacterBuilderFormState> = {
   origin: "origin",
   appearance: "appearance",
   desire: "motivation",
+  fear: "guardianSoulsFear",
   narrativeBond: "bond",
   personalHistory: "history",
+  promiseOrGuilt: "promiseOrGuilt",
+  reasonToActWithGroup: "reasonToActWithGroup",
   markLocation: "markLocation",
   markAppearance: "markAppearance",
   markReaction: "markReaction",
@@ -96,8 +133,11 @@ const fieldLabels: Record<string, string> = {
   origin: "origem",
   appearance: "aparencia",
   desire: "motivacao",
+  fear: "medo pessoal",
   narrativeBond: "vinculo",
   personalHistory: "historia",
+  promiseOrGuilt: "promessa, culpa ou dever",
+  reasonToActWithGroup: "motivo para agir com o grupo",
   markLocation: "local da Marca",
   markAppearance: "aparencia da Marca",
   markReaction: "reacao da Marca",
@@ -120,7 +160,8 @@ function Field({
   multiline = false,
   rows = 4,
   onFocus,
-  suggestion
+  suggestion,
+  required = false
 }: {
   label: string;
   value: string;
@@ -131,11 +172,18 @@ function Field({
   rows?: number;
   onFocus?: () => void;
   suggestion?: React.ReactNode;
+  required?: boolean;
 }) {
   const Control = multiline ? Textarea : Input;
+  const missing = required && !value.trim();
   return (
     <label className={fieldLabelClass(error)}>
-      <span className="text-sm font-medium">{label}</span>
+      <span className="flex items-center justify-between gap-2 text-sm font-medium">
+        {label}
+        {missing && !error ? (
+          <span className="text-xs font-normal text-amber-300">Aguardando definição</span>
+        ) : null}
+      </span>
       <Control
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -143,6 +191,7 @@ function Field({
         rows={multiline ? rows : undefined}
         aria-invalid={Boolean(error)}
         onFocus={onFocus}
+        className={missing && !error ? "border-amber-400/30 bg-amber-500/[0.04]" : undefined}
       />
       {error ? <span className="block text-xs text-destructive">{error}</span> : null}
       {suggestion}
@@ -279,9 +328,22 @@ function ConfirmationBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-4 rounded-xl border border-white/10 p-4">
+    <div
+      className={`space-y-4 rounded-xl border p-4 ${
+        confirmed
+          ? "border-emerald-400/25 bg-emerald-400/[0.04]"
+          : error
+            ? "border-amber-400/40 bg-amber-500/[0.05]"
+            : "border-white/10"
+      }`}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h4 className="font-semibold">{title}</h4>
+        <div>
+          <h4 className="font-semibold">{title}</h4>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {confirmed ? "Leitura confirmada por você." : "Confira os campos antes de confirmar este bloco."}
+          </p>
+        </div>
         <Button type="button" size="sm" variant={confirmed ? "default" : "outline"} onClick={onToggle}>
           {confirmed ? "Confirmado" : "Confirmar este bloco"}
         </Button>
@@ -309,6 +371,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const [previousValueByField, setPreviousValueByField] = useState<Record<string, string>>({});
   const [loadingChapter, setLoadingChapter] = useState<number | null>(null);
   const [chapterError, setChapterError] = useState("");
+  const [attemptedAdvanceChapter, setAttemptedAdvanceChapter] = useState<number | null>(null);
   const [lastSuggestionFingerprint, setLastSuggestionFingerprint] = useState("");
   const [mechanicalProposal, setMechanicalProposal] = useState<CharacterMechanicalProposal | null>(null);
   const [mechanicalProposalError, setMechanicalProposalError] = useState("");
@@ -349,6 +412,12 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     character.data?.editable !== true;
   const legacy = legacyReferencesFromDossier(character.data?.creativeDossier);
   const validation = useMemo(() => validateBuilderForm(form, config.data), [form, config.data]);
+  const visibleError = (key: string) =>
+    attemptedAdvanceChapter === chapter ? validation.errors[key] : undefined;
+  const confirmationCompleted = confirmationFieldKeys.filter((key) => {
+    const value = form[key];
+    return typeof value === "string" && value.trim();
+  }).length;
   const preview = previewDerivedResources(form);
   const backendResources = backendDerivedResources(character.data);
   const attributeTotal = ATTRIBUTE_KEYS.reduce((sum, key) => sum + form.attributes[key], 0);
@@ -528,21 +597,29 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
         chapter === 0
           ? Object.values(form.narrativeResponses).every((value) => value.trim())
           : chapter === 1
-            ? form.confirmedBlocks.length === 3 && Boolean(form.name.trim() && form.concept.trim() && form.history.trim() && form.motivation.trim() && form.bond.trim() && form.markAppearance.trim() && form.markAttitude.trim())
+            ? form.confirmedBlocks.length === 3 &&
+              confirmationCompleted === confirmationFieldKeys.length
             : chapter === 2
               ? validation.missing.length === 0
               : true;
       if (!chapterReady) {
+        setAttemptedAdvanceChapter(chapter);
         setChapterError("Complete e confirme este bloco antes de avançar.");
         return;
       }
       const saved = await saveDraft("navigation");
       if (!saved) return;
       if (autoSuggestionsEnabled && next === 1) {
-        await requestChapterSuggestions(next, saved.sheetRevision ?? character.data?.sheetRevision);
+        await requestChapterSuggestions(
+          next,
+          saved.sheetRevision ?? character.data?.sheetRevision,
+          false,
+          saved.id
+        );
       }
     }
     setChapter(next);
+    setAttemptedAdvanceChapter(null);
     setChapterError("");
     setMechanicalProposalError("");
     setSuggestions([]);
@@ -562,38 +639,61 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
       .slice(0, 3);
   }
 
-  async function requestChapterSuggestions(targetChapter = chapter, revision = character.data?.sheetRevision) {
+  async function requestChapterSuggestions(
+    targetChapter = chapter,
+    revision = character.data?.sheetRevision,
+    force = false,
+    savedCharacterId = character.data?.id
+  ) {
     if (!editable || status === "SUBMITTED" || status === "APPROVED") return;
-    if (!tableId || !character.data?.id || !revision) {
+    if (!tableId || !savedCharacterId || !revision) {
       setChapterError("Guarde suas respostas antes de pedir novas ideias.");
       return;
     }
     const targetGroups = targetChapter === 1
       ? [
           ["name", "concept", "personalHistory"],
+          ["origin", "appearance", "promiseOrGuilt"],
           ["desire", "narrativeBond", "reasonToActWithGroup"],
-          ["markAppearance", "markReaction", "markAttitude"]
+          ["fear", "markLocation", "markAppearance"],
+          ["markReaction", "markAttitude"]
         ]
       : [emptyTargetFieldsForChapter(targetChapter)];
-    const nextTargetGroup = targetGroups.find((group) => group.length);
-    if (!nextTargetGroup) {
+    const pendingTargetGroups = targetGroups
+      .map((group) =>
+        group.filter((apiField) => {
+          const formField = apiFieldToFormField[apiField];
+          if (!formField) return false;
+          const value = form[formField];
+          return typeof value === "string" && !value.trim();
+        })
+      )
+      .filter((group) => group.length);
+    if (!pendingTargetGroups.length) {
       setChapterError("Nao ha campos vazios neste capitulo para sugerir agora.");
       return;
     }
-    const fingerprint = `${character.data.id}:${revision}:${targetChapter}:${targetGroups.flat().join(",")}:${JSON.stringify(form.narrativeResponses)}`;
-    if (fingerprint === lastSuggestionFingerprint) return;
+    const fingerprint = `${savedCharacterId}:${revision}:${targetChapter}:${pendingTargetGroups.flat().join(",")}:${JSON.stringify(form.narrativeResponses)}`;
+    if (!force && fingerprint === lastSuggestionFingerprint) return;
     setLoadingChapter(targetChapter);
     setChapterError("");
     try {
       const responses: CharacterChapterSuggestionResponse[] = [];
-      for (const targetFields of [nextTargetGroup]) {
-        responses.push(await generateChapterSuggestions.mutateAsync({
-          targetChapter: "STORY",
-          targetFields,
-          expectedRevision: revision,
-          playerIntent: "Interpretar somente o que o jogador contou. Se faltar informação essencial, fazer no máximo uma pergunta complementar e nunca inventar conteúdo."
-        }));
+      let failedGroups = 0;
+      for (const targetFields of pendingTargetGroups) {
+        try {
+          responses.push(await generateChapterSuggestions.mutateAsync({
+            characterId: savedCharacterId,
+            targetChapter: "STORY",
+            targetFields,
+            expectedRevision: revision,
+            playerIntent: "Interpretar somente o que o jogador contou. Se faltar informação essencial, fazer no máximo uma pergunta complementar e nunca inventar conteúdo."
+          }));
+        } catch {
+          failedGroups += 1;
+        }
       }
+      if (!responses.length) throw new Error("suggestions-unavailable");
       setLastSuggestionFingerprint(fingerprint);
       setSuggestionsByField((current) => {
         const next = { ...current };
@@ -605,6 +705,9 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
       responses.flatMap((response) => response.suggestions).forEach((suggestion) =>
         setSuggestionStatusById((current) => ({ ...current, [suggestion.id]: "pending" }))
       );
+      if (failedGroups) {
+        setChapterError("Conseguimos preparar parte da ficha. Confira as ideias recebidas e complete os campos destacados; você também pode tentar novamente.");
+      }
     } catch (error) {
       const message =
         error instanceof ApiRequestError && error.statusCode === 409
@@ -801,12 +904,12 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           {chapter === 1 ? <Button
             type="button"
             variant="outline"
-            onClick={() => void requestChapterSuggestions(chapter)}
+            onClick={() => void requestChapterSuggestions(chapter, character.data?.sheetRevision, true)}
             disabled={readOnly || loadingChapter !== null}
             aria-busy={loadingChapter === chapter}
           >
             <Bot className="mr-2 h-4 w-4" />
-            {loadingChapter === chapter ? "Buscando ideias..." : "Pedir ajuda nesta etapa"}
+            {loadingChapter === chapter ? "Lendo sua história..." : "Refazer a leitura da história"}
           </Button> : null}
         </div> : null}
 
@@ -900,9 +1003,9 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
             >
               <div className="space-y-5">
                 {(config.data?.narrativeFlow?.questions ?? []).map((question) => (
-                  <label key={question.key} className={fieldLabelClass(validation.errors[`narrativeResponses.${question.key}`])}>
-                    <span className="block font-semibold">{question.prompt}</span>
-                    <span className="block text-sm text-muted-foreground">{question.helper}</span>
+                  <label key={question.key} className={fieldLabelClass(visibleError(`narrativeResponses.${question.key}`))}>
+                    <span className="block font-semibold">{narrativeQuestionCopy[question.key]?.prompt ?? question.prompt}</span>
+                    <span className="block text-sm text-muted-foreground">{narrativeQuestionCopy[question.key]?.helper ?? question.helper}</span>
                     <Textarea
                       rows={6}
                       value={form.narrativeResponses[question.key]}
@@ -911,10 +1014,10 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                         [question.key]: event.target.value
                       })}
                       disabled={readOnly}
-                      aria-invalid={Boolean(validation.errors[`narrativeResponses.${question.key}`])}
+                      aria-invalid={Boolean(visibleError(`narrativeResponses.${question.key}`))}
                     />
-                    {validation.errors[`narrativeResponses.${question.key}`] ? (
-                      <span className="block text-xs text-destructive">{validation.errors[`narrativeResponses.${question.key}`]}</span>
+                    {visibleError(`narrativeResponses.${question.key}`) ? (
+                      <span className="block text-xs text-destructive">{visibleError(`narrativeResponses.${question.key}`)}</span>
                     ) : null}
                   </label>
                 ))}
@@ -924,39 +1027,65 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
 
           {chapter === 1 ? (
             <Section
-              title="2. Confirme quem entendemos que ele e"
-              description="Confira se entendemos sua ideia. Somente o que você confirmar fará parte do personagem."
+              title="2. Confira nossa leitura da sua história"
+              description="Nós organizamos suas três respostas nos campos da ficha. Use as ideias que fizerem sentido, edite o que precisar e confirme cada bloco."
             >
               <div className="space-y-6">
+                <div className="rounded-xl border border-primary/25 bg-primary/[0.07] p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold">Primeira leitura do personagem</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {loadingChapter === 1
+                          ? "Estamos transformando suas respostas em uma ficha para você conferir."
+                          : "Campos vazios ficam destacados até receberem uma definição."}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold text-primary">
+                      {confirmationCompleted} de {confirmationFieldKeys.length} definidos
+                    </p>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${(confirmationCompleted / confirmationFieldKeys.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
                 <ConfirmationBlock
                   title="Identidade"
                   confirmed={form.confirmedBlocks.includes("identity")}
                   onToggle={() => toggleConfirmation("identity")}
-                  error={validation.errors["confirmedBlocks.identity"]}
+                  error={visibleError("confirmedBlocks.identity")}
                 >
-                  <Field label="Nome" value={form.name} onChange={(value) => update("name", value)} disabled={readOnly} error={validation.errors.name} suggestion={suggestionNode("name")} />
-                  <Field label="Conceito em uma frase" value={form.concept} onChange={(value) => update("concept", value)} disabled={readOnly} error={validation.errors.concept} suggestion={suggestionNode("concept")} />
-                  <Field label="Passado importante" value={form.history} onChange={(value) => update("history", value)} disabled={readOnly} error={validation.errors.history} multiline suggestion={suggestionNode("history")} />
+                  <Field required label="Nome" value={form.name} onChange={(value) => update("name", value)} disabled={readOnly} error={visibleError("name")} suggestion={suggestionNode("name")} />
+                  <Field required label="Conceito em uma frase" value={form.concept} onChange={(value) => update("concept", value)} disabled={readOnly} error={visibleError("concept")} suggestion={suggestionNode("concept")} />
+                  <Field required label="De onde veio" value={form.origin} onChange={(value) => update("origin", value)} disabled={readOnly} error={visibleError("origin")} suggestion={suggestionNode("origin")} />
+                  <Field required label="Como é sua aparência" value={form.appearance} onChange={(value) => update("appearance", value)} disabled={readOnly} error={visibleError("appearance")} multiline suggestion={suggestionNode("appearance")} />
+                  <Field required label="Passado que mais o definiu" value={form.history} onChange={(value) => update("history", value)} disabled={readOnly} error={visibleError("history")} multiline suggestion={suggestionNode("history")} />
                 </ConfirmationBlock>
                 <ConfirmationBlock
-                  title="Motivacoes e vinculos"
+                  title="O que o move"
                   confirmed={form.confirmedBlocks.includes("motivations")}
                   onToggle={() => toggleConfirmation("motivations")}
-                  error={validation.errors["confirmedBlocks.motivations"]}
+                  error={visibleError("confirmedBlocks.motivations")}
                 >
-                  <Field label="O que deseja alcancar ou proteger" value={form.motivation} onChange={(value) => update("motivation", value)} disabled={readOnly} error={validation.errors.motivation} multiline suggestion={suggestionNode("motivation")} />
-                  <Field label="Quem ou o que ainda o prende ao mundo" value={form.bond} onChange={(value) => update("bond", value)} disabled={readOnly} error={validation.errors.bond} multiline suggestion={suggestionNode("bond")} />
-                  <Field label="Medo pessoal (opcional)" value={form.guardianSoulsFear} onChange={(value) => update("guardianSoulsFear", value)} disabled={readOnly} multiline />
+                  <Field required label="O que deseja alcançar ou proteger" value={form.motivation} onChange={(value) => update("motivation", value)} disabled={readOnly} error={visibleError("motivation")} multiline suggestion={suggestionNode("motivation")} />
+                  <Field required label="Quem ou o que ainda o liga ao mundo" value={form.bond} onChange={(value) => update("bond", value)} disabled={readOnly} error={visibleError("bond")} multiline suggestion={suggestionNode("bond")} />
+                  <Field required label="Promessa, culpa ou dever que carrega" value={form.promiseOrGuilt} onChange={(value) => update("promiseOrGuilt", value)} disabled={readOnly} error={visibleError("promiseOrGuilt")} multiline suggestion={suggestionNode("promiseOrGuilt")} />
+                  <Field required label="Por que aceitaria agir com o grupo" value={form.reasonToActWithGroup} onChange={(value) => update("reasonToActWithGroup", value)} disabled={readOnly} error={visibleError("reasonToActWithGroup")} multiline suggestion={suggestionNode("reasonToActWithGroup")} />
+                  <Field label="Medo pessoal (opcional)" value={form.guardianSoulsFear} onChange={(value) => update("guardianSoulsFear", value)} disabled={readOnly} multiline suggestion={suggestionNode("guardianSoulsFear")} />
                 </ConfirmationBlock>
                 <ConfirmationBlock
-                  title="Relacao com a Marca"
+                  title="A Marca"
                   confirmed={form.confirmedBlocks.includes("mark")}
                   onToggle={() => toggleConfirmation("mark")}
-                  error={validation.errors["confirmedBlocks.mark"]}
+                  error={visibleError("confirmedBlocks.mark")}
                 >
-                  <Field label="Como a Marca aparece" value={form.markAppearance} onChange={(value) => update("markAppearance", value)} disabled={readOnly} error={validation.errors.markAppearance} multiline suggestion={suggestionNode("markAppearance")} />
-                  <Field label="Como ela reage" value={form.markReaction} onChange={(value) => update("markReaction", value)} disabled={readOnly} multiline suggestion={suggestionNode("markReaction")} />
-                  <Field label="Como o personagem se sente sobre ela" value={form.markAttitude} onChange={(value) => update("markAttitude", value)} disabled={readOnly} error={validation.errors.markAttitude} multiline suggestion={suggestionNode("markAttitude")} />
+                  <Field required label="Onde a Marca fica" value={form.markLocation} onChange={(value) => update("markLocation", value)} disabled={readOnly} error={visibleError("markLocation")} suggestion={suggestionNode("markLocation")} />
+                  <Field required label="Como a Marca aparece" value={form.markAppearance} onChange={(value) => update("markAppearance", value)} disabled={readOnly} error={visibleError("markAppearance")} multiline suggestion={suggestionNode("markAppearance")} />
+                  <Field required label="O que acontece quando ela reage" value={form.markReaction} onChange={(value) => update("markReaction", value)} disabled={readOnly} error={visibleError("markReaction")} multiline suggestion={suggestionNode("markReaction")} />
+                  <Field required label="Como o personagem se sente sobre ela" value={form.markAttitude} onChange={(value) => update("markAttitude", value)} disabled={readOnly} error={visibleError("markAttitude")} multiline suggestion={suggestionNode("markAttitude")} />
                 </ConfirmationBlock>
               </div>
             </Section>

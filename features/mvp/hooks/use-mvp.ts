@@ -174,11 +174,12 @@ export function useDecidePlayerAiSuggestion(tableId?: string) {
 
 export function useGenerateChapterSuggestions(tableId?: string, characterId?: string | null) {
   return useMutation({
-    mutationFn: (input: Parameters<typeof mvpService.getChapterSuggestions>[2]) => {
-      if (!tableId || !characterId) throw new Error("Salve o personagem antes de pedir sugestoes.");
-      return mvpService.getChapterSuggestions(tableId, characterId, input);
-    },
-    onError: (error: Error) => toast.error(error.message)
+    mutationFn: (input: Parameters<typeof mvpService.getChapterSuggestions>[2] & { characterId?: string }) => {
+      const { characterId: savedCharacterId, ...payload } = input;
+      const resolvedCharacterId = savedCharacterId ?? characterId;
+      if (!tableId || !resolvedCharacterId) throw new Error("Salve o personagem antes de pedir sugestoes.");
+      return mvpService.getChapterSuggestions(tableId, resolvedCharacterId, payload);
+    }
   });
 }
 
