@@ -159,7 +159,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
         </Card>
       ) : null}
 
-      <MyCharacterReadonlyPanel character={character.data} archetypeName={archetypeName} layout="tabs" />
+      <MyCharacterReadonlyPanel character={character.data} archetypeName={archetypeName} layout="sheet" />
 
       <Card className="sticky bottom-3 z-20 space-y-4 border-primary/30 bg-slate-950/95 shadow-2xl backdrop-blur">
         <div>

@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type ReactNode } from "react";
-import { BookOpenText, Box, History, Shield, UserRound } from "lucide-react";
+import type { ReactNode } from "react";
+import { Shield } from "lucide-react";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { CharacterSheetDownloadButton } from "@/features/mvp/components/character-sheet-download-button";
@@ -16,16 +16,6 @@ import {
 import type { MvpTableCharacter } from "@/features/mvp/types";
 import { playerNextActionLabel, playerSheetStatusLabel } from "@/lib/campaign/player-journey";
 import { cn } from "@/lib/utils";
-
-type CharacterTab = "summary" | "story" | "abilities" | "equipment" | "journey";
-
-const tabs: Array<{ key: CharacterTab; label: string; icon: typeof UserRound }> = [
-  { key: "summary", label: "Resumo", icon: UserRound },
-  { key: "story", label: "História", icon: BookOpenText },
-  { key: "abilities", label: "Habilidades", icon: Shield },
-  { key: "equipment", label: "Equipamentos", icon: Box },
-  { key: "journey", label: "Jornada", icon: History }
-];
 
 const archetypeLabels: Record<string, string> = {
   guardian_blade: "Guardião da Lâmina"
@@ -126,13 +116,11 @@ export function MyCharacterReadonlyPanel({
 }: {
   character?: MvpTableCharacter | null;
   tableId?: string;
-  layout?: "full" | "tabs";
+  layout?: "full" | "sheet";
   archetypeName?: string;
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
-  const [activeTab, setActiveTab] = useState<CharacterTab>("summary");
-
   if (!character) {
     return <Card className="space-y-2"><CardTitle>{emptyTitle}</CardTitle><CardDescription>{emptyDescription}</CardDescription></Card>;
   }
@@ -163,140 +151,127 @@ export function MyCharacterReadonlyPanel({
     value: character.episodeAnswers?.find((item) => item.questionKey === key)?.answer
   })).filter((item) => item.value);
 
-  if (layout === "tabs") {
+  if (layout === "sheet") {
     return (
-      <Card className="space-y-5 p-4 sm:p-5">
-        <div className="grid gap-4 border-b border-white/10 pb-5 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Ficha do personagem</p>
-            <CardTitle className="mt-2">{character.name || "Personagem sem nome"}</CardTitle>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-foreground">{valueOrEmpty(character.concept)}</p>
-            <CardDescription className="mt-2">A ficha foi dividida em seções para manter as informações essenciais sempre fáceis de encontrar.</CardDescription>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <Resource label="PV" value={derived.pv} />
-            <Resource label="Energia" value={derived.energy} />
-            <Resource label="Ascensão" value={derived.ascensionPoints} />
-            <div className="col-span-3 rounded-xl border border-white/10 bg-black/20 px-4 py-2 text-center text-xs">
-              <p className="font-semibold text-foreground">{playerSheetStatusLabel(character.sheetStatus)}</p>
-              <p className="text-muted-foreground">{character.editable ? "Ainda pode ser ajustada" : "Disponível para consulta"}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <CharacterSheetDownloadButton character={character} archetypeName={archetypeName} />
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Seções da ficha">
-          {tabs.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === key}
-              onClick={() => setActiveTab(key)}
-              className={cn(
-                "flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition",
-                activeTab === key
-                  ? "border-primary/40 bg-primary/15 text-primary"
-                  : "border-white/10 bg-black/20 text-muted-foreground hover:bg-white/5 hover:text-foreground"
-              )}
-            >
-              <Icon className="h-4 w-4" />{label}
-            </button>
-          ))}
-        </div>
-
-        <div role="tabpanel">
-          {activeTab === "summary" ? (
-            <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-              <Section title="Quem é" description="A essência confirmada do personagem.">
-                <Detail required label="Conceito" value={character.concept} prominent />
-                <div className="grid gap-4 sm:grid-cols-2"><Detail required label="Origem" value={character.origin} /><Detail label="Arquétipo" value={archetype} /></div>
-                <Detail required label="Aparência" value={character.appearance} />
-              </Section>
-              <div className="grid gap-4">
-                <Section title="Traços marcantes">
-                  <Detail required label="Força" value={character.positiveTrait} />
-                  <Detail required label="Desafio" value={character.negativeTrait} />
-                </Section>
-                <Section title="Recursos">
-                  <div className="grid grid-cols-3 gap-3">
-                    <Resource label="PV" value={derived.pv} />
-                    <Resource label="Energia" value={derived.energy} />
-                    <Resource label="Ascensão" value={derived.ascensionPoints} />
-                  </div>
-                </Section>
+      <Card className="overflow-hidden p-0">
+        <div className="border-b border-primary/20 bg-[radial-gradient(circle_at_top_left,rgba(229,171,52,0.14),transparent_42%)] p-4 sm:p-6">
+          <div className="grid gap-5 md:grid-cols-[136px_1fr_auto] md:items-center">
+            <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-2 border-primary/35 bg-slate-950/80 shadow-[0_0_36px_rgba(229,171,52,0.12)] md:mx-0">
+              <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border border-white/10 bg-black/30 text-center">
+                <Shield className="h-9 w-9 text-primary" />
+                <span className="mt-2 max-w-20 truncate text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {character.name?.slice(0, 12) || "Guardião"}
+                </span>
               </div>
             </div>
-          ) : null}
 
-          {activeTab === "story" ? (
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Section title="História e motivação">
-                <Detail required label="História" value={character.history} prominent />
-                <Detail required label="Objetivo" value={character.motivation} />
-                <Detail required label="Vínculo" value={character.bond ?? character.narrativeBond} />
-                <Detail required label="Promessa, culpa ou dever" value={character.promiseOrGuilt} />
-                <Detail required label="Motivo para agir com o grupo" value={character.reasonToActWithGroup} />
-              </Section>
-              <Section title="A Marca">
-                <Detail required label="Local" value={character.markLocation} />
-                <Detail required label="Aparência" value={character.markAppearance} />
-                <Detail required label="Reação" value={character.markReaction} />
-                <Detail required label="Relação com a Marca" value={character.markAttitude} />
-                <Detail label="Medo das Almas Guardiãs" value={character.guardianSoulsFear} />
-              </Section>
+            <div className="text-center md:text-left">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Ficha do personagem</p>
+              <CardTitle className="mt-2 text-2xl sm:text-3xl">{character.name || "Personagem sem nome"}</CardTitle>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-foreground sm:text-base">{valueOrEmpty(character.concept)}</p>
+              <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs md:justify-start">
+                <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1.5">{archetype || "Arquétipo não definido"}</span>
+                <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1.5">{playerSheetStatusLabel(character.sheetStatus)}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-3 md:items-end">
+              <div className="grid grid-cols-3 gap-2">
+                <Resource label="PV" value={derived.pv} />
+                <Resource label="Energia" value={derived.energy} />
+                <Resource label="Ascensão" value={derived.ascensionPoints} />
+              </div>
+              <CharacterSheetDownloadButton character={character} archetypeName={archetypeName} />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-4 sm:p-6">
+          {missingImportantFields.length ? (
+            <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
+              <p className="font-semibold text-amber-100">Ainda faltam {missingImportantFields.length} partes importantes</p>
+              <p className="mt-1 text-sm text-amber-50/75">Volte à criação para completar os campos destacados antes de enviar.</p>
             </div>
           ) : null}
 
-          {activeTab === "abilities" ? (
-            <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-              <Section title="Atributos" description="Valores iniciais confirmados para a ficha.">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {character.masterFeedback ? (
+            <section className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
+              <p className="text-sm font-semibold text-amber-100">Retorno do Mestre</p>
+              <p className="mt-2 text-sm leading-6 text-amber-50/80">{character.masterFeedback}</p>
+            </section>
+          ) : null}
+
+          <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
+            <div className="grid gap-4 sm:grid-cols-2 xl:col-span-3 xl:grid-cols-1">
+              <Section title="Atributos" description="Seus valores iniciais.">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2">
                   {ATTRIBUTE_KEYS.map((key) => <Resource key={key} label={ATTRIBUTE_LABELS[key]} value={character.attributes?.[key]} />)}
                 </div>
               </Section>
               <Section title="Especialidades">
                 <Detail required label="Arquétipo" value={archetype} />
                 <Detail label="Treinamentos" value={character.trainings?.join(", ")} />
-                <Detail required label="Força marcante" value={character.positiveTrait} />
-                <Detail required label="Desafio marcante" value={character.negativeTrait} />
               </Section>
             </div>
-          ) : null}
 
-          {activeTab === "equipment" ? (
-            <Section title="Equipamentos iniciais" description="Itens confirmados para o começo da jornada.">
-              {character.equipment?.length ? (
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {character.equipment.map((item, index) => (
-                    <div key={`${item.slot}-${item.name}-${index}`} className="flex gap-3 rounded-xl border border-white/10 bg-slate-950/40 p-3">
-                      <Image src={equipmentIcon(item.slot)} width={48} height={48} alt="" aria-hidden className="h-12 w-12 shrink-0 [image-rendering:pixelated]" />
-                      <div className="min-w-0"><p className="text-xs uppercase tracking-wide text-primary">{friendlyEquipmentSlot(item.slot)}</p><p className="mt-1 font-semibold">{item.name}</p>{item.description ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.description}</p> : null}</div>
-                    </div>
-                  ))}
+            <div className="grid gap-4 xl:col-span-6">
+              <Section title="Identidade" description="Quem é o personagem fora dos números.">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Detail required label="Origem" value={character.origin} />
+                  <Detail required label="Aparência" value={character.appearance} />
                 </div>
-              ) : <EmptyEquipment />}
-            </Section>
-          ) : null}
+              </Section>
+              <Section title="História e motivação">
+                <Detail required label="História" value={character.history} prominent />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Detail required label="Objetivo" value={character.motivation} />
+                  <Detail required label="Vínculo" value={character.bond ?? character.narrativeBond} />
+                  <Detail required label="Promessa, culpa ou dever" value={character.promiseOrGuilt} />
+                  <Detail required label="Motivo para agir com o grupo" value={character.reasonToActWithGroup} />
+                </div>
+              </Section>
+              <Section title="A Marca">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Detail required label="Local" value={character.markLocation} />
+                  <Detail required label="Aparência" value={character.markAppearance} />
+                  <Detail required label="Reação" value={character.markReaction} />
+                  <Detail required label="Relação com a Marca" value={character.markAttitude} />
+                </div>
+                <Detail label="Medo das Almas Guardiãs" value={character.guardianSoulsFear} />
+              </Section>
+            </div>
 
-          {activeTab === "journey" ? (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {character.masterFeedback ? (
-                <section className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 lg:col-span-2"><p className="text-sm font-semibold text-amber-100">Retorno do Mestre</p><p className="mt-2 text-sm leading-6 text-amber-50/80">{character.masterFeedback}</p></section>
-              ) : null}
-              <Section title="Envio e aprovação">
+            <div className="grid gap-4 sm:grid-cols-2 xl:col-span-3 xl:grid-cols-1">
+              <Section title="Traços marcantes">
+                <Detail required label="Força" value={character.positiveTrait} />
+                <Detail required label="Desafio" value={character.negativeTrait} />
+              </Section>
+              <Section title="Jornada">
+                <Detail label="Situação" value={playerSheetStatusLabel(character.sheetStatus)} />
                 <Detail label="Enviado ao Mestre" value={friendlyDate(latest?.submittedAt ?? character.submittedAt)} />
                 <Detail label="Aprovado pelo Mestre" value={friendlyDate(approved?.approvedAt ?? character.approvedAt)} />
-                <Detail label="Próxima ação" value={playerNextActionLabel(character.nextAction)} />
+                <Detail label="Próximo passo" value={playerNextActionLabel(character.nextAction)} />
               </Section>
-              <Section title="Conexões com o Episódio 1" description="Respostas opcionais registradas durante a criação.">
-                {episodeAnswers.length ? episodeAnswers.map((item) => <Detail key={item.key} label={item.label} value={item.value} />) : <p className="text-sm text-muted-foreground">Nenhuma conexão opcional foi registrada.</p>}
-              </Section>
+              {episodeAnswers.length ? (
+                <Section title="Conexões opcionais">
+                  {episodeAnswers.map((item) => <Detail key={item.key} label={item.label} value={item.value} />)}
+                </Section>
+              ) : null}
             </div>
-          ) : null}
+          </div>
+
+          <Section title="Equipamentos iniciais" description="Itens confirmados para o começo da jornada.">
+            {character.equipment?.length ? (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {character.equipment.map((item, index) => (
+                  <div key={`${item.slot}-${item.name}-${index}`} className="flex gap-3 rounded-xl border border-white/10 bg-slate-950/40 p-3">
+                    <Image src={equipmentIcon(item.slot)} width={48} height={48} alt="" aria-hidden className="h-12 w-12 shrink-0 [image-rendering:pixelated]" />
+                    <div className="min-w-0"><p className="text-xs uppercase tracking-wide text-primary">{friendlyEquipmentSlot(item.slot)}</p><p className="mt-1 font-semibold">{item.name}</p>{item.description ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.description}</p> : null}</div>
+                  </div>
+                ))}
+              </div>
+            ) : <EmptyEquipment />}
+          </Section>
         </div>
       </Card>
     );
