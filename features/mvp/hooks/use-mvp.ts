@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { mvpService } from "@/features/mvp/services/mvp.service";
-import type { CampaignResume } from "@/features/mvp/types";
+import type { CampaignResume, CharacterCardArtVariant } from "@/features/mvp/types";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -228,9 +228,9 @@ export function useAiUsage(filters: Parameters<typeof mvpService.getAiUsageSumma
 
 export function usePreviewCharacterCardArt(tableId?: string, characterId?: string | null) {
   return useMutation({
-    mutationFn: () => {
+    mutationFn: (variant: CharacterCardArtVariant = "PORTRAIT") => {
       if (!tableId || !characterId) throw new Error("Personagem enviado indisponível para a imagem.");
-      return mvpService.previewCharacterCardArt(tableId, characterId);
+      return mvpService.previewCharacterCardArt(tableId, characterId, variant);
     },
     onError: (error: Error) => toast.error(error.message)
   });
@@ -249,13 +249,15 @@ export function useCharacterCardArt(tableId?: string, characterId?: string | nul
 export function useGenerateCharacterCardArt(tableId?: string, characterId?: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => {
+    mutationFn: (variant: CharacterCardArtVariant = "PORTRAIT") => {
       if (!tableId || !characterId) throw new Error("Personagem enviado indisponivel para a imagem.");
-      return mvpService.generateCharacterCardArt(tableId, characterId);
+      return mvpService.generateCharacterCardArt(tableId, characterId, variant);
     },
-    onSuccess: () => {
+    onSuccess: (generation) => {
       queryClient.invalidateQueries({ queryKey: mvpKeys.cardArt(tableId ?? "", characterId ?? "") });
-      toast.success("Imagem criada e adicionada a sua galeria.");
+      toast.success(generation.variant === "PLAYABLE_CARD"
+        ? "Carta full art criada. Frente e verso ja podem ser baixados."
+        : "Imagem criada e adicionada a sua galeria.");
     },
     onError: (error: Error) => toast.error(error.message)
   });
