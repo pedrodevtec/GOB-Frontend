@@ -30,7 +30,8 @@ import type {
   AiUsageTimeseries,
   CharacterCardArtPreparation,
   CharacterCardArtGallery,
-  CharacterCardArtGeneration
+  CharacterCardArtGeneration,
+  CharacterCardArtVariant
 } from "@/features/mvp/types";
 
 type Dict = Record<string, unknown>;
