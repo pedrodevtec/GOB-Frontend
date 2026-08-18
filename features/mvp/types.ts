@@ -323,7 +323,12 @@ export interface AiUsageBreakdown {
   items: AiUsageBreakdownItem[];
 }
 
+export type CharacterCardArtVariant = "PORTRAIT" | "PLAYABLE_CARD";
+
 export interface CharacterCardArtPreparation {
+  variant?: CharacterCardArtVariant;
+  briefing?: string;
+  totalGenerationLimit?: number;
   promptVersion?: string;
   approvedSubmission?: {
     id?: string;
@@ -351,6 +356,8 @@ export interface CharacterCardArtPreparation {
 
 export interface CharacterCardArtGeneration {
   id: string;
+  variant: CharacterCardArtVariant;
+  briefing?: string | null;
   attemptNumber: number;
   promptVersion?: string;
   provider?: string | null;
@@ -364,6 +371,7 @@ export interface CharacterCardArtGeneration {
 export interface CharacterCardArtGallery {
   limit: number;
   remaining: number;
+  availability?: Record<CharacterCardArtVariant, { limit: number; remaining: number }>;
   items: CharacterCardArtGeneration[];
 }
 
