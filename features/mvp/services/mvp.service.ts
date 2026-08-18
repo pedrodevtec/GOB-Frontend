@@ -636,11 +636,12 @@ function mapCardArtGeneration(input: unknown): CharacterCardArtGeneration {
 
 function mapCardArtGallery(input: unknown): CharacterCardArtGallery {
   const source = record(input);
-  const availabilitySource = record(source.availability);
+  const items = arr(source.items, mapCardArtGeneration);
+  const availabilitySource = isObject(source.availability) ? record(source.availability) : null;
   return {
     limit: num(source.limit) ?? 2,
     remaining: num(source.remaining) ?? 0,
-    availability: {
+    availability: availabilitySource ? {
       PORTRAIT: {
         limit: num(record(availabilitySource.PORTRAIT).limit) ?? 1,
         remaining: num(record(availabilitySource.PORTRAIT).remaining) ?? 0
@@ -649,8 +650,8 @@ function mapCardArtGallery(input: unknown): CharacterCardArtGallery {
         limit: num(record(availabilitySource.PLAYABLE_CARD).limit) ?? 1,
         remaining: num(record(availabilitySource.PLAYABLE_CARD).remaining) ?? 0
       }
-    },
-    items: arr(source.items, mapCardArtGeneration)
+    } : undefined,
+    items
   };
 }
 
