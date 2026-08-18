@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Bot, CheckCircle2, RotateCcw, Sparkles } from "lucide-react";
 import type React from "react";
@@ -87,6 +88,15 @@ const narrativeQuestionCopy = {
     helper:
       "Diga onde ela fica, como se manifesta, o que acontece quando reage e como o personagem se sente sobre isso."
   }
+} as const;
+
+const narrativeQuestionPurpose = {
+  before_mark:
+    "Sua origem mostra ao Mestre o que voce conhece, quem pode reconhecer voce e quais partes do passado podem voltar durante a aventura.",
+  motivation_and_bonds:
+    "Aquilo que importa da motivos para agir, cooperar com o grupo e fazer escolhas quando nao existe uma resposta facil.",
+  mark_change:
+    "A forma como a Marca desperta ajuda a transformar sua historia em momentos visuais, riscos e consequencias dentro do jogo."
 } as const;
 
 const confirmationFieldKeys: Array<keyof CharacterBuilderFormState> = [
@@ -382,6 +392,8 @@ function ConfirmationBlock({
 export function CharacterBuilderForm({ slug }: { slug: string }) {
   const accessToken = useAuthStore((state) => state.accessToken);
   const [chapter, setChapter] = useState(0);
+  const [storyQuestionIndex, setStoryQuestionIndex] = useState(0);
+  const [introAccepted, setIntroAccepted] = useState(false);
   const [form, setForm] = useState<CharacterBuilderFormState>(() => emptyBuilderFormState());
   const [dirty, setDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -855,6 +867,93 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     config.data?.archetypes.find((item) => item.key === key)?.name ?? "Arquetipo sugerido";
   const trainingName = (key: string) =>
     config.data?.trainings?.options?.find((item) => item.key === key)?.name ?? "Treinamento sugerido";
+  const storyQuestions = config.data?.narrativeFlow?.questions ?? [];
+  const activeStoryQuestion = storyQuestions[Math.min(storyQuestionIndex, Math.max(0, storyQuestions.length - 1))];
+  const hasStartedNarrative = Object.values(form.narrativeResponses).some((value) => value.trim().length > 0);
+
+  async function continueStory() {
+    if (chapter !== 0 || storyQuestionIndex >= storyQuestions.length - 1) {
+      await goToChapter(chapter + 1);
+      return;
+    }
+    if (!activeStoryQuestion || !form.narrativeResponses[activeStoryQuestion.key]?.trim()) {
+      setAttemptedAdvanceChapter(0);
+      setChapterError("Conte um pouco sobre esta parte antes de continuar.");
+      return;
+    }
+    setStoryQuestionIndex((current) => current + 1);
+    setAttemptedAdvanceChapter(null);
+    setChapterError("");
+    window.requestAnimationFrame(() => document.getElementById("story-question-card")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }
+
+  function goBackFromFooter() {
+    if (chapter === 0 && storyQuestionIndex > 0) {
+      setStoryQuestionIndex((current) => Math.max(0, current - 1));
+      setChapterError("");
+      window.requestAnimationFrame(() => document.getElementById("story-question-card")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+      return;
+    }
+    void goToChapter(chapter - 1);
+  }
+
+  if (chapter === 0 && editable && !introAccepted && !hasStartedNarrative) {
+    return (
+      <Card className="overflow-hidden border-amber-400/20 p-0">
+        <div className="grid lg:grid-cols-[1.15fr_.85fr]">
+          <div className="p-6 sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">Antes da ficha, existe uma historia</p>
+            <CardTitle className="mt-3 max-w-2xl font-serif text-3xl sm:text-4xl">Uma Marca despertou. Agora voce decide quem a carrega.</CardTitle>
+            <CardDescription className="mt-4 max-w-2xl text-base leading-7">
+              Em Bravantus, algumas pessoas sao tocadas por uma Marca misteriosa. Ela traz poder, mas tambem reage a medos,
+              desejos e escolhas. Seu personagem entra nessa historia quando precisa decidir o que proteger e com quem caminhar.
+            </CardDescription>
+
+            <div className="mt-7 grid gap-3 sm:grid-cols-3">
+              {[
+                ["De onde voce veio", "Cria pessoas, lugares e lembrancas que o Mestre pode trazer para a mesa."],
+                ["O que importa", "Da ao personagem um motivo real para seguir com o grupo quando surgirem escolhas dificeis."],
+                ["Como a Marca mudou tudo", "Mostra como o poder aparece e quais riscos podem acompanhar seu uso."]
+              ].map(([title, description], index) => (
+                <div key={title} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400/15 text-sm font-bold text-amber-300">{index + 1}</span>
+                  <p className="mt-3 font-semibold">{title}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-7 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.06] p-4 text-sm leading-6 text-emerald-50/90">
+              Voce nao precisa conhecer RPG nem escrever um conto. Uma resposta curta por vez ja basta. Depois, a ajuda criativa
+              organiza suas ideias, voce confirma o que faz sentido e recebe sua ficha e sua carta.
+            </div>
+
+            <Button
+              className="mt-6 min-h-12"
+              type="button"
+              onClick={() => {
+                setIntroAccepted(true);
+                window.requestAnimationFrame(() => document.getElementById("story-question-card")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+              }}
+            >
+              Descobrir meu Guardiao
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+          <div className="relative flex min-h-64 items-center justify-center overflow-hidden border-t border-white/10 bg-[radial-gradient(circle_at_center,rgba(217,163,59,.22),transparent_65%)] p-8 lg:border-l lg:border-t-0">
+            <Image
+              src="/images/pixel-assets/hud/reward-chest.png"
+              width={220}
+              height={220}
+              alt=""
+              aria-hidden
+              className="h-48 w-48 [image-rendering:pixelated] drop-shadow-[0_20px_45px_rgba(217,163,59,.28)]"
+            />
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -961,38 +1060,62 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
         </div>
 
         <div className="space-y-5">
-          {chapter === 0 ? (
+          {chapter === 0 && activeStoryQuestion ? (
             <Section
-              title="1. Conte a historia do seu personagem"
-              description="Responda com suas palavras. Voce nao precisa conhecer termos de RPG nem ter uma ligacao previa com o Episodio 1."
+              title="1. Dê vida ao seu personagem"
+              description="Uma pergunta por vez. Escreva como se estivesse contando a ideia para outra pessoa."
             >
-              <div className="space-y-5">
-                {(config.data?.narrativeFlow?.questions ?? []).map((question) => (
-                  <label key={question.key} className={fieldLabelClass(visibleError(`narrativeResponses.${question.key}`))}>
-                    <span className="block font-semibold">{narrativeQuestionCopy[question.key]?.prompt ?? question.prompt}</span>
-                    <span className="block text-sm text-muted-foreground">{narrativeQuestionCopy[question.key]?.helper ?? question.helper}</span>
-                    <Textarea
-                      rows={6}
-                      value={form.narrativeResponses[question.key]}
-                      onChange={(event) => update("narrativeResponses", {
-                        ...form.narrativeResponses,
-                        [question.key]: event.target.value
-                      })}
-                      disabled={readOnly}
-                      aria-invalid={Boolean(visibleError(`narrativeResponses.${question.key}`))}
-                      placeholder={
-                        question.key === "before_mark"
-                          ? "Ex.: vivia em uma vila pequena, trabalhava com a família e sempre protegeu quem precisava..."
-                          : question.key === "motivation_and_bonds"
-                            ? "Ex.: quer encontrar alguém desaparecido e não abandona quem confia nele..."
-                            : "Ex.: a Marca surge no braço quando sente medo; ele tenta escondê-la dos outros..."
-                      }
-                    />
-                    {visibleError(`narrativeResponses.${question.key}`) ? (
-                      <span className="block text-xs text-destructive">{visibleError(`narrativeResponses.${question.key}`)}</span>
-                    ) : null}
-                  </label>
-                ))}
+              <div id="story-question-card" className="rounded-2xl border border-amber-300/25 bg-gradient-to-br from-amber-300/[0.08] to-cyan-400/[0.04] p-5 sm:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+                      Parte {storyQuestionIndex + 1} de {storyQuestions.length}
+                    </p>
+                    <p className="mt-2 font-serif text-2xl font-bold">
+                      {narrativeQuestionCopy[activeStoryQuestion.key]?.prompt ?? activeStoryQuestion.prompt}
+                    </p>
+                  </div>
+                  <div className="flex gap-1" aria-label={`Progresso: ${storyQuestionIndex + 1} de ${storyQuestions.length}`}>
+                    {storyQuestions.map((question, index) => (
+                      <span key={question.key} className={`h-2 w-10 rounded-full ${index <= storyQuestionIndex ? "bg-amber-400" : "bg-white/10"}`} />
+                    ))}
+                  </div>
+                </div>
+
+                <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
+                  {narrativeQuestionCopy[activeStoryQuestion.key]?.helper ?? activeStoryQuestion.helper}
+                </p>
+                <div className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">Como isso aparece no jogo</p>
+                  <p className="mt-2 text-sm leading-6 text-cyan-50/80">
+                    {narrativeQuestionPurpose[activeStoryQuestion.key] ?? "Sua resposta ajuda o Mestre a conectar este personagem a aventura."}
+                  </p>
+                </div>
+
+                <label className={`mt-5 block ${fieldLabelClass(visibleError(`narrativeResponses.${activeStoryQuestion.key}`))}`}>
+                  <span className="sr-only">{narrativeQuestionCopy[activeStoryQuestion.key]?.prompt ?? activeStoryQuestion.prompt}</span>
+                  <Textarea
+                    rows={8}
+                    autoFocus
+                    value={form.narrativeResponses[activeStoryQuestion.key] ?? ""}
+                    onChange={(event) => update("narrativeResponses", {
+                      ...form.narrativeResponses,
+                      [activeStoryQuestion.key]: event.target.value
+                    })}
+                    disabled={readOnly}
+                    aria-invalid={Boolean(visibleError(`narrativeResponses.${activeStoryQuestion.key}`))}
+                    placeholder={
+                      activeStoryQuestion.key === "before_mark"
+                        ? "Ex.: cresceu em uma vila de fronteira, consertava ferramentas com a familia e nunca deixava um vizinho enfrentar o perigo sozinho..."
+                        : activeStoryQuestion.key === "motivation_and_bonds"
+                          ? "Ex.: quer encontrar a irma desaparecida e prometeu nao abandonar novamente quem confia nele..."
+                          : "Ex.: a Marca brilha no braco quando sente medo; ela o fortalece, mas deixa suas maos tremendo depois..."
+                    }
+                  />
+                  {visibleError(`narrativeResponses.${activeStoryQuestion.key}`) ? (
+                    <span className="mt-2 block text-xs text-destructive">{visibleError(`narrativeResponses.${activeStoryQuestion.key}`)}</span>
+                  ) : null}
+                </label>
               </div>
             </Section>
           ) : null}
@@ -1345,12 +1468,19 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           ) : null}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" disabled={chapter === 0} onClick={() => void goToChapter(chapter - 1)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={chapter === 0 && storyQuestionIndex === 0}
+              onClick={goBackFromFooter}
+            >
               Voltar
             </Button>
             {chapter < chapters.length - 1 ? (
-              <Button type="button" onClick={() => void goToChapter(chapter + 1)}>
-                Continuar: {chapters[chapter + 1].title}
+              <Button type="button" onClick={() => chapter === 0 ? void continueStory() : void goToChapter(chapter + 1)}>
+                {chapter === 0 && storyQuestionIndex < storyQuestions.length - 1
+                  ? `Continuar: parte ${storyQuestionIndex + 2}`
+                  : `Continuar: ${chapters[chapter + 1].title}`}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
