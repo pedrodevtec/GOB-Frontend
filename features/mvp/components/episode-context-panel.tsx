@@ -55,9 +55,9 @@ export function EpisodeContextPanel({ slug }: { slug: string }) {
         <p className="text-sm text-muted-foreground">O clima desta história: {world.tone}</p>
       ) : null}
       <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-xl border border-white/10 p-3"><p className="font-semibold">O mundo</p><p className="mt-1 text-sm text-muted-foreground">Bravantus é o lugar onde sua aventura acontece.</p></div>
-        <div className="rounded-xl border border-white/10 p-3"><p className="font-semibold">A situação</p><p className="mt-1 text-sm text-muted-foreground">Este é o acontecimento que reunirá os personagens.</p></div>
-        <div className="rounded-xl border border-white/10 p-3"><p className="font-semibold">Seu papel</p><p className="mt-1 text-sm text-muted-foreground">Você cria alguém deste mundo; depois, o Mestre conecta essa história à aventura.</p></div>
+        <div className="rounded-xl border border-border p-3"><p className="font-semibold">O mundo</p><p className="mt-1 text-sm text-muted-foreground">Bravantus é o lugar onde sua aventura acontece.</p></div>
+        <div className="rounded-xl border border-border p-3"><p className="font-semibold">A situação</p><p className="mt-1 text-sm text-muted-foreground">Este é o acontecimento que reunirá os personagens.</p></div>
+        <div className="rounded-xl border border-border p-3"><p className="font-semibold">Seu papel</p><p className="mt-1 text-sm text-muted-foreground">Você cria alguém deste mundo; depois, o Mestre conecta essa história à aventura.</p></div>
       </div>
       <div className="pt-2">
         {canCreate ? (

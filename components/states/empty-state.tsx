@@ -14,7 +14,7 @@ export function EmptyState({
   onAction?: () => void;
 }) {
   return (
-    <div className="flex min-h-52 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-8 text-center">
+    <div className="flex min-h-52 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border bg-white/35 p-8 text-center">
       <Sparkles className="h-8 w-8 text-primary" />
       <div className="space-y-1">
         <p className="font-semibold">{title}</p>

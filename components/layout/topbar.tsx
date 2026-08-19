@@ -14,7 +14,7 @@ export function Topbar({ mode }: { mode: "participant" | "admin" }) {
   const accountRole = accountRoleFor(user);
 
   return (
-    <header className="glass-panel flex flex-col gap-4 rounded-[1.75rem] p-5 md:flex-row md:items-center md:justify-between">
+    <header className="glass-panel flex flex-col gap-4 rounded-[1.75rem] bg-[#fffaf1]/88 p-5 md:flex-row md:items-center md:justify-between">
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.32em] text-primary">
           {mode === "admin" ? "Operação do playtest" : "Sua jornada em Bravantus"}

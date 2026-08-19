@@ -42,7 +42,7 @@ export default function RootLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className="dark">
+    <html lang="pt-BR">
       <head>
         <Script id="google-tag-manager" strategy="beforeInteractive">
           {`

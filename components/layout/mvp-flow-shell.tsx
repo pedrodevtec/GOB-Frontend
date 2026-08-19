@@ -1,4 +1,3 @@
-import Image from "next/image";
 import type { ReactNode } from "react";
 
 import { Logo } from "@/components/common/logo";
@@ -24,15 +23,8 @@ export function MvpFlowShell({
   className
 }: MvpFlowShellProps) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-foreground">
-      <Image
-        src="/images/backgrounds/dashboard-bg.jpg"
-        alt=""
-        fill
-        priority={false}
-        className="object-cover opacity-35"
-      />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,7,16,0.94)_0%,rgba(3,7,16,0.86)_52%,rgba(3,7,16,0.96)_100%)]" />
+    <main className="relative min-h-screen overflow-hidden bg-[#f7f2e8] text-foreground">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_5%,rgba(202,176,126,.25),transparent_28rem),radial-gradient(circle_at_94%_30%,rgba(125,139,102,.13),transparent_30rem)]" />
 
       <div
         className={cn(
@@ -55,12 +47,12 @@ export function MvpFlowShell({
                   </p>
                 ) : null}
                 {title ? (
-                  <h1 className="font-display text-4xl font-semibold leading-tight text-white sm:text-5xl">
+                  <h1 className="font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
                     {title}
                   </h1>
                 ) : null}
                 {description ? (
-                  <p className="text-base leading-7 text-slate-200 sm:text-lg">
+                  <p className="text-base leading-7 text-muted-foreground sm:text-lg">
                     {description}
                   </p>
                 ) : null}
@@ -70,7 +62,7 @@ export function MvpFlowShell({
           </div>
 
           {aside ? (
-            <aside className="glass-panel section-grid rounded-2xl p-5 shadow-panel lg:sticky lg:top-6">
+            <aside className="glass-panel section-grid rounded-2xl bg-[#fffaf2]/92 p-5 shadow-panel lg:sticky lg:top-6">
               {aside}
             </aside>
           ) : null}
@@ -98,13 +90,13 @@ export function MvpStepList({ steps }: { steps: MvpStep[] }) {
               className={cn(
                 "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-sm font-semibold",
                 status === "complete" &&
-                  "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
+                  "border-emerald-700/25 bg-emerald-700/10 text-emerald-800",
                 status === "current" &&
                   "border-primary/40 bg-primary/15 text-primary",
                 status === "blocked" &&
-                  "border-rose-400/30 bg-rose-400/10 text-rose-200",
+                  "border-rose-700/25 bg-rose-700/10 text-rose-800",
                 status === "pending" &&
-                  "border-white/10 bg-slate-950/60 text-muted-foreground"
+                  "border-border bg-white/55 text-muted-foreground"
               )}
             >
               {index + 1}

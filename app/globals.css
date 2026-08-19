@@ -3,27 +3,27 @@
 @tailwind utilities;
 
 :root {
-  --background: 220 30% 8%;
-  --foreground: 215 25% 92%;
-  --card: 222 28% 12%;
-  --card-foreground: 214 20% 94%;
-  --popover: 222 30% 10%;
-  --popover-foreground: 214 20% 94%;
-  --primary: 38 72% 58%;
-  --primary-foreground: 224 38% 10%;
-  --secondary: 220 20% 18%;
-  --secondary-foreground: 214 24% 92%;
-  --muted: 220 18% 16%;
-  --muted-foreground: 218 12% 65%;
-  --accent: 195 72% 45%;
-  --accent-foreground: 215 28% 96%;
-  --destructive: 0 76% 60%;
+  --background: 42 42% 96%;
+  --foreground: 34 24% 17%;
+  --card: 42 55% 98%;
+  --card-foreground: 34 24% 17%;
+  --popover: 42 55% 99%;
+  --popover-foreground: 34 24% 17%;
+  --primary: 18 86% 58%;
+  --primary-foreground: 36 70% 98%;
+  --secondary: 43 34% 91%;
+  --secondary-foreground: 34 24% 22%;
+  --muted: 40 26% 91%;
+  --muted-foreground: 35 12% 42%;
+  --accent: 92 16% 48%;
+  --accent-foreground: 40 50% 98%;
+  --destructive: 2 65% 49%;
   --destructive-foreground: 0 0% 98%;
-  --border: 220 18% 20%;
-  --input: 220 18% 20%;
-  --ring: 38 72% 58%;
-  --success: 145 58% 46%;
-  --warning: 32 89% 57%;
+  --border: 36 26% 79%;
+  --input: 36 26% 79%;
+  --ring: 18 86% 58%;
+  --success: 142 35% 38%;
+  --warning: 34 74% 49%;
 }
 
 html[data-theme="ocean"] {
@@ -49,14 +49,15 @@ html[data-theme="verdant"] {
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   @apply min-h-screen bg-background font-body text-foreground antialiased;
   background-image:
-    linear-gradient(rgba(4, 8, 17, 0.85), rgba(4, 8, 17, 0.92)),
-    url("/images/backgrounds/dashboard-bg.jpg");
+    radial-gradient(circle at 8% 2%, rgba(226, 205, 166, 0.42), transparent 28rem),
+    radial-gradient(circle at 94% 18%, rgba(140, 151, 116, 0.14), transparent 30rem),
+    linear-gradient(180deg, #fbf8f1 0%, #f4efe4 100%);
   background-attachment: fixed;
   background-position: center;
   background-size: cover;
@@ -77,11 +78,12 @@ a {
 }
 
 .glass-panel {
-  @apply border border-white/10 bg-slate-950/50 backdrop-blur-xl;
+  @apply border border-border/80 bg-card/85 backdrop-blur-xl;
+  box-shadow: 0 18px 50px rgba(78, 63, 39, 0.08);
 }
 
 .section-grid {
   background-image:
-    radial-gradient(circle at top left, rgba(245, 185, 70, 0.15), transparent 35%),
-    radial-gradient(circle at bottom right, rgba(0, 163, 204, 0.12), transparent 30%);
+    radial-gradient(circle at top left, rgba(190, 148, 79, 0.12), transparent 36%),
+    radial-gradient(circle at bottom right, rgba(125, 139, 102, 0.1), transparent 32%);
 }

@@ -34,12 +34,12 @@ export function LoginForm() {
       <div className="space-y-2">
         <label className="text-sm font-medium">Email</label>
         <Input placeholder="seu@email.com" {...form.register("email")} />
-        <p className="text-xs text-rose-300">{form.formState.errors.email?.message}</p>
+        <p className="text-xs text-destructive">{form.formState.errors.email?.message}</p>
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Senha</label>
         <Input type="password" placeholder="••••••••" {...form.register("password")} />
-        <p className="text-xs text-rose-300">{form.formState.errors.password?.message}</p>
+        <p className="text-xs text-destructive">{form.formState.errors.password?.message}</p>
       </div>
       <Button className="w-full" size="lg" type="submit" disabled={login.isPending}>
         {login.isPending ? "Entrando..." : "Entrar"}

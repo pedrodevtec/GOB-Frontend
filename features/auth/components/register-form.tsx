@@ -38,17 +38,18 @@ export function RegisterForm() {
       <div className="space-y-2">
         <label className="text-sm font-medium">Como quer ser chamado</label>
         <Input placeholder="Ex.: Pedro" {...form.register("username")} />
-        <p className="text-xs text-rose-300">{form.formState.errors.username?.message}</p>
+        <p className="text-xs text-muted-foreground">Esse é o nome que aparecerá durante sua jornada.</p>
+        <p className="text-xs text-destructive">{form.formState.errors.username?.message}</p>
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Email</label>
         <Input placeholder="seu@email.com" {...form.register("email")} />
-        <p className="text-xs text-rose-300">{form.formState.errors.email?.message}</p>
+        <p className="text-xs text-destructive">{form.formState.errors.email?.message}</p>
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Senha</label>
         <Input type="password" placeholder="••••••••" {...form.register("password")} />
-        <p className="text-xs text-rose-300">{form.formState.errors.password?.message}</p>
+        <p className="text-xs text-destructive">{form.formState.errors.password?.message}</p>
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Confirmar senha</label>
@@ -57,7 +58,7 @@ export function RegisterForm() {
           placeholder="••••••••"
           {...form.register("confirmPassword")}
         />
-        <p className="text-xs text-rose-300">
+        <p className="text-xs text-destructive">
           {form.formState.errors.confirmPassword?.message}
         </p>
       </div>

@@ -60,7 +60,7 @@ function friendlyDate(value?: string | null) {
 
 function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
-    <section className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-4">
+    <section className="space-y-4 rounded-xl border border-border bg-white/45 p-4">
       <div>
         <h4 className="font-semibold">{title}</h4>
         {description ? <p className="mt-1 text-xs text-muted-foreground">{description}</p> : null}
@@ -88,7 +88,7 @@ function Detail({
       <p className={cn(
         "mt-1 leading-6 text-muted-foreground",
         prominent ? "text-base text-foreground" : "text-sm",
-        required && missing && "font-medium text-amber-100"
+        required && missing && "font-medium text-amber-800"
       )}>
         {required && missing ? "Precisa ser definido" : valueOrEmpty(value)}
       </p>
@@ -156,8 +156,8 @@ export function MyCharacterReadonlyPanel({
       <Card className="overflow-hidden p-0">
         <div className="border-b border-primary/20 bg-[radial-gradient(circle_at_top_left,rgba(229,171,52,0.14),transparent_42%)] p-4 sm:p-6">
           <div className="grid gap-5 md:grid-cols-[136px_1fr_auto] md:items-center">
-            <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-2 border-primary/35 bg-slate-950/80 shadow-[0_0_36px_rgba(229,171,52,0.12)] md:mx-0">
-              <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border border-white/10 bg-black/30 text-center">
+            <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border-2 border-primary/35 bg-[#eee4d1] shadow-[0_0_36px_rgba(180,126,50,0.14)] md:mx-0">
+              <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border border-border bg-[#fffaf1] text-center">
                 <Shield className="h-9 w-9 text-primary" />
                 <span className="mt-2 max-w-20 truncate text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   {character.name?.slice(0, 12) || "Guardião"}
@@ -170,8 +170,8 @@ export function MyCharacterReadonlyPanel({
               <CardTitle className="mt-2 text-2xl sm:text-3xl">{character.name || "Personagem sem nome"}</CardTitle>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-foreground sm:text-base">{valueOrEmpty(character.concept)}</p>
               <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs md:justify-start">
-                <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1.5">{archetype || "Arquétipo não definido"}</span>
-                <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1.5">{playerSheetStatusLabel(character.sheetStatus)}</span>
+                <span className="rounded-full border border-border bg-white/60 px-3 py-1.5">{archetype || "Arquétipo não definido"}</span>
+                <span className="rounded-full border border-border bg-white/60 px-3 py-1.5">{playerSheetStatusLabel(character.sheetStatus)}</span>
               </div>
             </div>
 
@@ -189,15 +189,15 @@ export function MyCharacterReadonlyPanel({
         <div className="space-y-4 p-4 sm:p-6">
           {missingImportantFields.length ? (
             <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
-              <p className="font-semibold text-amber-100">Ainda faltam {missingImportantFields.length} partes importantes</p>
-              <p className="mt-1 text-sm text-amber-50/75">Volte à criação para completar os campos destacados antes de enviar.</p>
+              <p className="font-semibold text-amber-900">Ainda faltam {missingImportantFields.length} partes importantes</p>
+              <p className="mt-1 text-sm text-amber-900/75">Volte à criação para completar os campos destacados antes de enviar.</p>
             </div>
           ) : null}
 
           {character.masterFeedback ? (
             <section className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
-              <p className="text-sm font-semibold text-amber-100">Retorno do Mestre</p>
-              <p className="mt-2 text-sm leading-6 text-amber-50/80">{character.masterFeedback}</p>
+              <p className="text-sm font-semibold text-amber-900">Retorno do Mestre</p>
+              <p className="mt-2 text-sm leading-6 text-amber-900/80">{character.masterFeedback}</p>
             </section>
           ) : null}
 
@@ -264,7 +264,7 @@ export function MyCharacterReadonlyPanel({
             {character.equipment?.length ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {character.equipment.map((item, index) => (
-                  <div key={`${item.slot}-${item.name}-${index}`} className="flex gap-3 rounded-xl border border-white/10 bg-slate-950/40 p-3">
+                  <div key={`${item.slot}-${item.name}-${index}`} className="flex gap-3 rounded-xl border border-border bg-white/55 p-3">
                     <Image src={equipmentIcon(item.slot)} width={48} height={48} alt="" aria-hidden className="h-12 w-12 shrink-0 [image-rendering:pixelated]" />
                     <div className="min-w-0"><p className="text-xs uppercase tracking-wide text-primary">{friendlyEquipmentSlot(item.slot)}</p><p className="mt-1 font-semibold">{item.name}</p>{item.description ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.description}</p> : null}</div>
                   </div>
@@ -282,11 +282,11 @@ export function MyCharacterReadonlyPanel({
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div><CardTitle>{character.name || "Personagem sem nome"}</CardTitle><CardDescription className="mt-2">Ficha consolidada para conferência antes do envio.</CardDescription></div>
         <div className="flex flex-col items-start gap-3 md:items-end">
-          <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm"><p className="font-semibold">{playerSheetStatusLabel(character.sheetStatus)}</p><p className="text-muted-foreground">{character.editable ? "Você ainda pode ajustar" : "Ficha disponível para consulta"}</p></div>
+          <div className="rounded-xl border border-border bg-white/55 px-4 py-3 text-sm"><p className="font-semibold">{playerSheetStatusLabel(character.sheetStatus)}</p><p className="text-muted-foreground">{character.editable ? "Você ainda pode ajustar" : "Ficha disponível para consulta"}</p></div>
           <CharacterSheetDownloadButton character={character} archetypeName={archetypeName} />
         </div>
       </div>
-      {character.masterFeedback ? <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4"><p className="text-sm font-semibold text-amber-100">Feedback do Mestre</p><p className="mt-2 text-sm leading-6 text-amber-50/80">{character.masterFeedback}</p></div> : null}
+      {character.masterFeedback ? <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4"><p className="text-sm font-semibold text-amber-900">Feedback do Mestre</p><p className="mt-2 text-sm leading-6 text-amber-900/80">{character.masterFeedback}</p></div> : null}
       <div className={cn(
         "rounded-xl border p-4",
         missingImportantFields.length
@@ -306,7 +306,7 @@ export function MyCharacterReadonlyPanel({
         {missingImportantFields.length ? (
           <div className="mt-3 flex flex-wrap gap-2">
             {missingImportantFields.map(([label]) => (
-              <span key={label} className="rounded-full border border-amber-300/30 bg-black/20 px-3 py-1 text-xs text-amber-100">{label}</span>
+              <span key={label} className="rounded-full border border-amber-500/30 bg-amber-50 px-3 py-1 text-xs text-amber-900">{label}</span>
             ))}
           </div>
         ) : null}
@@ -317,15 +317,15 @@ export function MyCharacterReadonlyPanel({
         <Section title="A Marca"><Detail required label="Local" value={character.markLocation} /><Detail required label="Aparência" value={character.markAppearance} /><Detail required label="Reação" value={character.markReaction} /><Detail required label="Relação com a Marca" value={character.markAttitude} /><Detail label="Medo pessoal" value={character.guardianSoulsFear} /></Section>
         <Section title="Habilidades"><Detail required label="Arquétipo" value={archetype} /><div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{ATTRIBUTE_KEYS.map((key) => <Detail key={key} label={ATTRIBUTE_LABELS[key]} value={character.attributes?.[key]} />)}</div><Detail label="Treinamentos" value={character.trainings?.join(", ")} /><Detail required label="Força marcante" value={character.positiveTrait} /><Detail required label="Desafio marcante" value={character.negativeTrait} /></Section>
       </div>
-      <Section title="Equipamentos">{character.equipment?.length ? <div className="grid gap-3 md:grid-cols-2">{character.equipment.map((item, index) => <div key={`${item.slot}-${item.name}-${index}`} className="rounded-lg border border-white/10 p-3"><Detail label={friendlyEquipmentSlot(item.slot)} value={item.name} />{item.description ? <Detail label="Descrição" value={item.description} /> : null}</div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum equipamento confirmado.</p>}</Section>
+      <Section title="Equipamentos">{character.equipment?.length ? <div className="grid gap-3 md:grid-cols-2">{character.equipment.map((item, index) => <div key={`${item.slot}-${item.name}-${index}`} className="rounded-lg border border-border bg-white/40 p-3"><Detail label={friendlyEquipmentSlot(item.slot)} value={item.name} />{item.description ? <Detail label="Descrição" value={item.description} /> : null}</div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum equipamento confirmado.</p>}</Section>
     </Card>
   );
 }
 
 function Resource({ label, value }: { label: string; value?: number }) {
-  return <div className="rounded-xl border border-white/10 bg-slate-950/50 p-3 text-center"><p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-2 text-xl font-semibold text-primary">{value ?? 0}</p></div>;
+  return <div className="rounded-xl border border-border bg-[#fffaf1] p-3 text-center"><p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-2 text-xl font-semibold text-primary">{value ?? 0}</p></div>;
 }
 
 function EmptyEquipment() {
-  return <div className="flex flex-col items-center rounded-xl border border-dashed border-white/10 p-6 text-center"><Image src="/images/pixel-assets/hud/reward-chest.png" width={64} height={64} alt="Baú vazio" className="h-16 w-16 [image-rendering:pixelated]" /><p className="mt-3 text-sm font-medium">Nenhum equipamento confirmado</p><p className="mt-1 text-xs text-muted-foreground">Os itens aparecerão aqui quando forem salvos na ficha.</p></div>;
+  return <div className="flex flex-col items-center rounded-xl border border-dashed border-border bg-white/35 p-6 text-center"><Image src="/images/pixel-assets/hud/reward-chest.png" width={64} height={64} alt="Baú vazio" className="h-16 w-16 [image-rendering:pixelated]" /><p className="mt-3 text-sm font-medium">Nenhum equipamento confirmado</p><p className="mt-1 text-xs text-muted-foreground">Os itens aparecerão aqui quando forem salvos na ficha.</p></div>;
 }

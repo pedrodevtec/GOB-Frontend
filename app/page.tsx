@@ -73,10 +73,21 @@ export default async function HomePage() {
         />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(250,247,239,0.98)_0%,rgba(250,247,239,0.94)_42%,rgba(250,247,239,0.28)_72%,rgba(250,247,239,0.04)_100%)]" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#f3efe5] to-transparent" />
-        <PixelGuardian
-          variant="sword"
-          className="pointer-events-none absolute bottom-4 right-[2%] z-10 hidden h-44 w-44 drop-shadow-[0_14px_12px_rgba(78,59,31,0.28)] xl:block"
-        />
+        <div className="pointer-events-none absolute bottom-20 right-[18%] z-10 hidden items-end gap-5 xl:flex">
+          <div className="absolute -inset-x-10 bottom-0 h-8 rounded-full bg-[#9a6b25]/20 blur-xl" />
+          <PixelGuardian
+            variant="sword"
+            className="relative h-32 w-24 drop-shadow-[0_14px_10px_rgba(78,59,31,0.3)]"
+          />
+          <PixelGuardian
+            variant="punch"
+            className="relative h-32 w-24 drop-shadow-[0_14px_10px_rgba(78,59,31,0.3)]"
+          />
+          <PixelGuardian
+            variant="scout"
+            className="relative h-32 w-24 drop-shadow-[0_14px_10px_rgba(78,59,31,0.3)]"
+          />
+        </div>
 
         <div className="relative mx-auto flex w-full max-w-7xl flex-col px-5 py-6 sm:px-8 lg:px-10">
           <header className="flex items-center justify-between gap-4">
@@ -154,12 +165,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-[#f3efe5] px-5 pb-20 pt-6 sm:px-8 lg:px-10">
-        <PixelGuardian
-          variant="punch"
-          className="pointer-events-none absolute right-8 top-8 hidden h-28 w-28 drop-shadow-[0_10px_10px_rgba(78,59,31,0.22)] lg:block"
-        />
-        <div className="relative mx-auto max-w-7xl">
+      <section className="bg-[#f3efe5] px-5 pb-20 pt-6 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-7xl">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Como funciona</p>
             <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Do primeiro acesso à sua carta</h2>

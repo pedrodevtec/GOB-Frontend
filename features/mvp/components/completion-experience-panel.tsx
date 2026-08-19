@@ -194,7 +194,7 @@ export function CompletionExperiencePanel({
         {gallery.isLoading ? <MvpState variant="loading" title="Carregando sua carta" /> : null}
 
         {generated && imageUrl && showFullCard ? (
-          <div className="mx-auto max-w-md rounded-2xl border border-white/10 bg-black/30 p-3">
+          <div className="mx-auto max-w-md rounded-2xl border border-border bg-white/55 p-3">
             <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-slate-950">
               <Image src={imageUrl} alt={`Carta completa de ${character?.name ?? "personagem"}`} fill unoptimized className="object-cover" />
             </div>
@@ -202,24 +202,24 @@ export function CompletionExperiencePanel({
         ) : null}
 
         {generate.isError ? (
-          <p className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
+          <p className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-800">
             Não foi possível criar a carta agora. Seu progresso continua guardado e você pode tentar novamente mais tarde.
           </p>
         ) : null}
 
         {preview.data ? (
-          <details className="group rounded-xl border border-white/10 bg-black/20 p-4" open>
+          <details className="group rounded-xl border border-border bg-white/45 p-4" open>
             <summary className="cursor-pointer list-none text-sm font-semibold">Como sua imagem será criada</summary>
             <div className="mt-4 space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
               {Object.entries(preview.data.fields ?? {}).filter(([key]) => visualFieldLabels[key]).map(([key, value]) => (
-                <div key={key} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                <div key={key} className="rounded-xl border border-border bg-white/45 p-3">
                   <p className="text-xs uppercase tracking-wide text-primary">{visualFieldLabels[key]}</p>
                   <p className="mt-1 text-sm">{String(value)}</p>
                 </div>
               ))}
             </div>
-            <div className="rounded-xl border border-white/10 bg-slate-950/70 p-4">
+            <div className="rounded-xl border border-border bg-white/75 p-4">
               <p className="mb-1 text-sm font-semibold">Instruções usadas para criar a imagem</p>
               <p className="mb-3 text-xs leading-5 text-muted-foreground">Este texto, também chamado de prompt, reúne apenas as informações que você confirmou.</p>
               <pre className="max-h-80 overflow-auto whitespace-pre-wrap font-sans text-sm leading-6 text-muted-foreground">{preview.data.prompt}</pre>
