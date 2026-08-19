@@ -30,7 +30,8 @@ import type {
   AiUsageTimeseries,
   CharacterCardArtPreparation,
   CharacterCardArtGallery,
-  CharacterCardArtGeneration
+  CharacterCardArtGeneration,
+  CharacterCardArtVariant
 } from "@/features/mvp/types";
 
 type Dict = Record<string, unknown>;
@@ -596,6 +597,9 @@ function mapUsageBreakdown(input: unknown): AiUsageBreakdown {
 function mapCardArtPreparation(input: unknown): CharacterCardArtPreparation {
   const source = record(input);
   return {
+    variant: (text(source.variant) || "PORTRAIT") as CharacterCardArtVariant,
+    briefing: text(source.briefing) || undefined,
+    totalGenerationLimit: num(source.totalGenerationLimit),
     promptVersion: text(source.promptVersion) || undefined,
     approvedSubmission: isObject(source.approvedSubmission)
       ? (source.approvedSubmission as CharacterCardArtPreparation["approvedSubmission"])
@@ -618,6 +622,8 @@ function mapCardArtGeneration(input: unknown): CharacterCardArtGeneration {
   const source = record(input);
   return {
     id: text(source.id),
+    variant: (text(source.variant) || "PORTRAIT") as CharacterCardArtVariant,
+    briefing: text(source.briefing) || null,
     attemptNumber: num(source.attemptNumber) ?? 0,
     promptVersion: text(source.promptVersion) || undefined,
     provider: text(source.provider) || null,
@@ -631,10 +637,22 @@ function mapCardArtGeneration(input: unknown): CharacterCardArtGeneration {
 
 function mapCardArtGallery(input: unknown): CharacterCardArtGallery {
   const source = record(input);
+  const items = arr(source.items, mapCardArtGeneration);
+  const availabilitySource = isObject(source.availability) ? record(source.availability) : null;
   return {
-    limit: num(source.limit) ?? 1,
+    limit: num(source.limit) ?? 2,
     remaining: num(source.remaining) ?? 0,
-    items: arr(source.items, mapCardArtGeneration)
+    availability: availabilitySource ? {
+      PORTRAIT: {
+        limit: num(record(availabilitySource.PORTRAIT).limit) ?? 1,
+        remaining: num(record(availabilitySource.PORTRAIT).remaining) ?? 0
+      },
+      PLAYABLE_CARD: {
+        limit: num(record(availabilitySource.PLAYABLE_CARD).limit) ?? 1,
+        remaining: num(record(availabilitySource.PLAYABLE_CARD).remaining) ?? 0
+      }
+    } : undefined,
+    items
   };
 }
 
@@ -854,11 +872,11 @@ export const mvpService = {
       apiClient.get(`/api/v1/admin/ai-usage/breakdown${queryString(filters)}`),
       (data) => mapUsageBreakdown(unwrap(data, "breakdown"))
     ),
-  previewCharacterCardArt: (tableId: string, characterId: string) =>
+  previewCharacterCardArt: (tableId: string, characterId: string, variant: CharacterCardArtVariant = "PORTRAIT") =>
     request(
       apiClient.post(
         `/api/v1/tables/${tableId}/characters/${characterId}/card-art-prompt/preview`,
-        {}
+        { variant }
       ),
       (data) => mapCardArtPreparation(unwrap(data, "preview"))
     ),
@@ -867,9 +885,9 @@ export const mvpService = {
       apiClient.get(`/api/v1/tables/${tableId}/characters/${characterId}/card-art`),
       (data) => mapCardArtGallery(unwrap(data, "generations"))
     ),
-  generateCharacterCardArt: (tableId: string, characterId: string) =>
+  generateCharacterCardArt: (tableId: string, characterId: string, variant: CharacterCardArtVariant = "PORTRAIT") =>
     request(
-      apiClient.post(`/api/v1/tables/${tableId}/characters/${characterId}/card-art`, {}),
+      apiClient.post(`/api/v1/tables/${tableId}/characters/${characterId}/card-art`, { variant }),
       (data) => mapCardArtGeneration(unwrap(data, "generation"))
     ),
   getCharacterCardArtContent: async (imagePath: string) => {

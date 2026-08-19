@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { CharacterSheetDownloadButton } from "@/features/mvp/components/character-sheet-download-button";
+import { PlayableCharacterCard } from "@/features/mvp/components/playable-character-card";
 import {
   useCampaignResume,
   useCharacterCardArt,
@@ -54,10 +55,12 @@ export function CompletionExperiencePanel({
   const gallery = useCharacterCardArt(tableId, characterId);
   const generate = useGenerateCharacterCardArt(tableId, characterId);
   const [imageUrl, setImageUrl] = useState<string>();
+  const [playableCardImageUrl, setPlayableCardImageUrl] = useState<string>();
   const [copied, setCopied] = useState(false);
   const [showFullCard, setShowFullCard] = useState(false);
 
-  const generated = gallery.data?.items[0];
+  const generated = gallery.data?.items.find((item) => item.variant === "PORTRAIT");
+  const playableCard = gallery.data?.items.find((item) => item.variant === "PLAYABLE_CARD");
   useEffect(() => {
     let cancelled = false;
     let currentUrl: string | undefined;
@@ -77,13 +80,35 @@ export function CompletionExperiencePanel({
     };
   }, [generated?.imagePath]);
 
+  useEffect(() => {
+    let cancelled = false;
+    let currentUrl: string | undefined;
+    if (playableCard?.imagePath) {
+      mvpService.getCharacterCardArtContent(playableCard.imagePath).then((blob) => {
+        currentUrl = URL.createObjectURL(blob);
+        if (!cancelled) setPlayableCardImageUrl(currentUrl);
+      }).catch(() => {
+        if (!cancelled) setPlayableCardImageUrl(undefined);
+      });
+    } else {
+      setPlayableCardImageUrl(undefined);
+    }
+    return () => {
+      cancelled = true;
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+    };
+  }, [playableCard?.imagePath]);
+
   if (resume.isLoading) return <MvpState variant="loading" title="Preparando sua conclusão" />;
   if (resume.isError) {
     return <MvpState variant="error" title="Não foi possível abrir sua conclusão" description="Sua jornada continua guardada. Tente novamente em alguns instantes." />;
   }
 
   const character = resume.data?.character;
-  const canGenerate = (gallery.data?.remaining ?? 1) > 0;
+  const canGenerate = (gallery.data?.availability?.PORTRAIT.remaining ?? (generated ? 0 : 1)) > 0;
+  const canGeneratePlayableCard = (
+    gallery.data?.availability?.PLAYABLE_CARD.remaining ?? (playableCard ? 0 : 1)
+  ) > 0;
 
   return (
     <div className="space-y-5">
@@ -145,7 +170,7 @@ export function CompletionExperiencePanel({
 
             <div className="mt-4 flex flex-wrap justify-center gap-2 md:justify-start">
               {!generated ? (
-                <Button type="button" onClick={() => generate.mutate()} disabled={generate.isPending || !canGenerate || !characterId}>
+                <Button type="button" onClick={() => generate.mutate("PORTRAIT")} disabled={generate.isPending || !canGenerate || !characterId}>
                   <Sparkles className="mr-2 h-4 w-4" />{generate.isPending ? "Gerando sua carta..." : "Gerar minha carta"}
                 </Button>
               ) : (
@@ -159,7 +184,7 @@ export function CompletionExperiencePanel({
               {mode !== "character" && fullCharacter.data ? (
                 <CharacterSheetDownloadButton character={fullCharacter.data} />
               ) : null}
-              <Button type="button" variant="outline" onClick={() => preview.mutate()} disabled={preview.isPending}>
+              <Button type="button" variant="outline" onClick={() => preview.mutate("PORTRAIT")} disabled={preview.isPending}>
                 {preview.isPending ? "Preparando a ideia..." : preview.data ? "Atualizar ideia da imagem" : "Ver como a imagem será criada"}
               </Button>
             </div>
@@ -221,6 +246,59 @@ export function CompletionExperiencePanel({
           </Button>
         ) : null}
       </Card>
+
+      {mode === "character" && fullCharacter.data ? (
+        <Card className="space-y-5 overflow-hidden border-amber-400/20 p-4 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-400">Nova opcao no perfil</p>
+              <CardTitle className="mt-2">Sua carta full art para jogar</CardTitle>
+              <CardDescription className="mt-2 max-w-2xl">
+                Voce ganhou uma criacao adicional para este personagem. A arte ocupa toda a frente; nome e resumo aparecem em branco.
+                Os numeros ficam organizados no verso para consultar durante a partida.
+              </CardDescription>
+            </div>
+            <Badge variant={playableCard ? "success" : "secondary"}>
+              {playableCard ? "Carta criada" : "1 criacao disponivel"}
+            </Badge>
+          </div>
+
+          {playableCard && playableCardImageUrl ? (
+            <PlayableCharacterCard
+              character={fullCharacter.data}
+              imageUrl={playableCardImageUrl}
+              briefing={playableCard.briefing}
+            />
+          ) : (
+            <div className="grid gap-5 rounded-2xl border border-dashed border-amber-300/30 bg-amber-300/5 p-5 md:grid-cols-[auto_1fr] md:items-center">
+              <Image
+                src="/images/pixel-assets/hud/reward-chest.png"
+                width={96}
+                height={96}
+                alt=""
+                aria-hidden
+                className="mx-auto h-24 w-24 [image-rendering:pixelated]"
+              />
+              <div>
+                <p className="font-serif text-xl font-bold">Transforme sua ficha em uma carta de mesa</p>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                  A imagem sera preparada com espaco para o resumo. Depois, a plataforma monta automaticamente a frente e o verso
+                  com os dados confirmados do personagem.
+                </p>
+                <Button
+                  className="mt-4"
+                  type="button"
+                  onClick={() => generate.mutate("PLAYABLE_CARD")}
+                  disabled={generate.isPending || !canGeneratePlayableCard || !characterId}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {generate.isPending ? "Criando sua full art..." : "Gerar minha carta full art"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+      ) : null}
     </div>
   );
 }
