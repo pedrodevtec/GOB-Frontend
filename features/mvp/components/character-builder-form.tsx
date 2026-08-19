@@ -1065,29 +1065,34 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
               title="1. Dê vida ao seu personagem"
               description="Uma pergunta por vez. Escreva como se estivesse contando a ideia para outra pessoa."
             >
-              <div id="story-question-card" className="rounded-2xl border border-amber-300/25 bg-gradient-to-br from-amber-300/[0.08] to-cyan-400/[0.04] p-5 sm:p-6">
+              <div
+                id="story-question-card"
+                className="relative min-h-[620px] overflow-hidden rounded-[1.75rem] border border-[#b99b61]/40 bg-[#f7f1e5] bg-cover bg-left shadow-[0_18px_50px_rgba(45,40,31,0.16)] lg:min-h-[560px]"
+                style={{ backgroundImage: "url('/images/bravantus/builder-path.webp')" }}
+              >
+                <div className="relative ml-auto min-h-[620px] w-full bg-[#fffaf0]/95 p-5 text-[#2d281f] backdrop-blur-[2px] sm:p-7 lg:min-h-[560px] lg:w-[56%] lg:border-l lg:border-[#b99b61]/25">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a6b25]">
                       Parte {storyQuestionIndex + 1} de {storyQuestions.length}
                     </p>
-                    <p className="mt-2 font-serif text-2xl font-bold">
+                    <p className="mt-2 font-serif text-3xl font-bold leading-tight text-[#2d281f]">
                       {narrativeQuestionCopy[activeStoryQuestion.key]?.prompt ?? activeStoryQuestion.prompt}
                     </p>
                   </div>
                   <div className="flex gap-1" aria-label={`Progresso: ${storyQuestionIndex + 1} de ${storyQuestions.length}`}>
                     {storyQuestions.map((question, index) => (
-                      <span key={question.key} className={`h-2 w-10 rounded-full ${index <= storyQuestionIndex ? "bg-amber-400" : "bg-white/10"}`} />
+                      <span key={question.key} className={`h-2 w-10 rounded-full ${index <= storyQuestionIndex ? "bg-[#b17b2b]" : "bg-[#d8cdb9]"}`} />
                     ))}
                   </div>
                 </div>
 
-                <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
+                <p className="mt-4 max-w-3xl text-sm leading-6 text-[#625b50]">
                   {narrativeQuestionCopy[activeStoryQuestion.key]?.helper ?? activeStoryQuestion.helper}
                 </p>
-                <div className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">Como isso aparece no jogo</p>
-                  <p className="mt-2 text-sm leading-6 text-cyan-50/80">
+                <div className="mt-4 rounded-xl border border-[#8c9277]/35 bg-[#eef0e7]/90 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#687258]">Como isso aparece no jogo</p>
+                  <p className="mt-2 text-sm leading-6 text-[#4f5547]">
                     {narrativeQuestionPurpose[activeStoryQuestion.key] ?? "Sua resposta ajuda o Mestre a conectar este personagem a aventura."}
                   </p>
                 </div>
@@ -1104,6 +1109,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                     })}
                     disabled={readOnly}
                     aria-invalid={Boolean(visibleError(`narrativeResponses.${activeStoryQuestion.key}`))}
+                    className="border-[#b99b61]/45 bg-[#fffdf8]/90 text-[#2d281f] placeholder:text-[#847b6d] focus-visible:ring-[#b17b2b]"
                     placeholder={
                       activeStoryQuestion.key === "before_mark"
                         ? "Ex.: cresceu em uma vila de fronteira, consertava ferramentas com a familia e nunca deixava um vizinho enfrentar o perigo sozinho..."
@@ -1116,6 +1122,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                     <span className="mt-2 block text-xs text-destructive">{visibleError(`narrativeResponses.${activeStoryQuestion.key}`)}</span>
                   ) : null}
                 </label>
+                </div>
               </div>
             </Section>
           ) : null}

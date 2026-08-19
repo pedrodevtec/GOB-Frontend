@@ -61,17 +61,17 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-foreground">
+    <main className="min-h-screen bg-[#f3efe5] text-[#2d281f]">
       <section className="relative flex min-h-[92vh] items-center overflow-hidden">
         <Image
-          src="/images/backgrounds/hero-login.jpg"
+          src="/images/bravantus/landing-ruins.webp"
           alt=""
           fill
           priority
-          className="object-cover"
+          className="object-cover object-center"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,7,16,0.96)_0%,rgba(3,7,16,0.78)_48%,rgba(3,7,16,0.36)_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-slate-950 to-transparent" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(250,247,239,0.98)_0%,rgba(250,247,239,0.94)_42%,rgba(250,247,239,0.28)_72%,rgba(250,247,239,0.04)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#f3efe5] to-transparent" />
 
         <div className="relative mx-auto flex w-full max-w-7xl flex-col px-5 py-6 sm:px-8 lg:px-10">
           <header className="flex items-center justify-between gap-4">
@@ -91,18 +91,18 @@ export default async function HomePage() {
               <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary">
                 Uma história começa com uma escolha
               </p>
-              <h1 className="mt-5 font-display text-5xl font-semibold leading-tight text-white sm:text-6xl lg:text-7xl">
+              <h1 className="mt-5 max-w-3xl font-display text-5xl font-semibold leading-[0.98] text-[#252118] sm:text-6xl lg:text-7xl">
                 Crie alguém que pertença a {appConfig.appName}
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200 sm:text-xl">
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-[#5f594f] sm:text-xl">
                 Você não precisa conhecer RPG nem decorar a história do mundo. Conte
                 quem deseja interpretar e nós ajudamos a transformar suas ideias em
                 um personagem pronto para encontrar o Mestre.
               </p>
 
-              <div className="mt-6 flex flex-wrap gap-2 text-sm text-slate-200">
+              <div className="mt-6 flex flex-wrap gap-2 text-sm text-[#5f594f]">
                 {["Sem experiência necessária", "Ajuda sempre opcional", "Você confirma cada escolha"].map((item) => (
-                  <span key={item} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/55 px-3 py-2">
+                  <span key={item} className="inline-flex items-center gap-2 rounded-full border border-[#b99b61]/35 bg-[#fffdf8]/80 px-3 py-2 shadow-sm backdrop-blur">
                     <Check className="h-4 w-4 text-primary" />
                     {item}
                   </span>
@@ -125,8 +125,8 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <aside className="glass-panel section-grid rounded-2xl p-5 shadow-panel">
-              <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <aside className="rounded-[1.75rem] border border-[#b99b61]/35 bg-[#fffdf8]/88 p-6 shadow-[0_20px_55px_rgba(81,65,37,0.12)] backdrop-blur">
+              <div className="flex items-center justify-between gap-4 border-b border-[#b99b61]/25 pb-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.28em] text-primary">Antes de começar</p>
                   <h2 className="mt-2 font-display text-2xl font-semibold">
@@ -138,18 +138,18 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              <div className="mt-5 space-y-4 text-sm leading-6 text-slate-200">
-                <p><strong className="text-white">Você cria:</strong> a identidade, a história e as escolhas do seu personagem.</p>
-                <p><strong className="text-white">A ajuda criativa sugere:</strong> ideias para os pontos em que você tiver dúvida.</p>
-                <p><strong className="text-white">O Mestre acompanha:</strong> depois do envio, ele aprova ou pede ajustes com uma explicação.</p>
-                <p><strong className="text-white">No final:</strong> sua jornada fica salva e você pode gerar a carta do personagem.</p>
+              <div className="mt-5 space-y-4 text-sm leading-6 text-[#625b50]">
+                <p><strong className="text-[#2d281f]">Você cria:</strong> a identidade, a história e as escolhas do seu personagem.</p>
+                <p><strong className="text-[#2d281f]">A ajuda criativa sugere:</strong> ideias para os pontos em que você tiver dúvida.</p>
+                <p><strong className="text-[#2d281f]">O Mestre acompanha:</strong> depois do envio, ele aprova ou pede ajustes com uma explicação.</p>
+                <p><strong className="text-[#2d281f]">No final:</strong> sua jornada fica salva e você pode gerar a carta do personagem.</p>
               </div>
             </aside>
           </div>
         </div>
       </section>
 
-      <section className="bg-slate-950 px-5 pb-20 pt-6 sm:px-8 lg:px-10">
+      <section className="bg-[#f3efe5] px-5 pb-20 pt-6 sm:px-8 lg:px-10">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Como funciona</p>
@@ -158,7 +158,7 @@ export default async function HomePage() {
           </div>
           <ol className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {journeySteps.map((item, index) => (
-              <li key={item.title} className="glass-panel group rounded-2xl p-5 shadow-panel">
+              <li key={item.title} className="group rounded-[1.5rem] border border-[#b99b61]/25 bg-[#fffdf8] p-5 shadow-[0_14px_36px_rgba(81,65,37,0.08)] transition-transform duration-300 hover:-translate-y-1">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10">
                     <Image src={item.image} alt="" width={40} height={40} className="[image-rendering:pixelated]" />
@@ -173,7 +173,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="border-t border-white/10 bg-slate-950 px-5 py-12 sm:px-8 lg:px-10">
+      <section className="border-t border-[#b99b61]/25 bg-[#ebe3d4] px-5 py-12 sm:px-8 lg:px-10">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
@@ -192,17 +192,17 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/10 bg-slate-950 px-5 py-8 text-sm text-muted-foreground sm:px-8 lg:px-10">
+      <footer className="border-t border-[#b99b61]/25 bg-[#f3efe5] px-5 py-8 text-sm text-[#6d665c] sm:px-8 lg:px-10">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p>{appConfig.appName} — sua história, suas escolhas.</p>
           <nav className="flex flex-wrap gap-x-5 gap-y-2">
-            <Link href="/termos" className="hover:text-white">
+            <Link href="/termos" className="hover:text-[#2d281f]">
               Termos
             </Link>
-            <Link href="/privacidade" className="hover:text-white">
+            <Link href="/privacidade" className="hover:text-[#2d281f]">
               Privacidade
             </Link>
-            <Link href="/contato" className="hover:text-white">
+            <Link href="/contato" className="hover:text-[#2d281f]">
               Contato
             </Link>
           </nav>
