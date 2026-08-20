@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Bot, CheckCircle2, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, RotateCcw, Sparkles } from "lucide-react";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { GuardianAiLoader } from "@/components/visual/guardian-ai-loader";
+import { GuardianProgressTrack } from "@/components/visual/guardian-progress-track";
 import {
   ATTRIBUTE_KEYS,
   ATTRIBUTE_LABELS,
@@ -41,6 +43,8 @@ import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { ApiRequestError } from "@/lib/api/errors";
 import { authPathWithReturnTo } from "@/lib/routing/auth-redirects";
 import { useAuthStore } from "@/stores/auth-store";
+import { useProfile } from "@/features/profile/hooks/use-profile";
+import { DEFAULT_GUARDIAN_AVATAR } from "@/lib/guardian-companion";
 
 const chapters = [
   { id: "story", title: "Conte sua historia" },
@@ -268,7 +272,7 @@ function AiFieldSuggestion({
       aria-live="polite"
     >
       <div className="flex items-center gap-2 font-semibold text-primary">
-        <Bot className="h-4 w-4" />
+        <Sparkles className="h-4 w-4" />
         <span>Ideia sugerida</span>
       </div>
       {editing ? (
@@ -429,6 +433,8 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   const generateChapterSuggestions = useGenerateChapterSuggestions(tableId, character.data?.id);
   const generateMechanicalProposal = useGenerateMechanicalProposal(tableId, character.data?.id);
   const decideChapterSuggestion = useDecideChapterSuggestion(tableId, character.data?.id);
+  const profile = useProfile(hasUsableAccessToken(accessToken));
+  const selectedGuardian = profile.data?.selectedGuardianAvatar ?? DEFAULT_GUARDIAN_AVATAR;
 
   const editable = character.data ? character.data.editable === true : true;
   const status = character.data?.sheetStatus ?? "WORKFLOW_UNAVAILABLE";
@@ -965,6 +971,25 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           </CardDescription>
         </div>
 
+        <GuardianProgressTrack
+          guardian={selectedGuardian}
+          percentage={character.data?.journeyProgress?.percentage ?? 28}
+          currentLabel={`Etapa ${chapter + 1} de ${chapters.length}: ${chapters[chapter].title}`}
+          nextLabel={character.data?.journeyProgress?.nextMilestone ? "Continue preenchendo e confirmando suas escolhas" : undefined}
+          action="idle"
+          compact
+        />
+
+        <GuardianAiLoader
+          guardian={selectedGuardian}
+          active={loadingChapter !== null || generateMechanicalProposal.isPending}
+          message={
+            generateMechanicalProposal.isPending
+              ? "O Guardião está preparando uma proposta com base no que você confirmou…"
+              : "O Guardião está organizando sugestões para os campos desta etapa…"
+          }
+        />
+
         {chapterError ? (
           <div className="rounded-xl border border-amber-700/25 bg-amber-700/[0.07] p-4 text-sm text-amber-900">
             {chapterError}
@@ -1147,12 +1172,15 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                       {confirmationCompleted} de {confirmationFieldKeys.length} definidos
                     </p>
                   </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${(confirmationCompleted / confirmationFieldKeys.length) * 100}%` }}
-                    />
-                  </div>
+                  <GuardianProgressTrack
+                    guardian={selectedGuardian}
+                    percentage={(confirmationCompleted / confirmationFieldKeys.length) * 100}
+                    currentLabel={`${confirmationCompleted} de ${confirmationFieldKeys.length} definições preparadas`}
+                    nextLabel={confirmationCompleted < confirmationFieldKeys.length ? "Revisar os campos ainda vazios" : "Confirmar os três blocos"}
+                    action={loadingChapter === 1 ? "ai_attack" : "run"}
+                    compact
+                    className="mt-3"
+                  />
                 </div>
                 <ConfirmationBlock
                   title="Identidade"
@@ -1467,7 +1495,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   disabled={readOnly || loadingChapter !== null}
                   aria-busy={loadingChapter === chapter}
                 >
-                  <Bot className="mr-2 h-4 w-4" />
+                  <Sparkles className="mr-2 h-4 w-4" />
                   {loadingChapter === chapter ? "Lendo sua história..." : "Ler minha história novamente"}
                 </Button>
               ) : null}

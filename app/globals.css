@@ -87,3 +87,65 @@ a {
     radial-gradient(circle at top left, rgba(190, 148, 79, 0.12), transparent 36%),
     radial-gradient(circle at bottom right, rgba(125, 139, 102, 0.1), transparent 32%);
 }
+
+@keyframes guardian-run-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-5px) rotate(1deg); }
+}
+
+@keyframes guardian-charge {
+  0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 0 rgba(200, 169, 110, 0)); }
+  50% { transform: translateY(-2px) scale(1.05); filter: drop-shadow(0 0 12px rgba(200, 169, 110, 0.9)); }
+}
+
+@keyframes guardian-discover {
+  0%, 100% { transform: translateY(0) scale(1); }
+  45% { transform: translateY(-8px) scale(1.04); }
+}
+
+@keyframes guardian-error {
+  0%, 100% { transform: translateX(0); }
+  33% { transform: translateX(-3px); }
+  66% { transform: translateX(3px); }
+}
+
+@keyframes guardian-energy-cross {
+  0% { left: 2%; opacity: 0; transform: translateX(-50%) scaleX(0.35); }
+  14% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { left: 98%; opacity: 0; transform: translateX(-50%) scaleX(1); }
+}
+
+.guardian-motion[data-direction="left"] img {
+  transform: scaleX(-1);
+}
+
+.guardian-motion[data-action="run"] {
+  animation: guardian-run-bob 420ms steps(2, end) infinite;
+}
+
+.guardian-motion[data-action="ai_charge"],
+.guardian-motion[data-action="ai_attack"] {
+  animation: guardian-charge 850ms ease-in-out infinite;
+}
+
+.guardian-motion[data-action="discover"],
+.guardian-motion[data-action="celebrate"] {
+  animation: guardian-discover 700ms ease-out 2;
+}
+
+.guardian-motion[data-action="error"] {
+  animation: guardian-error 320ms ease-in-out 2;
+}
+
+.guardian-energy-cross {
+  animation: guardian-energy-cross 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guardian-motion,
+  .guardian-energy-cross {
+    animation: none !important;
+    transition: none !important;
+  }
+}

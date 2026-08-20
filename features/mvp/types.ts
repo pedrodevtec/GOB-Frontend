@@ -392,6 +392,22 @@ export interface MvpDerivedResources {
   pontosAscensao?: number;
 }
 
+export type JourneyMilestone =
+  | "ENTRY_COMPLETED"
+  | "CHARACTER_STARTED"
+  | "IDENTITY_COMPLETED"
+  | "MARK_COMPLETED"
+  | "REVIEW_READY"
+  | "CHARACTER_SUBMITTED"
+  | "CHARACTER_APPROVED";
+
+export interface CharacterJourneyProgress {
+  percentage: number;
+  currentMilestone: JourneyMilestone;
+  completedMilestones: JourneyMilestone[];
+  nextMilestone: JourneyMilestone | null;
+}
+
 export interface MvpCharacterSubmissionSnapshot {
   id?: string;
   sheetRevision?: number;
@@ -420,6 +436,7 @@ export interface MvpTableCharacter {
   approvedAt?: string | null;
   editable?: boolean;
   nextAction?: string | { key?: string; title?: string; description?: string } | null;
+  journeyProgress?: CharacterJourneyProgress;
   masterFeedback?: string | null;
   concept?: string;
   origin?: string;

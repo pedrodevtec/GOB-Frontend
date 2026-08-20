@@ -31,7 +31,8 @@ import type {
   CharacterCardArtPreparation,
   CharacterCardArtGallery,
   CharacterCardArtGeneration,
-  CharacterCardArtVariant
+  CharacterCardArtVariant,
+  JourneyMilestone
 } from "@/features/mvp/types";
 
 type Dict = Record<string, unknown>;
@@ -491,6 +492,17 @@ function mapMvpCharacter(input: unknown): MvpTableCharacter {
     nextAction: isObject(source.nextAction)
       ? record(source.nextAction)
       : text(source.nextAction) || null,
+    journeyProgress: isObject(source.journeyProgress)
+      ? {
+          percentage: num(record(source.journeyProgress).percentage) ?? 0,
+          currentMilestone: text(record(source.journeyProgress).currentMilestone) as JourneyMilestone,
+          completedMilestones: arr(
+            record(source.journeyProgress).completedMilestones,
+            String
+          ) as JourneyMilestone[],
+          nextMilestone: (text(record(source.journeyProgress).nextMilestone) || null) as JourneyMilestone | null
+        }
+      : undefined,
     masterFeedback: text(source.masterFeedback) || null,
     concept: text(source.concept) || undefined,
     origin: text(source.origin) || undefined,

@@ -1,8 +1,11 @@
-type PixelGuardianVariant = "sword" | "punch" | "scout";
+import type { GuardianAction, PixelGuardianVariant } from "@/lib/guardian-companion";
+import { cn } from "@/lib/utils";
 
 type PixelGuardianProps = {
   variant: PixelGuardianVariant;
   className?: string;
+  action?: GuardianAction;
+  direction?: "left" | "right";
 };
 
 const guardians: Record<
@@ -29,13 +32,23 @@ const guardians: Record<
   }
 };
 
-export function PixelGuardian({ variant, className }: PixelGuardianProps) {
+export function PixelGuardian({
+  variant,
+  className,
+  action = "idle",
+  direction = "right"
+}: PixelGuardianProps) {
   const guardian = guardians[variant];
 
   return (
-    <picture aria-hidden="true" className={className}>
+    <picture
+      data-action={action}
+      data-direction={direction}
+      className={cn("guardian-motion block", className)}
+    >
       <source media="(prefers-reduced-motion: reduce)" srcSet={guardian.still} />
       <img
+        aria-hidden="true"
         src={guardian.animated}
         alt=""
         width={guardian.sourceWidth}

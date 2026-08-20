@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Check, Circle } from "lucide-react";
+import { useState } from "react";
 
 import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { GuardianAvatarSelector } from "@/components/visual/guardian-avatar-selector";
+import { GuardianProgressTrack } from "@/components/visual/guardian-progress-track";
 import { campaignFlowPath } from "@/features/mvp/campaign-flow";
 import { CompletionExperiencePanel } from "@/features/mvp/components/completion-experience-panel";
 import {
@@ -13,6 +15,12 @@ import {
   useMyMvpCharacter,
   usePublicCampaign
 } from "@/features/mvp/hooks/use-mvp";
+import { useProfile, useUpdateGuardianAvatar } from "@/features/profile/hooks/use-profile";
+import type { JourneyMilestone } from "@/features/mvp/types";
+import {
+  DEFAULT_GUARDIAN_AVATAR,
+  type GuardianAction
+} from "@/lib/guardian-companion";
 import { authPathWithReturnTo } from "@/lib/routing/auth-redirects";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { useAuthStore } from "@/stores/auth-store";
@@ -51,7 +59,25 @@ function journeyMessage(state?: string) {
   }
 }
 
+const milestoneLabels: Record<JourneyMilestone, string> = {
+  ENTRY_COMPLETED: "Entrada em Bravantus concluída",
+  CHARACTER_STARTED: "Personagem iniciado",
+  IDENTITY_COMPLETED: "Identidade definida",
+  MARK_COMPLETED: "Marca compreendida",
+  REVIEW_READY: "Preparação pronta para revisão",
+  CHARACTER_SUBMITTED: "Personagem enviado ao Mestre",
+  CHARACTER_APPROVED: "Personagem aprovado"
+};
+
+function guardianActionForJourney(state?: string): GuardianAction {
+  if (state === "COMPLETED_APPROVED") return "celebrate";
+  if (state === "CHANGES_REQUIRED" || state === "COMPLETED_CHANGES_REQUIRED") return "read";
+  if (state === "SURVEY_REQUIRED" || state === "COMPLETED_PENDING_REVIEW") return "campfire";
+  return "idle";
+}
+
 export function PublicCampaignPanel({ slug }: { slug: string }) {
+  const [changeGuardianOpen, setChangeGuardianOpen] = useState(false);
   const accessToken = useAuthStore((state) => state.accessToken);
   const hydrated = useAuthStore((state) => state.hydrated);
   const user = useAuthStore((state) => state.user);
@@ -64,6 +90,8 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
   );
   const tableId = resume.data?.membership?.tableId;
   const character = useMyMvpCharacter(tableId);
+  const profile = useProfile(Boolean(hydrated && hasSession));
+  const updateGuardian = useUpdateGuardianAvatar();
 
   if (campaign.isLoading) return <MvpState variant="loading" title="Preparando Bravantus" />;
 
@@ -93,22 +121,21 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
   const resumeStatus = statusCode(resume.error);
   const hasConsent = resume.data?.consent?.status === "ACCEPTED";
   const hasMembership = resume.data?.membership?.status === "ACTIVE";
-  const isSubmitted = Boolean(character.data?.submittedAt);
   const journeyStarted = Boolean(hasConsent || hasMembership || character.data);
   const journeyCompleted = Boolean(resume.data?.journeyState?.startsWith("COMPLETED_"));
-  const surveyCompleted = Boolean(resume.data?.finalSurvey);
-  const contextCompleted = Boolean(
-    character.data ||
-    (resume.data?.journeyState && resume.data.journeyState !== "CONTEXT_REQUIRED")
-  );
-  const journeySteps = [
-    { label: "Entrada", complete: hasMembership },
-    { label: "Contexto", complete: contextCompleted },
-    { label: "Personagem", complete: Boolean(character.data) },
-    { label: "Envio", complete: isSubmitted },
-    { label: "Pesquisa", complete: surveyCompleted },
-    { label: "Conclusão", complete: journeyCompleted }
-  ];
+  const selectedGuardian = profile.data?.selectedGuardianAvatar ?? DEFAULT_GUARDIAN_AVATAR;
+  const progress = character.data?.journeyProgress;
+  const progressPercentage = progress?.percentage ?? (hasMembership ? 14 : 0);
+  const currentProgressLabel = progress
+    ? milestoneLabels[progress.currentMilestone]
+    : hasMembership
+      ? "Entrada em Bravantus concluída"
+      : "Prepare sua entrada em Bravantus";
+  const nextProgressLabel = progress?.nextMilestone
+    ? milestoneLabels[progress.nextMilestone]
+    : progressPercentage < 100
+      ? "Iniciar seu personagem"
+      : undefined;
   const continueHref =
     resume.data?.nextRoute ??
     (hasMembership
@@ -228,28 +255,39 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
       </Card>
 
       {isAuthenticated && journeyStarted ? (
-        <Card className="space-y-4 p-4 sm:p-5">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div><p className="text-xs uppercase tracking-wide text-primary">Seu progresso</p><CardTitle className="mt-1 text-lg">Do primeiro acesso à conclusão</CardTitle></div>
-            <p className="text-sm text-muted-foreground">{journeySteps.filter((step) => step.complete).length} de {journeySteps.length} etapas</p>
+        <Card className="space-y-5 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9a6b25]">Sua preparação</p>
+              <CardTitle className="mt-1 text-xl">O Guardião acompanha cada passo</CardTitle>
+            </div>
+            {profile.data?.selectedGuardianAvatar ? (
+              <Button type="button" variant="outline" size="sm" onClick={() => setChangeGuardianOpen((current) => !current)}>
+                {changeGuardianOpen ? "Manter este Guardião" : "Trocar Guardião"}
+              </Button>
+            ) : null}
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-            {journeySteps.map((step, index) => {
-              const current = !step.complete && journeySteps.slice(0, index).every((item) => item.complete);
-              return (
-                <div key={step.label} className={`rounded-xl border p-3 ${step.complete ? "border-emerald-700/20 bg-emerald-700/[0.07]" : current ? "border-primary/40 bg-primary/10" : "border-border bg-white/45"}`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`flex h-6 w-6 items-center justify-center rounded-full ${step.complete ? "bg-emerald-700/15 text-emerald-800" : current ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
-                      {step.complete ? <Check className="h-3.5 w-3.5" /> : <Circle className="h-3 w-3" />}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
-                  </div>
-                  <p className="mt-2 text-sm font-semibold">{step.label}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{step.complete ? "Concluída" : current ? "Etapa atual" : "Próxima"}</p>
-                </div>
-              );
-            })}
-          </div>
+
+          {!profile.isLoading && (!profile.data?.selectedGuardianAvatar || changeGuardianOpen) ? (
+            <GuardianAvatarSelector
+              selected={profile.data?.selectedGuardianAvatar}
+              pending={updateGuardian.isPending}
+              compact
+              onSelect={(avatar) => {
+                updateGuardian.mutate(avatar, {
+                  onSuccess: () => setChangeGuardianOpen(false)
+                });
+              }}
+            />
+          ) : (
+            <GuardianProgressTrack
+              guardian={selectedGuardian}
+              percentage={progressPercentage}
+              currentLabel={currentProgressLabel}
+              nextLabel={nextProgressLabel}
+              action={guardianActionForJourney(resume.data?.journeyState)}
+            />
+          )}
         </Card>
       ) : (
       <div className="grid gap-4 md:grid-cols-3">
