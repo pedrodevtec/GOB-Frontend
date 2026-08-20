@@ -9,7 +9,10 @@ import { campaignFlowPath } from "@/features/mvp/campaign-flow";
 import { MyCharacterReadonlyPanel } from "@/features/mvp/components/character-builder/my-character-readonly-panel";
 import { CompletionExperiencePanel } from "@/features/mvp/components/completion-experience-panel";
 import { useCampaignResume, useMyMvpCharacter } from "@/features/mvp/hooks/use-mvp";
+import { useProfile } from "@/features/profile/hooks/use-profile";
 import { playerSheetStatusLabel } from "@/lib/campaign/player-journey";
+import { GuardianProgressTrack } from "@/components/visual/guardian-progress-track";
+import { DEFAULT_GUARDIAN_AVATAR, type GuardianAction } from "@/lib/guardian-companion";
 
 function nextAction(journeyState?: string) {
   if (journeyState === "CHARACTER_DRAFT" || journeyState === "LEGACY_REVIEW") {
@@ -28,6 +31,7 @@ export function MyCharacterProfilePanel() {
   const resume = useCampaignResume("pilot-v1");
   const tableId = resume.data?.membership?.tableId;
   const character = useMyMvpCharacter(tableId);
+  const profile = useProfile();
 
   if (resume.isLoading || character.isLoading) {
     return <MvpState variant="loading" title="Carregando seu personagem" />;
@@ -57,28 +61,46 @@ export function MyCharacterProfilePanel() {
 
   const action = nextAction(resume.data?.journeyState);
   const surveyCompleted = Boolean(resume.data?.finalSurvey);
+  const guardian = profile.data?.selectedGuardianAvatar ?? DEFAULT_GUARDIAN_AVATAR;
+  const guardianAction: GuardianAction = character.data.sheetStatus === "APPROVED"
+    ? "celebrate"
+    : character.data.sheetStatus === "SUBMITTED"
+      ? "campfire"
+      : character.data.sheetStatus === "CHANGES_REQUESTED"
+        ? "read"
+        : "idle";
 
   return (
     <div className="space-y-6">
-      <Card className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Situação atual</p>
-          <CardTitle className="mt-2">{playerSheetStatusLabel(character.data.sheetStatus)}</CardTitle>
-          <CardDescription className="mt-2">
-            {character.data.masterFeedback
-              ? "O Mestre enviou um retorno. Leia o feedback na ficha antes de ajustar."
-              : character.data.sheetStatus === "APPROVED"
-                ? "Sua ficha foi aprovada e permanece disponível para consulta."
-                : character.data.sheetStatus === "SUBMITTED"
-                  ? "Sua ficha está com o Mestre. Você não precisa reenviá-la enquanto aguarda."
-                  : "Sua ficha continua salva e pode ser retomada."}
-          </CardDescription>
+      <Card className="space-y-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Situação atual</p>
+            <CardTitle className="mt-2">{playerSheetStatusLabel(character.data.sheetStatus)}</CardTitle>
+            <CardDescription className="mt-2">
+              {character.data.masterFeedback
+                ? "O Mestre enviou um retorno. Leia o feedback na ficha antes de ajustar."
+                : character.data.sheetStatus === "APPROVED"
+                  ? "Sua ficha foi aprovada e permanece disponível para consulta."
+                  : character.data.sheetStatus === "SUBMITTED"
+                    ? "Sua ficha está com o Mestre. Você não precisa reenviá-la enquanto aguarda."
+                    : "Sua ficha continua salva e pode ser retomada."}
+            </CardDescription>
+          </div>
+          {action ? (
+            <Button asChild>
+              <Link href={action.href}>{action.label}</Link>
+            </Button>
+          ) : null}
         </div>
-        {action ? (
-          <Button asChild>
-            <Link href={action.href}>{action.label}</Link>
-          </Button>
-        ) : null}
+        <GuardianProgressTrack
+          guardian={guardian}
+          percentage={character.data.journeyProgress?.percentage ?? 0}
+          currentLabel={playerSheetStatusLabel(character.data.sheetStatus)}
+          nextLabel={character.data.sheetStatus === "SUBMITTED" ? "Aguardar a decisão do Mestre" : undefined}
+          action={guardianAction}
+          compact
+        />
       </Card>
 
       {surveyCompleted ? (

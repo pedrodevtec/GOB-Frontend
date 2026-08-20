@@ -5,11 +5,13 @@ import { toast } from "sonner";
 
 import { profileService } from "@/features/profile/services/profile.service";
 import { useAuthStore } from "@/stores/auth-store";
+import type { GuardianAvatarKey } from "@/lib/guardian-companion";
 
-export function useProfile() {
+export function useProfile(enabled = true) {
   return useQuery({
     queryKey: ["profile"],
-    queryFn: profileService.me
+    queryFn: profileService.me,
+    enabled
   });
 }
 
@@ -32,6 +34,21 @@ export function useUpdateProfile() {
         theme: typeof variables.theme === "string" ? variables.theme : current?.theme ?? null
       });
       toast.success("Perfil atualizado.");
+    },
+    onError: (error: Error) => toast.error(error.message)
+  });
+}
+
+export function useUpdateGuardianAvatar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (avatar: GuardianAvatarKey) => profileService.updateGuardianAvatar(avatar),
+    onSuccess: (avatar) => {
+      queryClient.setQueryData<Awaited<ReturnType<typeof profileService.me>> | undefined>(["profile"], (current) =>
+        current ? { ...current, selectedGuardianAvatar: avatar } : current
+      );
+      toast.success("Guardiao escolhido para acompanhar sua jornada.");
     },
     onError: (error: Error) => toast.error(error.message)
   });

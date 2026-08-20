@@ -85,6 +85,11 @@ export const openApiDocument = {
           email: { type: "string", format: "email" },
           accountRole: { type: "string", enum: ["USER", "ADMIN"] },
           theme: { type: "string", nullable: true },
+          selectedGuardianAvatar: {
+            type: "string",
+            enum: ["guardian_sword", "guardian_fist", "guardian_explorer"],
+            nullable: true,
+          },
         },
       },
       Class: {
@@ -633,6 +638,10 @@ export const openApiDocument = {
           nome: { type: "string" },
           email: { type: "string", format: "email" },
           theme: { type: "string", enum: ["default", "ocean", "ember", "verdant"] },
+          selectedGuardianAvatar: {
+            type: "string",
+            enum: ["guardian_sword", "guardian_fist", "guardian_explorer"],
+          },
         },
       },
       CreateCharacterRequest: {

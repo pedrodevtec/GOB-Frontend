@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { PixelGuardian } from "@/components/visual/pixel-guardian";
+import { SelectedPixelGuardian } from "@/components/visual/selected-pixel-guardian";
 import { PublicCampaignPanel } from "@/features/mvp/components/public-campaign-panel";
 
 export default function DashboardPage() {
@@ -15,8 +15,8 @@ export default function DashboardPage() {
           className="object-cover object-top"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#f7f1e5]/90" />
-        <PixelGuardian
-          variant="scout"
+        <SelectedPixelGuardian
+          action="idle"
           className="pointer-events-none absolute bottom-3 right-7 z-10 hidden h-28 w-28 drop-shadow-[0_12px_10px_rgba(78,59,31,0.24)] lg:block"
         />
         <div className="relative flex min-h-[300px] flex-col justify-end px-6 pb-7 sm:px-10">

@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/api/client";
 import { normalizeAccountRole } from "@/lib/permissions";
+import { isGuardianAvatarKey, type GuardianAvatarKey } from "@/lib/guardian-companion";
 
 export const profileService = {
   me: async () => {
@@ -10,15 +11,28 @@ export const profileService = {
       username: String(user?.nome ?? user?.username ?? ""),
       email: String(user?.email ?? ""),
       accountRole: normalizeAccountRole(user?.accountRole ?? user?.systemRole ?? user?.role),
-      theme: typeof user?.theme === "string" ? user.theme : null
+      theme: typeof user?.theme === "string" ? user.theme : null,
+      selectedGuardianAvatar: isGuardianAvatarKey(user?.selectedGuardianAvatar)
+        ? user.selectedGuardianAvatar
+        : null
     };
   },
   update: async (input: Record<string, unknown>) => {
     const response = await apiClient.patch("/api/v1/users/me/profile", {
       nome: input.username,
       email: input.email,
-      theme: input.theme
+      theme: input.theme,
+      selectedGuardianAvatar: input.selectedGuardianAvatar
     });
     return response.data;
+  },
+  updateGuardianAvatar: async (selectedGuardianAvatar: GuardianAvatarKey) => {
+    const response = await apiClient.patch("/api/v1/users/me/profile", {
+      selectedGuardianAvatar
+    });
+    const user = response.data?.user ?? response.data;
+    return isGuardianAvatarKey(user?.selectedGuardianAvatar)
+      ? user.selectedGuardianAvatar
+      : selectedGuardianAvatar;
   }
 };
