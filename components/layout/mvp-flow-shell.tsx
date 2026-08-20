@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 import { Logo } from "@/components/common/logo";
 import { cn } from "@/lib/utils";
@@ -32,12 +33,23 @@ export function MvpFlowShell({
           className
         )}
       >
-        <header className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <Logo />
+        <header className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:justify-between lg:-mx-8">
+          <Link
+            href="/dashboard"
+            aria-label="Voltar para Minha Jornada"
+            className="w-fit rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
+          >
+            <Logo />
+          </Link>
           {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
         </header>
 
-        <section className="grid flex-1 gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:py-12">
+        <section
+          className={cn(
+            "grid flex-1 gap-8 py-8 lg:items-start lg:py-12",
+            aside ? "lg:grid-cols-[minmax(0,1fr)_360px]" : "lg:grid-cols-1"
+          )}
+        >
           <div className="min-w-0 space-y-6">
             {eyebrow || title || description ? (
               <div className="max-w-3xl space-y-3">

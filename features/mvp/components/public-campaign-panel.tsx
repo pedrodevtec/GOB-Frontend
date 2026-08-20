@@ -7,6 +7,7 @@ import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { GuardianAvatarSelector } from "@/components/visual/guardian-avatar-selector";
+import { GuardianPageLoader } from "@/components/visual/guardian-page-loader";
 import { GuardianProgressTrack } from "@/components/visual/guardian-progress-track";
 import { campaignFlowPath } from "@/features/mvp/campaign-flow";
 import { CompletionExperiencePanel } from "@/features/mvp/components/completion-experience-panel";
@@ -93,7 +94,7 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
   const profile = useProfile(Boolean(hydrated && hasSession));
   const updateGuardian = useUpdateGuardianAvatar();
 
-  if (campaign.isLoading) return <MvpState variant="loading" title="Preparando Bravantus" />;
+  if (campaign.isLoading) return <GuardianPageLoader title="Preparando Bravantus" />;
 
   if (campaign.isError) {
     return (
@@ -199,14 +200,12 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
             description="Todas as vagas deste teste ja foram preenchidas."
           />
         ) : !hydrated ? (
-          <MvpState
-            variant="loading"
+          <GuardianPageLoader
             title="Verificando sessao"
             description="Aguarde um instante enquanto preparamos sua jornada."
           />
         ) : isAuthenticated && resume.isLoading ? (
-          <MvpState
-            variant="loading"
+          <GuardianPageLoader
             title="Carregando sua jornada"
             description="Estamos abrindo o ponto em que você parou."
           />
@@ -229,8 +228,7 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
             actions={[{ label: "Tentar novamente", onClick: () => void resume.refetch() }]}
           />
         ) : character.isLoading ? (
-          <MvpState
-            variant="loading"
+          <GuardianPageLoader
             title="Carregando personagem"
             description="Estamos verificando se ja existe uma ficha iniciada."
           />

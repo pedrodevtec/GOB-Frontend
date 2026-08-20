@@ -116,6 +116,17 @@ a {
   100% { left: 98%; opacity: 0; transform: translateX(-50%) scaleX(1); }
 }
 
+@keyframes guardian-page-travel {
+  0% { left: 3%; opacity: 0.45; }
+  12%, 88% { opacity: 1; }
+  100% { left: 97%; opacity: 0.45; }
+}
+
+@keyframes guardian-page-sweep {
+  0% { left: -34%; opacity: 0.55; }
+  100% { left: 100%; opacity: 1; }
+}
+
 .guardian-motion[data-direction="left"] img {
   transform: scaleX(-1);
 }
@@ -142,10 +153,30 @@ a {
   animation: guardian-energy-cross 1.4s ease-in-out infinite;
 }
 
+.guardian-page-runner {
+  left: 3%;
+  animation: guardian-page-travel 1.8s linear infinite;
+}
+
+.guardian-page-sweep {
+  animation: guardian-page-sweep 1.8s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .guardian-motion,
-  .guardian-energy-cross {
+  .guardian-energy-cross,
+  .guardian-page-runner,
+  .guardian-page-sweep {
     animation: none !important;
     transition: none !important;
+  }
+
+  .guardian-page-runner {
+    left: 50%;
+  }
+
+  .guardian-page-sweep {
+    left: 0;
+    width: 50%;
   }
 }
