@@ -90,7 +90,7 @@ export function ResendEmailClient({ returnTo }: { returnTo: string }) {
           name="email"
           type="email"
           required
-          className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+          className="flex h-11 w-full rounded-xl border border-border bg-white/75 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
           placeholder="seu@email.com"
         />
       </div>
@@ -104,7 +104,7 @@ export function ResendEmailClient({ returnTo }: { returnTo: string }) {
         </button>
         <a
           href={returnTo}
-          className="inline-flex h-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-white/10"
+          className="inline-flex h-11 items-center justify-center rounded-xl border border-border bg-secondary px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-secondary"
         >
           Continuar depois
         </a>

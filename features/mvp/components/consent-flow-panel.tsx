@@ -63,7 +63,7 @@ export function ConsentFlowPanel({ slug }: { slug: string }) {
             : "Leia as informações abaixo e confirme somente se estiver de acordo."}
         </CardDescription>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-muted-foreground">
+      <div className="rounded-2xl border border-border bg-white/45 p-4 text-sm leading-6 text-muted-foreground">
         {document.data?.text}
       </div>
       {joined ? (

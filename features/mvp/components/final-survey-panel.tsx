@@ -93,7 +93,7 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
                       ? "creation_experience_score"
                       : "story_impact_score"
                 )}
-                className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                className="flex h-11 w-full rounded-xl border border-border bg-white/75 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
               >
                 {[
                   [1, "Discordo totalmente"],
@@ -113,7 +113,7 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
             <select
               name="aiHelpfulnessScore"
               defaultValue={previousScore("ai_helpfulness_score", "NOT_USED")}
-              className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+              className="flex h-11 w-full rounded-xl border border-border bg-white/75 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
             >
               <option value="NOT_USED">Não usei essa ajuda</option>
               {[
@@ -128,7 +128,7 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
             </select>
           </label>
         </div>
-        <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-4 text-sm">
+        <label className="flex items-start gap-3 rounded-xl border border-border bg-white/45 p-4 text-sm">
           <input
             type="checkbox"
             name="aiBoundaryProblem"
@@ -149,7 +149,7 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
             <textarea
               name="aiBoundaryProblemDetails"
               rows={3}
-              className="flex w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
+              className="flex w-full rounded-xl border border-border bg-white/75 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
               placeholder="Ex.: apresentou uma origem como verdadeira mesmo sem eu ter escolhido isso."
               defaultValue={String(previous.ai_boundary_problem_details ?? "")}
             />
@@ -161,7 +161,7 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
           <textarea
             name="finalComment"
             rows={4}
-            className="flex w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
+            className="flex w-full rounded-xl border border-border bg-white/75 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary"
             placeholder="Ex.: eu gostaria de ver exemplos menores antes de responder sobre a Marca."
             defaultValue={String(previous.final_comment ?? "")}
           />

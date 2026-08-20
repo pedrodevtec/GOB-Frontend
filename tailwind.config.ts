@@ -44,7 +44,7 @@ const config: Config = {
         "panel-grid": "24px 24px"
       },
       boxShadow: {
-        panel: "0 24px 80px rgba(3, 5, 12, 0.45)"
+        panel: "0 24px 70px rgba(78, 63, 39, 0.12)"
       },
       borderRadius: {
         xl: "1rem",

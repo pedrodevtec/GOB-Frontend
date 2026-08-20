@@ -10,7 +10,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const mode = pathname.startsWith("/admin") ? "admin" : "participant";
 
   return (
-    <>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(210,185,139,.18),transparent_30rem),linear-gradient(180deg,#fbf8f1_0%,#f3eee3_100%)]">
       <div className="mx-auto flex min-h-screen max-w-[1600px] gap-6 px-4 pb-24 pt-4 lg:px-6 lg:pb-4">
         <Sidebar mode={mode} />
         <div className="flex min-w-0 flex-1 flex-col gap-6">
@@ -19,6 +19,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <MobileNavigation mode={mode} />
-    </>
+    </div>
   );
 }

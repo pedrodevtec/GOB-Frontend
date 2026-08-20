@@ -237,9 +237,9 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
             {journeySteps.map((step, index) => {
               const current = !step.complete && journeySteps.slice(0, index).every((item) => item.complete);
               return (
-                <div key={step.label} className={`rounded-xl border p-3 ${step.complete ? "border-emerald-400/20 bg-emerald-400/[0.07]" : current ? "border-primary/40 bg-primary/10" : "border-white/10 bg-black/20"}`}>
+                <div key={step.label} className={`rounded-xl border p-3 ${step.complete ? "border-emerald-700/20 bg-emerald-700/[0.07]" : current ? "border-primary/40 bg-primary/10" : "border-border bg-white/45"}`}>
                   <div className="flex items-center gap-2">
-                    <span className={`flex h-6 w-6 items-center justify-center rounded-full ${step.complete ? "bg-emerald-400/15 text-emerald-300" : current ? "bg-primary/15 text-primary" : "bg-white/5 text-muted-foreground"}`}>
+                    <span className={`flex h-6 w-6 items-center justify-center rounded-full ${step.complete ? "bg-emerald-700/15 text-emerald-800" : current ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
                       {step.complete ? <Check className="h-3.5 w-3.5" /> : <Circle className="h-3 w-3" />}
                     </span>
                     <span className="text-xs text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
@@ -280,7 +280,7 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
       {data.world ? (
         <details className="glass-panel section-grid rounded-2xl p-5 shadow-panel">
           <summary className="cursor-pointer list-none"><p className="text-xs uppercase tracking-wide text-primary">O começo da história</p><CardTitle className="mt-2 text-lg">{data.world.title ?? "Guardian of Bravantus"}</CardTitle><CardDescription className="mt-1">Abra quando quiser relembrar o mundo e a situação inicial.</CardDescription></summary>
-          <div className="mt-4 border-t border-white/10 pt-4"><CardDescription>{data.world.summary}</CardDescription>{data.world.tone ? <p className="mt-2 text-sm text-muted-foreground">Tom: {data.world.tone}</p> : null}</div>
+          <div className="mt-4 border-t border-border pt-4"><CardDescription>{data.world.summary}</CardDescription>{data.world.tone ? <p className="mt-2 text-sm text-muted-foreground">Tom: {data.world.tone}</p> : null}</div>
         </details>
       ) : null}
     </div>

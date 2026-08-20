@@ -60,7 +60,7 @@ export function UpdateAnnouncementModal() {
           </div>
           <div className="space-y-3">
             {updateNotes.map((note) => (
-              <div key={note} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm">
+              <div key={note} className="rounded-xl border border-border bg-secondary px-4 py-3 text-sm">
                 {note}
               </div>
             ))}

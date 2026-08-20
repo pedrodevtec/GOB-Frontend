@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export function Logo({ compact = false, className = "" }) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-primary/30 bg-slate-900/70">
+      <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-primary/30 bg-[#eee4d1] shadow-sm">
         <Image
           src="/images/logos/brand.png"
           alt={appConfig.appName}

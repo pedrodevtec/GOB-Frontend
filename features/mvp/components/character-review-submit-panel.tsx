@@ -144,7 +144,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
       {status === "CHANGES_REQUESTED" && character.data.masterFeedback ? (
         <Card className="space-y-2 border-amber-400/30 bg-amber-500/10">
           <CardTitle>Ajustes solicitados</CardTitle>
-          <CardDescription className="text-amber-50/80">
+          <CardDescription className="text-amber-900/80">
             {character.data.masterFeedback}
           </CardDescription>
         </Card>
@@ -153,7 +153,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
       {workflowIssue ? (
         <Card className="space-y-2 border-amber-400/30 bg-amber-500/10">
           <CardTitle>Nao foi possivel liberar o envio</CardTitle>
-          <CardDescription className="text-amber-50/80">
+          <CardDescription className="text-amber-900/80">
             Atualize a pagina. Se o problema continuar, preserve seu rascunho e tente novamente mais tarde.
           </CardDescription>
         </Card>
@@ -161,7 +161,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
 
       <MyCharacterReadonlyPanel character={character.data} archetypeName={archetypeName} layout="sheet" />
 
-      <Card className="sticky bottom-3 z-20 space-y-4 border-primary/30 bg-slate-950/95 shadow-2xl backdrop-blur">
+      <Card className="sticky bottom-3 z-20 space-y-4 border-primary/30 bg-[#fffaf2]/95 shadow-2xl backdrop-blur">
         <div>
           <CardTitle>Enviar ao Mestre</CardTitle>
           <CardDescription className="mt-2">
@@ -177,7 +177,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
             </ul>
           </div>
         ) : (
-          <p className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-muted-foreground">
+          <p className="rounded-xl border border-border bg-white/45 p-4 text-sm text-muted-foreground">
             Personagem pronto para ser enviado ao Mestre.
           </p>
         )}

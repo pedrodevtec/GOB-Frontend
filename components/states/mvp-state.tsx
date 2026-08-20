@@ -54,49 +54,49 @@ const stateDefaults: Record<
     title: "Carregando",
     description: "Estamos buscando as informacoes mais recentes.",
     icon: LoaderCircle,
-    tone: "border-white/10 bg-slate-950/40",
+    tone: "border-border bg-white/45",
     iconTone: "text-primary"
   },
   success: {
     title: "Tudo certo",
     description: "A etapa foi concluida com sucesso.",
     icon: CheckCircle2,
-    tone: "border-emerald-400/20 bg-emerald-950/10",
-    iconTone: "text-emerald-300"
+    tone: "border-emerald-700/20 bg-emerald-700/[0.06]",
+    iconTone: "text-emerald-700"
   },
   empty: {
     title: "Nada para mostrar",
     description: "Quando houver conteudo disponivel, ele aparecera aqui.",
     icon: Sparkles,
-    tone: "border-dashed border-white/10 bg-slate-950/30",
+    tone: "border-dashed border-border bg-white/35",
     iconTone: "text-primary"
   },
   error: {
     title: "Falha ao carregar",
     description: "Nao foi possivel concluir a requisicao.",
     icon: AlertTriangle,
-    tone: "border-rose-400/20 bg-rose-950/10",
-    iconTone: "text-rose-300"
+    tone: "border-rose-700/20 bg-rose-700/[0.06]",
+    iconTone: "text-rose-700"
   },
   "access-denied": {
     title: "Acesso negado",
     description: "Esta etapa nao esta disponivel para a sua conta.",
     icon: ShieldOff,
-    tone: "border-amber-400/20 bg-amber-950/10",
-    iconTone: "text-amber-300"
+    tone: "border-amber-700/20 bg-amber-700/[0.06]",
+    iconTone: "text-amber-700"
   },
   "session-expired": {
     title: "Sessao expirada",
     description: "Entre novamente para continuar de onde parou.",
     icon: Lock,
-    tone: "border-amber-400/20 bg-amber-950/10",
-    iconTone: "text-amber-300"
+    tone: "border-amber-700/20 bg-amber-700/[0.06]",
+    iconTone: "text-amber-700"
   },
   "campaign-closed": {
     title: "Campanha encerrada",
     description: "Esta campanha nao esta recebendo novas participacoes.",
     icon: Clock,
-    tone: "border-white/10 bg-slate-950/40",
+    tone: "border-border bg-white/45",
     iconTone: "text-muted-foreground"
   },
   saving: {
@@ -110,8 +110,8 @@ const stateDefaults: Record<
     title: "Conteudo enviado",
     description: "Esta etapa ja foi submetida e nao pode ser reenviada.",
     icon: FileCheck2,
-    tone: "border-emerald-400/20 bg-emerald-950/10",
-    iconTone: "text-emerald-300"
+    tone: "border-emerald-700/20 bg-emerald-700/[0.06]",
+    iconTone: "text-emerald-700"
   }
 };
 

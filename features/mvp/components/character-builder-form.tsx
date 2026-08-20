@@ -256,7 +256,7 @@ function AiFieldSuggestion({
 
   if (status === "discarded") {
     return (
-      <p className="rounded-lg border border-white/10 bg-black/20 p-3 text-xs text-muted-foreground">
+      <p className="rounded-lg border border-border bg-white/45 p-3 text-xs text-muted-foreground">
         Esta ideia foi descartada e não será usada.
       </p>
     );
@@ -333,7 +333,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-4">
+    <section className="space-y-4 rounded-xl border border-border bg-white/45 p-4">
       <div>
         <h3 className="font-semibold">{title}</h3>
         {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
@@ -363,7 +363,7 @@ function ConfirmationBlock({
           ? "border-emerald-400/25 bg-emerald-400/[0.04]"
           : error
             ? "border-amber-400/40 bg-amber-500/[0.05]"
-            : "border-white/10"
+            : "border-border"
       }`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -373,14 +373,14 @@ function ConfirmationBlock({
             {confirmed ? "Leitura confirmada por você." : "Confira os campos antes de confirmar este bloco."}
           </p>
         </div>
-        <span className={`inline-flex min-h-8 items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${confirmed ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-100" : "border-white/10 text-muted-foreground"}`}>
+        <span className={`inline-flex min-h-8 items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${confirmed ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-100" : "border-border text-muted-foreground"}`}>
           {confirmed ? <CheckCircle2 className="h-4 w-4" /> : null}
           {confirmed ? "Grupo confirmado" : "Confirmação pendente"}
         </span>
       </div>
       <div className="grid gap-4 md:grid-cols-2">{children}</div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <div className="border-t border-white/10 pt-4">
+      <div className="border-t border-border pt-4">
         <Button type="button" className="min-h-11 w-full sm:w-auto" variant={confirmed ? "outline" : "default"} onClick={onToggle}>
           {confirmed ? "Reabrir este grupo para ajustar" : "Confirmar este grupo e continuar"}
         </Button>
@@ -902,7 +902,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
       <Card className="overflow-hidden border-amber-400/20 p-0">
         <div className="grid lg:grid-cols-[1.15fr_.85fr]">
           <div className="p-6 sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">Antes da ficha, existe uma historia</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">Antes da ficha, existe uma historia</p>
             <CardTitle className="mt-3 max-w-2xl font-serif text-3xl sm:text-4xl">Uma Marca despertou. Agora voce decide quem a carrega.</CardTitle>
             <CardDescription className="mt-4 max-w-2xl text-base leading-7">
               Em Bravantus, algumas pessoas sao tocadas por uma Marca misteriosa. Ela traz poder, mas tambem reage a medos,
@@ -915,15 +915,15 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                 ["O que importa", "Da ao personagem um motivo real para seguir com o grupo quando surgirem escolhas dificeis."],
                 ["Como a Marca mudou tudo", "Mostra como o poder aparece e quais riscos podem acompanhar seu uso."]
               ].map(([title, description], index) => (
-                <div key={title} className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400/15 text-sm font-bold text-amber-300">{index + 1}</span>
+                <div key={title} className="rounded-2xl border border-border bg-white/45 p-4">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-700/10 text-sm font-bold text-amber-800">{index + 1}</span>
                   <p className="mt-3 font-semibold">{title}</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-7 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.06] p-4 text-sm leading-6 text-emerald-50/90">
+            <div className="mt-7 rounded-2xl border border-emerald-700/20 bg-emerald-700/[0.06] p-4 text-sm leading-6 text-emerald-900/85">
               Voce nao precisa conhecer RPG nem escrever um conto. Uma resposta curta por vez ja basta. Depois, a ajuda criativa
               organiza suas ideias, voce confirma o que faz sentido e recebe sua ficha e sua carta.
             </div>
@@ -940,7 +940,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
-          <div className="relative flex min-h-64 items-center justify-center overflow-hidden border-t border-white/10 bg-[radial-gradient(circle_at_center,rgba(217,163,59,.22),transparent_65%)] p-8 lg:border-l lg:border-t-0">
+          <div className="relative flex min-h-64 items-center justify-center overflow-hidden border-t border-border bg-[radial-gradient(circle_at_center,rgba(217,163,59,.22),transparent_65%)] p-8 lg:border-l lg:border-t-0">
             <Image
               src="/images/pixel-assets/hud/reward-chest.png"
               width={220}
@@ -966,17 +966,17 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
         </div>
 
         {chapterError ? (
-          <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-50/90">
+          <div className="rounded-xl border border-amber-700/25 bg-amber-700/[0.07] p-4 text-sm text-amber-900">
             {chapterError}
           </div>
         ) : null}
 
         {workflowIssue ? (
           <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
-            <p className="font-semibold text-amber-100">
+            <p className="font-semibold text-amber-900">
               Nao foi possivel confirmar a permissao de edicao
             </p>
-            <p className="mt-2 text-sm leading-6 text-amber-50/80">
+            <p className="mt-2 text-sm leading-6 text-amber-900/80">
               Seu rascunho foi preservado. Atualize a pagina antes de continuar.
             </p>
           </div>
@@ -992,8 +992,8 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
 
         {status === "CHANGES_REQUESTED" && character.data?.masterFeedback ? (
           <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
-            <p className="font-semibold text-amber-100">Ajustes solicitados pelo Mestre</p>
-            <p className="mt-2 text-sm leading-6 text-amber-50/80">{character.data.masterFeedback}</p>
+            <p className="font-semibold text-amber-900">Ajustes solicitados pelo Mestre</p>
+            <p className="mt-2 text-sm leading-6 text-amber-900/80">{character.data.masterFeedback}</p>
           </div>
         ) : null}
 
@@ -1020,7 +1020,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           >
             <div className="grid gap-3 md:grid-cols-2">
               {legacy.summary.map((item) => (
-                <div key={item.label} className="rounded-lg border border-white/10 p-3">
+                <div key={item.label} className="rounded-lg border border-border p-3">
                   <p className="text-xs uppercase tracking-wide text-primary">{item.label}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{item.value}</p>
                 </div>
@@ -1038,7 +1038,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
               className={`rounded-xl border px-3 py-3 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 chapter === index
                   ? "border-primary/40 bg-primary/15 text-foreground"
-                  : "border-white/10 bg-black/20 text-muted-foreground hover:bg-white/10"
+                  : "border-border bg-white/45 text-muted-foreground hover:bg-secondary"
               }`}
             >
               <span className="block text-xs uppercase tracking-wide">Etapa {index + 1}</span>
@@ -1053,7 +1053,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
             <p className="mt-2 font-semibold text-foreground">{chapterGuidance[chapter].title}</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">{chapterGuidance[chapter].description}</p>
           </div>
-          <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm md:max-w-xs">
+          <div className="rounded-lg border border-border bg-white/55 p-3 text-sm md:max-w-xs">
             <p className="font-medium text-foreground">O que acontece depois</p>
             <p className="mt-1 leading-5 text-muted-foreground">{chapterGuidance[chapter].next}</p>
           </div>
@@ -1065,12 +1065,12 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
               title="1. Dê vida ao seu personagem"
               description="Uma pergunta por vez. Escreva como se estivesse contando a ideia para outra pessoa."
             >
-              <div
-                id="story-question-card"
-                className="relative min-h-[620px] overflow-hidden rounded-[1.75rem] border border-[#b99b61]/40 bg-[#f7f1e5] bg-cover bg-left shadow-[0_18px_50px_rgba(45,40,31,0.16)] lg:min-h-[560px]"
-                style={{ backgroundImage: "url('/images/bravantus/builder-path.webp')" }}
-              >
-                <div className="relative ml-auto min-h-[620px] w-full bg-[#fffaf0]/95 p-5 text-[#2d281f] backdrop-blur-[2px] sm:p-7 lg:min-h-[560px] lg:w-[56%] lg:border-l lg:border-[#b99b61]/25">
+              <div id="story-question-card" className="grid overflow-hidden rounded-[1.75rem] border border-[#b99b61]/45 bg-[#fffaf0] shadow-[0_18px_50px_rgba(45,40,31,0.12)] lg:grid-cols-[minmax(280px,.75fr)_minmax(0,1fr)]">
+                <div
+                  aria-hidden="true"
+                  className="h-44 bg-[url('/images/bravantus/builder-path.webp')] bg-cover bg-[position:22%_54%] lg:h-auto lg:min-h-[520px] lg:bg-[position:18%_center]"
+                />
+                <div className="p-5 text-[#2d281f] sm:p-7 lg:p-9">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a6b25]">
@@ -1097,10 +1097,10 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   </p>
                 </div>
 
-                <label className={`mt-5 block ${fieldLabelClass(visibleError(`narrativeResponses.${activeStoryQuestion.key}`))}`}>
+                <label className={`mt-6 block ${fieldLabelClass(visibleError(`narrativeResponses.${activeStoryQuestion.key}`))}`}>
                   <span className="sr-only">{narrativeQuestionCopy[activeStoryQuestion.key]?.prompt ?? activeStoryQuestion.prompt}</span>
                   <Textarea
-                    rows={8}
+                    rows={7}
                     autoFocus
                     value={form.narrativeResponses[activeStoryQuestion.key] ?? ""}
                     onChange={(event) => update("narrativeResponses", {
@@ -1209,7 +1209,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                       update("playStylePreference", option.key);
                     }}
                     disabled={readOnly}
-                    className={`rounded-xl border p-4 text-left ${form.playStylePreference === option.key ? "border-primary bg-primary/15" : "border-white/10 bg-black/20"}`}
+                    className={`rounded-xl border p-4 text-left ${form.playStylePreference === option.key ? "border-primary bg-primary/15" : "border-border bg-white/45"}`}
                   >
                     <span className="block font-semibold">{option.name}</span>
                     <span className="mt-1 block text-sm text-muted-foreground">{option.description}</span>
@@ -1235,7 +1235,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   <p className="text-xs text-muted-foreground">Suas escolhas anteriores estao preservadas e podem ser abertas na edicao manual.</p>
                 ) : null}
                 {mechanicalProposalError ? (
-                  <div className="rounded-lg border border-amber-400/30 bg-black/20 p-3 text-sm text-amber-100">
+                  <div className="rounded-lg border border-amber-400/30 bg-white/45 p-3 text-sm text-amber-900">
                     <p>{mechanicalProposalError}</p>
                     <Button type="button" size="sm" variant="outline" className="mt-3" onClick={() => void requestMechanicalProposal()} disabled={generateMechanicalProposal.isPending}>
                       Tentar gerar novamente
@@ -1247,11 +1247,11 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                 <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
                   <p className="font-semibold">Proposta para voce validar</p>
                   <p className="text-sm text-muted-foreground">{mechanicalProposal.rationale}</p>
-                  <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div className="space-y-3 rounded-xl border border-border bg-white/45 p-3">
                     <p className="font-medium">Arquetipo</p>
                     <div className="space-y-2">
                       {mechanicalProposal.archetypes.map((item) => (
-                        <label key={item.key} className="flex gap-3 rounded-lg border border-white/10 p-3 text-sm">
+                        <label key={item.key} className="flex gap-3 rounded-lg border border-border p-3 text-sm">
                           <input type="radio" name="proposal-archetype" value={item.key} checked={selectedProposalArchetypeKey === item.key} onChange={() => setSelectedProposalArchetypeKey(item.key)} />
                           <span><span className="block font-medium">{archetypeName(item.key)}</span><span className="mt-1 block text-muted-foreground">{item.rationale}</span></span>
                         </label>
@@ -1269,7 +1269,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                     ["trainings", "Treinamentos", mechanicalProposal.trainings.map(trainingName).join(", ")],
                     ["equipment", "Equipamentos", mechanicalProposal.equipment.map((item) => item.name).join(", ")]
                   ] as Array<[MechanicalBlock, string, string]>).map(([block, label, content]) => (
-                    <div key={block} className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
+                    <div key={block} className="space-y-2 rounded-xl border border-border bg-white/45 p-3">
                       <p className="font-medium">{label}</p>
                       <p className="text-sm text-muted-foreground">{content}</p>
                       <div className="flex gap-2">
@@ -1296,7 +1296,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                     value={form.archetypeKey}
                     onChange={(event) => update("archetypeKey", event.target.value)}
                     disabled={readOnly}
-                    className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                    className="flex h-11 w-full rounded-xl border border-border bg-white/75 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
                   >
                     <option value="">Selecione</option>
                     {config.data?.archetypes.map((item) => (
@@ -1305,7 +1305,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   </select>
                   {validation.errors.archetypeKey ? <span className="text-xs text-destructive">{validation.errors.archetypeKey}</span> : null}
                 </label>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <div className="rounded-xl border border-border bg-white/45 p-4">
                   <p className="text-sm font-medium">Recursos do personagem</p>
                   <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
                     <div><p className="text-muted-foreground">PV</p><p className="font-semibold">{backendResources.pv ?? preview.pv}</p></div>
@@ -1349,7 +1349,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                 <p className="text-sm font-medium">Treinamentos</p>
                 <div className="grid gap-2 md:grid-cols-3">
                   {(config.data?.trainings?.options ?? []).map((item) => (
-                    <label key={item.key} className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3 text-sm">
+                    <label key={item.key} className="flex items-start gap-3 rounded-xl border border-border bg-white/45 p-3 text-sm">
                       <input
                         type="checkbox"
                         checked={form.trainings.includes(item.key)}
@@ -1378,7 +1378,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                   {(config.data?.equipment?.slots?.length ? config.data.equipment.slots : [{ key: "primary", name: "Principal" }, { key: "utility", name: "Utilidade" }]).map((slot) => {
                     const current = form.equipment.find((item) => item.slot === slot.key);
                     return (
-                      <label key={slot.key} className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
+                      <label key={slot.key} className="space-y-2 rounded-xl border border-border bg-white/45 p-3">
                         <span className="text-sm font-medium">{slot.name}</span>
                         {(config.data?.equipment?.options ?? []).length ? (
                           <select
@@ -1389,7 +1389,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
                               update("equipment", next);
                             }}
                             disabled={readOnly}
-                            className="flex h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                            className="flex h-11 w-full rounded-xl border border-border bg-white/75 px-4 py-2 text-sm text-foreground outline-none transition focus:border-primary"
                           >
                             <option value="">Selecione</option>
                             {(config.data?.equipment?.options ?? [])
@@ -1421,7 +1421,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
 
           {chapter === 3 ? (
             <Section title="4. Revise antes de enviar" description="O Mestre ainda podera aprovar ou solicitar ajustes. Nenhuma conexao com o episodio foi criada automaticamente.">
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <div className="rounded-xl border border-border bg-white/45 p-4">
                 <p className="font-semibold">O que falta para enviar ao Mestre</p>
                 {validation.missing.length ? (
                   <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-destructive">
@@ -1437,9 +1437,9 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
 
         {saveError ? <p className="text-sm text-destructive">{saveError}</p> : null}
 
-        <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-xl border border-white/15 bg-slate-950/95 p-3 shadow-2xl backdrop-blur">
+        <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-xl border border-border bg-[#fffaf2]/95 p-3 shadow-2xl backdrop-blur">
           {chapter <= 1 ? (
-            <div className="flex flex-col gap-3 border-b border-white/10 pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
               <label className="flex items-start gap-3 text-sm">
                 <input
                   type="checkbox"
