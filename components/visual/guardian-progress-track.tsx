@@ -14,6 +14,7 @@ interface GuardianProgressTrackProps {
   nextLabel?: string;
   action?: GuardianAction;
   compact?: boolean;
+  showLabels?: boolean;
   className?: string;
 }
 
@@ -27,6 +28,7 @@ export function GuardianProgressTrack({
   nextLabel,
   action,
   compact = false,
+  showLabels = true,
   className
 }: GuardianProgressTrackProps) {
   const normalized = Math.max(0, Math.min(100, percentage));
@@ -54,11 +56,13 @@ export function GuardianProgressTrack({
         className
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="text-sm font-semibold text-[#3b3428]">{currentLabel}</p>
-          {nextLabel ? <p className="mt-1 text-xs text-[#706657]">Próximo: {nextLabel}</p> : null}
-        </div>
+      <div className={cn("flex flex-wrap items-start gap-2", showLabels ? "justify-between" : "justify-end")}>
+        {showLabels ? (
+          <div>
+            <p className="text-sm font-semibold text-[#3b3428]">{currentLabel}</p>
+            {nextLabel ? <p className="mt-1 text-xs text-[#706657]">Próximo: {nextLabel}</p> : null}
+          </div>
+        ) : null}
         {mode === "determinate" ? (
           <span className="text-sm font-semibold tabular-nums text-[#8a6427]">{Math.round(normalized)}%</span>
         ) : (

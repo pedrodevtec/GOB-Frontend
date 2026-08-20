@@ -53,29 +53,6 @@ const chapters = [
   { id: "review", title: "Revisao" }
 ] as const;
 
-const chapterGuidance = [
-  {
-    title: "Conte três partes da vida do personagem",
-    description: "Não precisa escrever muito. Algumas frases sobre passado, motivo e Marca já dão um ponto de partida.",
-    next: "Depois, a ajuda criativa organiza o que você contou para sua confirmação."
-  },
-  {
-    title: "Leia, ajuste e confirme cada grupo",
-    description: "Nada vira parte do personagem sem sua decisão. Vá até o fim de cada grupo e confirme logo abaixo dos campos.",
-    next: "Depois, você escolhe como prefere agir e recebe uma proposta de ficha."
-  },
-  {
-    title: "Escolha seu jeito de participar da aventura",
-    description: "A escolha orienta a proposta de habilidades e equipamentos, mas não limita suas decisões durante o jogo.",
-    next: "Depois, você confere tudo em uma ficha organizada antes de enviar."
-  },
-  {
-    title: "Confira a ficha e siga para o envio",
-    description: "Veja o que ainda falta ou abra a revisão final. O envio ao Mestre acontece na próxima tela.",
-    next: "Depois do envio, você seguirá diretamente para a pesquisa do playtest."
-  }
-] as const;
-
 const narrativeQuestionCopy = {
   before_mark: {
     prompt: "Quem era essa pessoa antes de receber a Marca?",
@@ -978,6 +955,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
           nextLabel={character.data?.journeyProgress?.nextMilestone ? "Continue preenchendo e confirmando suas escolhas" : undefined}
           action="idle"
           compact
+          showLabels={false}
         />
 
         <GuardianAiLoader
@@ -1070,18 +1048,6 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
               <span className="mt-1 block font-medium">{item.title}</span>
             </button>
           ))}
-        </div>
-
-        <div className="grid gap-3 rounded-xl border border-primary/30 bg-primary/[0.08] p-4 md:grid-cols-[1fr_auto] md:items-center">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">O que fazer nesta etapa</p>
-            <p className="mt-2 font-semibold text-foreground">{chapterGuidance[chapter].title}</p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">{chapterGuidance[chapter].description}</p>
-          </div>
-          <div className="rounded-lg border border-border bg-white/55 p-3 text-sm md:max-w-xs">
-            <p className="font-medium text-foreground">O que acontece depois</p>
-            <p className="mt-1 leading-5 text-muted-foreground">{chapterGuidance[chapter].next}</p>
-          </div>
         </div>
 
         <div className="space-y-5">
