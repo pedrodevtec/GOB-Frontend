@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { MvpState } from "@/components/states/mvp-state";
+import { GuardianPageLoader } from "@/components/visual/guardian-page-loader";
 import { useCampaignResume } from "@/features/mvp/hooks/use-mvp";
 import type { JourneyState } from "@/features/mvp/types";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
@@ -41,10 +42,10 @@ export function JourneyRouteGuard({
   }, [authenticated, hydrated, pathname, permitted, resume.data, resume.isLoading, router]);
 
   if (!hydrated || (authenticated && resume.isLoading)) {
-    return <MvpState variant="loading" title="Localizando sua próxima etapa" />;
+    return <GuardianPageLoader title="Localizando sua próxima etapa" />;
   }
   if (!authenticated) {
-    return <MvpState variant="loading" title="Redirecionando para entrar" />;
+    return <GuardianPageLoader title="Redirecionando para entrar" />;
   }
   if (resume.isError) {
     return (
@@ -57,7 +58,7 @@ export function JourneyRouteGuard({
     );
   }
   if (!permitted) {
-    return <MvpState variant="loading" title="Abrindo a etapa correta" />;
+    return <GuardianPageLoader title="Abrindo a etapa correta" />;
   }
 
   return <>{children}</>;

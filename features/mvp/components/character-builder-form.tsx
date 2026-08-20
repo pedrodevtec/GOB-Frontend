@@ -12,6 +12,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { GuardianAiLoader } from "@/components/visual/guardian-ai-loader";
+import { GuardianPageLoader } from "@/components/visual/guardian-page-loader";
 import { GuardianProgressTrack } from "@/components/visual/guardian-progress-track";
 import {
   ATTRIBUTE_KEYS,
@@ -798,7 +799,7 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
   }
 
   if (campaign.isLoading || resume.isLoading || character.isLoading || config.isLoading) {
-    return <MvpState variant="loading" title="Abrindo sua criação" />;
+    return <GuardianPageLoader title="Abrindo sua criação" />;
   }
 
   if (!hasUsableAccessToken(accessToken)) {

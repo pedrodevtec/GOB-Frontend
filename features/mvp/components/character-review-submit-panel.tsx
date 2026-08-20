@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { GuardianPageLoader } from "@/components/visual/guardian-page-loader";
 import {
   formStateFromCharacter,
   validateBuilderForm
@@ -37,7 +38,7 @@ export function CharacterReviewSubmitPanel({ slug }: { slug: string }) {
   const submit = useSubmitMvpCharacter(tableId, character.data?.id);
 
   if (campaign.isLoading || resume.isLoading || character.isLoading || config.isLoading) {
-    return <MvpState variant="loading" title="Preparando seu personagem" />;
+    return <GuardianPageLoader title="Preparando seu personagem" />;
   }
 
   if (!hasUsableAccessToken(accessToken)) {

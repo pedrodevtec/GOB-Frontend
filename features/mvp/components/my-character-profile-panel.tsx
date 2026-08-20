@@ -12,6 +12,7 @@ import { useCampaignResume, useMyMvpCharacter } from "@/features/mvp/hooks/use-m
 import { useProfile } from "@/features/profile/hooks/use-profile";
 import { playerSheetStatusLabel } from "@/lib/campaign/player-journey";
 import { GuardianProgressTrack } from "@/components/visual/guardian-progress-track";
+import { GuardianPageLoader } from "@/components/visual/guardian-page-loader";
 import { DEFAULT_GUARDIAN_AVATAR, type GuardianAction } from "@/lib/guardian-companion";
 
 function nextAction(journeyState?: string) {
@@ -34,7 +35,7 @@ export function MyCharacterProfilePanel() {
   const profile = useProfile();
 
   if (resume.isLoading || character.isLoading) {
-    return <MvpState variant="loading" title="Carregando seu personagem" />;
+    return <GuardianPageLoader title="Carregando seu personagem" />;
   }
 
   if (resume.isError || character.isError) {
