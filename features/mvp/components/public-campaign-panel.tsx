@@ -6,6 +6,13 @@ import { useState } from "react";
 import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { GuardianAvatarSelector } from "@/components/visual/guardian-avatar-selector";
 import { GuardianPageLoader } from "@/components/visual/guardian-page-loader";
 import { GuardianProgressTrack } from "@/components/visual/guardian-progress-track";
@@ -124,6 +131,15 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
   const hasMembership = resume.data?.membership?.status === "ACTIVE";
   const journeyStarted = Boolean(hasConsent || hasMembership || character.data);
   const journeyCompleted = Boolean(resume.data?.journeyState?.startsWith("COMPLETED_"));
+  const guardianChoiceRequired = Boolean(
+    isAuthenticated &&
+    data.status === "ACTIVE" &&
+    !isFull &&
+    !profile.isLoading &&
+    !profile.isError &&
+    !profile.data?.selectedGuardianAvatar
+  );
+  const guardianModalOpen = guardianChoiceRequired || changeGuardianOpen;
   const selectedGuardian = profile.data?.selectedGuardianAvatar ?? DEFAULT_GUARDIAN_AVATAR;
   const progress = character.data?.journeyProgress;
   const progressPercentage = progress?.percentage ?? (hasMembership ? 14 : 0);
@@ -165,6 +181,41 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
 
   return (
     <div className="space-y-5">
+      <Dialog
+        open={guardianModalOpen}
+        onOpenChange={(open) => {
+          if (!open && guardianChoiceRequired) return;
+          setChangeGuardianOpen(open);
+        }}
+      >
+        <DialogContent
+          showCloseButton={!guardianChoiceRequired}
+          className="max-h-[90vh] w-[min(94vw,64rem)] overflow-y-auto"
+          onEscapeKeyDown={(event) => {
+            if (guardianChoiceRequired) event.preventDefault();
+          }}
+          onPointerDownOutside={(event) => {
+            if (guardianChoiceRequired) event.preventDefault();
+          }}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>Escolha seu Guardião companheiro</DialogTitle>
+            <DialogDescription>
+              Escolha quem acompanhará visualmente sua jornada em Bravantus.
+            </DialogDescription>
+          </DialogHeader>
+          <GuardianAvatarSelector
+            selected={profile.data?.selectedGuardianAvatar}
+            pending={updateGuardian.isPending}
+            onSelect={(avatar) => {
+              updateGuardian.mutate(avatar, {
+                onSuccess: () => setChangeGuardianOpen(false)
+              });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
       <Card className="space-y-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
@@ -260,32 +311,19 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
               <CardTitle className="mt-1 text-xl">O Guardião acompanha cada passo</CardTitle>
             </div>
             {profile.data?.selectedGuardianAvatar ? (
-              <Button type="button" variant="outline" size="sm" onClick={() => setChangeGuardianOpen((current) => !current)}>
-                {changeGuardianOpen ? "Manter este Guardião" : "Trocar Guardião"}
+              <Button type="button" variant="outline" size="sm" onClick={() => setChangeGuardianOpen(true)}>
+                Trocar Guardião
               </Button>
             ) : null}
           </div>
 
-          {!profile.isLoading && (!profile.data?.selectedGuardianAvatar || changeGuardianOpen) ? (
-            <GuardianAvatarSelector
-              selected={profile.data?.selectedGuardianAvatar}
-              pending={updateGuardian.isPending}
-              compact
-              onSelect={(avatar) => {
-                updateGuardian.mutate(avatar, {
-                  onSuccess: () => setChangeGuardianOpen(false)
-                });
-              }}
-            />
-          ) : (
-            <GuardianProgressTrack
-              guardian={selectedGuardian}
-              percentage={progressPercentage}
-              currentLabel={currentProgressLabel}
-              nextLabel={nextProgressLabel}
-              action={guardianActionForJourney(resume.data?.journeyState)}
-            />
-          )}
+          <GuardianProgressTrack
+            guardian={selectedGuardian}
+            percentage={progressPercentage}
+            currentLabel={currentProgressLabel}
+            nextLabel={nextProgressLabel}
+            action={guardianActionForJourney(resume.data?.journeyState)}
+          />
         </Card>
       ) : (
       <div className="grid gap-4 md:grid-cols-3">

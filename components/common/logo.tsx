@@ -1,17 +1,19 @@
 import Image from "next/image";
 
+import darkBrandLogo from "@/Imagens/Logos/bravantus 2.png";
+
 import { appConfig } from "@/lib/api/config";
 import { cn } from "@/lib/utils";
 
 export function Logo({ compact = false, className = "" }) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-primary/30 bg-[#eee4d1] shadow-sm">
+      <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-primary/30 bg-[#fffaf2] p-1 shadow-sm">
         <Image
-          src="/images/logos/brand.png"
+          src={darkBrandLogo}
           alt={appConfig.appName}
           fill
-          className="object-cover"
+          className="object-contain p-1"
         />
       </div>
       {!compact ? (

@@ -13,8 +13,9 @@ export const DialogClose = DialogPrimitive.Close;
 export function DialogContent({
   className,
   children,
+  showCloseButton = true,
   ...props
-}: DialogPrimitive.DialogContentProps) {
+}: DialogPrimitive.DialogContentProps & { showCloseButton?: boolean }) {
   return (
     <DialogPortal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-stone-950/45 backdrop-blur-sm" />
@@ -26,9 +27,12 @@ export function DialogContent({
         {...props}
       >
         {children}
-        <DialogClose className="absolute right-4 top-4 rounded-full p-1 text-muted-foreground hover:bg-white/10 hover:text-foreground">
-          <X className="h-4 w-4" />
-        </DialogClose>
+        {showCloseButton ? (
+          <DialogClose className="absolute right-4 top-4 rounded-full p-1 text-muted-foreground hover:bg-white/10 hover:text-foreground">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Fechar</span>
+          </DialogClose>
+        ) : null}
       </DialogPrimitive.Content>
     </DialogPortal>
   );
@@ -44,13 +48,13 @@ export const DialogHeader = ({
 export const DialogTitle = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h2 className={cn("font-display text-2xl font-semibold", className)} {...props} />
+}: DialogPrimitive.DialogTitleProps) => (
+  <DialogPrimitive.Title className={cn("font-display text-2xl font-semibold", className)} {...props} />
 );
 
 export const DialogDescription = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLParagraphElement>) => (
-  <p className={cn("text-sm text-muted-foreground", className)} {...props} />
+}: DialogPrimitive.DialogDescriptionProps) => (
+  <DialogPrimitive.Description className={cn("text-sm text-muted-foreground", className)} {...props} />
 );
