@@ -15,15 +15,16 @@ const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 const FOOTER_HEIGHT = 34;
 
 const colors = {
-  canvas: rgb(5 / 255, 9 / 255, 18 / 255),
-  surface: rgb(9 / 255, 15 / 255, 28 / 255),
-  elevated: rgb(15 / 255, 24 / 255, 40 / 255),
-  border: rgb(36 / 255, 50 / 255, 68 / 255),
-  gold: rgb(247 / 255, 196 / 255, 63 / 255),
-  goldDark: rgb(196 / 255, 122 / 255, 19 / 255),
-  forest: rgb(1 / 255, 74 / 255, 30 / 255),
-  white: rgb(248 / 255, 250 / 255, 252 / 255),
-  muted: rgb(170 / 255, 179 / 255, 192 / 255)
+  canvas: rgb(243 / 255, 242 / 255, 237 / 255),
+  surface: rgb(255 / 255, 253 / 255, 248 / 255),
+  elevated: rgb(255 / 255, 250 / 255, 241 / 255),
+  border: rgb(217 / 255, 204 / 255, 180 / 255),
+  gold: rgb(166 / 255, 124 / 255, 61 / 255),
+  goldDark: rgb(126 / 255, 91 / 255, 43 / 255),
+  forest: rgb(119 / 255, 131 / 255, 110 / 255),
+  terracotta: rgb(183 / 255, 101 / 255, 72 / 255),
+  ink: rgb(41 / 255, 39 / 255, 34 / 255),
+  muted: rgb(112 / 255, 102 / 255, 87 / 255)
 };
 
 const archetypeLabels: Record<string, string> = {
@@ -168,35 +169,72 @@ export async function buildCharacterSheetPdf(
 }
 
 function drawFirstHeader(context: PdfContext, character: MvpTableCharacter) {
+  const headerHeight = 164;
   context.page.drawRectangle({
     x: MARGIN,
-    y: context.y - 116,
+    y: context.y - headerHeight,
     width: CONTENT_WIDTH,
-    height: 116,
-    color: colors.elevated,
-    borderColor: colors.goldDark,
+    height: headerHeight,
+    color: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1
   });
   context.page.drawRectangle({
     x: MARGIN,
-    y: context.y - 116,
-    width: 7,
-    height: 116,
+    y: context.y - headerHeight,
+    width: 6,
+    height: headerHeight,
     color: colors.forest
   });
-  drawText(context.page, "GUARDIAN OF BRAVANTUS", MARGIN + 22, context.y - 24, 9, context.bold, colors.gold);
-  drawText(context.page, safeText(character.name || "Personagem", context.bold), MARGIN + 22, context.y - 58, 24, context.bold, colors.white);
+  context.page.drawLine({
+    start: { x: MARGIN + 18, y: context.y - 34 },
+    end: { x: PAGE_WIDTH - MARGIN - 18, y: context.y - 34 },
+    thickness: 1,
+    color: colors.border
+  });
+  drawText(context.page, "GUARDIAN OF BRAVANTUS", MARGIN + 20, context.y - 23, 8, context.bold, colors.gold);
+  drawText(context.page, "FICHA DO PERSONAGEM", PAGE_WIDTH - MARGIN - 118, context.y - 23, 8, context.bold, colors.muted);
+  drawText(context.page, safeText(character.name || "Personagem", context.bold), MARGIN + 20, context.y - 65, 23, context.bold, colors.ink);
+  const conceptLines = wrapText(
+    safeText(character.concept || "Guardião cuja história está sendo escrita.", context.regular),
+    context.regular,
+    9,
+    320
+  ).slice(0, 2);
+  conceptLines.forEach((line, index) => drawText(context.page, line, MARGIN + 20, context.y - 84 - index * 12, 9, context.regular, colors.muted));
   drawText(
     context.page,
     sheetStatusLabel(character.sheetStatus),
-    MARGIN + 22,
-    context.y - 84,
-    11,
+    PAGE_WIDTH - MARGIN - 150,
+    context.y - 61,
+    9,
     context.bold,
-    colors.muted
+    colors.terracotta
   );
-  drawText(context.page, "FICHA DO PERSONAGEM", PAGE_WIDTH - MARGIN - 118, context.y - 24, 8, context.bold, colors.muted);
-  context.y -= 140;
+  const resources = derivedResources(character);
+  const resourceItems = [
+    ["PV", resources.pv],
+    ["ENERGIA", resources.energy],
+    ["ASCENSÃO", resources.ascensionPoints]
+  ] as const;
+  const resourceWidth = 86;
+  resourceItems.forEach(([label, value], index) => {
+    const x = PAGE_WIDTH - MARGIN - 18 - resourceWidth * (resourceItems.length - index);
+    context.page.drawRectangle({
+      x,
+      y: context.y - 145,
+      width: resourceWidth - 7,
+      height: 42,
+      color: colors.elevated,
+      borderColor: colors.border,
+      borderWidth: 1
+    });
+    drawText(context.page, label, x + 9, context.y - 119, 7, context.bold, colors.muted);
+    drawText(context.page, String(value), x + 9, context.y - 138, 15, context.bold, colors.goldDark);
+  });
+  const archetype = friendlyArchetype(character.archetypeKey);
+  drawText(context.page, safeText(archetype || "Arquétipo não definido", context.bold), MARGIN + 20, context.y - 126, 9, context.bold, colors.goldDark);
+  context.y -= headerHeight + 22;
 }
 
 function addPage(context: PdfContext) {
@@ -217,6 +255,7 @@ function addPage(context: PdfContext) {
 
 function paintPage(page: PDFPage) {
   page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: colors.canvas });
+  page.drawRectangle({ x: 14, y: 14, width: PAGE_WIDTH - 28, height: PAGE_HEIGHT - 28, borderColor: colors.border, borderWidth: 0.7 });
 }
 
 function section(context: PdfContext, title: string) {
@@ -232,7 +271,7 @@ function section(context: PdfContext, title: string) {
     borderWidth: 1
   });
   context.page.drawRectangle({ x: MARGIN, y: context.y - 25, width: 4, height: 30, color: colors.goldDark });
-  drawText(context.page, safeText(title, context.bold), MARGIN + 14, context.y - 15, 13, context.bold, colors.gold);
+  drawText(context.page, safeText(title, context.bold), MARGIN + 14, context.y - 15, 13, context.bold, colors.ink);
   context.y -= 42;
 }
 
@@ -260,7 +299,7 @@ function field(
   });
   drawText(context.page, labelText, MARGIN + 12, context.y - 18, 8, context.bold, colors.gold);
   lines.forEach((line, index) => {
-    drawText(context.page, line, MARGIN + 12, context.y - 38 - index * (size + 4), size, bodyFont, prominent ? colors.white : colors.muted);
+    drawText(context.page, line, MARGIN + 12, context.y - 38 - index * (size + 4), size, bodyFont, prominent ? colors.ink : colors.muted);
   });
   context.y -= height + 8;
 }
@@ -291,7 +330,7 @@ function twoColumnFields(
     });
     drawText(context.page, safeText(item.label.toLocaleUpperCase("pt-BR"), context.bold), x + 12, context.y - 18, 8, context.bold, colors.gold);
     item.lines.forEach((line, lineIndex) => {
-      drawText(context.page, line, x + 12, context.y - 38 - lineIndex * 14, 10, context.regular, colors.muted);
+      drawText(context.page, line, x + 12, context.y - 38 - lineIndex * 14, 10, context.regular, colors.ink);
     });
   });
   context.y -= height + 8;
@@ -320,7 +359,7 @@ function statGrid(context: PdfContext, items: Array<{ label: string; value?: num
     const label = safeText(item.label.toLocaleUpperCase("pt-BR"), context.bold);
     drawText(context.page, label, x + (width - context.bold.widthOfTextAtSize(label, 7)) / 2, y - 18, 7, context.bold, colors.muted);
     const value = String(item.value ?? 0);
-    drawText(context.page, value, x + (width - context.bold.widthOfTextAtSize(value, 18)) / 2, y - 44, 18, context.bold, colors.gold);
+    drawText(context.page, value, x + (width - context.bold.widthOfTextAtSize(value, 18)) / 2, y - 44, 18, context.bold, colors.goldDark);
   });
   const rows = Math.ceil(items.length / columns);
   context.y -= rows * height + (rows - 1) * gap + 8;
@@ -348,12 +387,30 @@ function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): 
         lines.push(current);
         current = word;
       } else {
-        lines.push(word);
+        const fragments = splitLongWord(word, font, size, maxWidth);
+        lines.push(...fragments.slice(0, -1));
+        current = fragments.at(-1) ?? "";
       }
     }
     if (current) lines.push(current);
   }
   return lines;
+}
+
+function splitLongWord(word: string, font: PDFFont, size: number, maxWidth: number) {
+  const fragments: string[] = [];
+  let fragment = "";
+  for (const character of word) {
+    const candidate = `${fragment}${character}`;
+    if (fragment && font.widthOfTextAtSize(candidate, size) > maxWidth) {
+      fragments.push(fragment);
+      fragment = character;
+    } else {
+      fragment = candidate;
+    }
+  }
+  if (fragment) fragments.push(fragment);
+  return fragments;
 }
 
 function safeText(value: string, font: PDFFont): string {

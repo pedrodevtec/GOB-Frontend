@@ -32,7 +32,8 @@ import type {
   CharacterCardArtGallery,
   CharacterCardArtGeneration,
   CharacterCardArtVariant,
-  JourneyMilestone
+  JourneyMilestone,
+  PublicApprovedCharacterProfile
 } from "@/features/mvp/types";
 
 type Dict = Record<string, unknown>;
@@ -716,6 +717,15 @@ function mapAnalyticsEvent(input: unknown): AnalyticsEventResult {
 }
 
 export const mvpService = {
+  getPublicApprovedCharacter: (characterId: string): Promise<PublicApprovedCharacterProfile> =>
+    request(apiClient.get(`/api/v1/characters/public/${characterId}`), (data) => {
+      const root = record(data);
+      const source = isObject(root.data) ? record(root.data) : root;
+      return {
+        character: mapMvpCharacter(source.character),
+        cardArt: arr(source.cardArt, mapCardArtGeneration)
+      };
+    }),
   getPublicCampaign: (slug: string) =>
     request(apiClient.get(`/api/v1/campaigns/public/${slug}`), (data) =>
       mapCampaign(unwrap(data, "campaign"))

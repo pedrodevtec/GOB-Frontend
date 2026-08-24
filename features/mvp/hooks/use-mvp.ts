@@ -22,7 +22,9 @@ export const mvpKeys = {
   aiUsage: (filters?: unknown) => ["mvp", "admin", "ai-usage", filters ?? {}] as const,
   cardArt: (tableId: string, characterId: string) => ["mvp", "tables", tableId, "characters", characterId, "card-art"] as const,
   technical: ["mvp", "technical"] as const,
-  docsJson: ["mvp", "docs-json"] as const
+  docsJson: ["mvp", "docs-json"] as const,
+  publicCharacter: (characterId: string) => ["mvp", "public-character", characterId] as const,
+  character: (tableId: string, characterId: string) => ["mvp", "tables", tableId, "characters", characterId] as const
 };
 
 export function usePublicCampaign(slug: string) {
@@ -30,6 +32,25 @@ export function usePublicCampaign(slug: string) {
     queryKey: mvpKeys.campaign(slug),
     queryFn: () => mvpService.getPublicCampaign(slug),
     enabled: Boolean(slug),
+    retry: false
+  });
+}
+
+export function usePublicApprovedCharacter(characterId: string) {
+  return useQuery({
+    queryKey: mvpKeys.publicCharacter(characterId),
+    queryFn: () => mvpService.getPublicApprovedCharacter(characterId),
+    enabled: Boolean(characterId),
+    retry: false
+  });
+}
+
+export function useMvpCharacterById(tableId?: string, characterId?: string) {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useQuery({
+    queryKey: mvpKeys.character(tableId ?? "", characterId ?? ""),
+    queryFn: () => mvpService.getCharacterById(tableId ?? "", characterId ?? ""),
+    enabled: Boolean(tableId && characterId && hasUsableAccessToken(accessToken)),
     retry: false
   });
 }
