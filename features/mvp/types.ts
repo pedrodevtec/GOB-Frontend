@@ -375,6 +375,11 @@ export interface CharacterCardArtGallery {
   items: CharacterCardArtGeneration[];
 }
 
+export interface PublicApprovedCharacterProfile {
+  character: MvpTableCharacter;
+  cardArt: CharacterCardArtGeneration[];
+}
+
 export type MvpSheetStatus = "DRAFT" | "SUBMITTED" | "CHANGES_REQUESTED" | "APPROVED" | string;
 
 export interface MvpEpisodeAnswer {

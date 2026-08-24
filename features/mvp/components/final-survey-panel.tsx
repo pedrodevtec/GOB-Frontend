@@ -18,6 +18,11 @@ function numberValue(formData: FormData, key: string, fallback = 3) {
   return Number.isFinite(value) ? value : fallback;
 }
 
+function optionalText(formData: FormData, key: string) {
+  const value = String(formData.get(key) ?? "").trim();
+  return value || undefined;
+}
+
 export function FinalSurveyPanel({ slug }: { slug: string }) {
   const router = useRouter();
   const survey = useFinalSurvey();
@@ -58,6 +63,7 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
         onSubmit={(event) => {
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
+          const aiBoundaryProblem = formData.get("aiBoundaryProblem") === "true";
           saveSurvey.mutate(
             {
               characterUnderstandingScore: numberValue(formData, "characterUnderstandingScore"),
@@ -66,10 +72,12 @@ export function FinalSurveyPanel({ slug }: { slug: string }) {
                 formData.get("aiHelpfulnessScore") === "NOT_USED"
                   ? "NOT_USED"
                   : numberValue(formData, "aiHelpfulnessScore"),
-              aiBoundaryProblem: formData.get("aiBoundaryProblem") === "true",
-              aiBoundaryProblemDetails: String(formData.get("aiBoundaryProblemDetails") ?? ""),
+              aiBoundaryProblem,
+              aiBoundaryProblemDetails: aiBoundaryProblem
+                ? optionalText(formData, "aiBoundaryProblemDetails")
+                : undefined,
               storyImpactScore: numberValue(formData, "storyImpactScore"),
-              finalComment: String(formData.get("finalComment") ?? "")
+              finalComment: optionalText(formData, "finalComment")
             },
             { onSuccess: () => router.replace(campaignFlowPath(slug, "/conclusao")) }
           );

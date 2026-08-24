@@ -6,6 +6,7 @@ import { Shield } from "lucide-react";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { CharacterSheetDownloadButton } from "@/features/mvp/components/character-sheet-download-button";
+import { ShareCharacterButton } from "@/features/mvp/components/share-character-button";
 import {
   ATTRIBUTE_KEYS,
   ATTRIBUTE_LABELS,
@@ -111,6 +112,7 @@ export function MyCharacterReadonlyPanel({
   character,
   layout = "full",
   archetypeName,
+  showShareAction = true,
   emptyTitle = "Nenhum personagem encontrado",
   emptyDescription = "Crie e salve um rascunho para visualizar a ficha consolidada aqui."
 }: {
@@ -118,6 +120,7 @@ export function MyCharacterReadonlyPanel({
   tableId?: string;
   layout?: "full" | "sheet";
   archetypeName?: string;
+  showShareAction?: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
@@ -182,6 +185,7 @@ export function MyCharacterReadonlyPanel({
                 <Resource label="Ascensão" value={derived.ascensionPoints} />
               </div>
               <CharacterSheetDownloadButton character={character} archetypeName={archetypeName} />
+              {showShareAction && character.sheetStatus === "APPROVED" ? <ShareCharacterButton characterId={character.id} /> : null}
             </div>
           </div>
         </div>
@@ -284,6 +288,7 @@ export function MyCharacterReadonlyPanel({
         <div className="flex flex-col items-start gap-3 md:items-end">
           <div className="rounded-xl border border-border bg-white/55 px-4 py-3 text-sm"><p className="font-semibold">{playerSheetStatusLabel(character.sheetStatus)}</p><p className="text-muted-foreground">{character.editable ? "Você ainda pode ajustar" : "Ficha disponível para consulta"}</p></div>
           <CharacterSheetDownloadButton character={character} archetypeName={archetypeName} />
+          {showShareAction && character.sheetStatus === "APPROVED" ? <ShareCharacterButton characterId={character.id} /> : null}
         </div>
       </div>
       {character.masterFeedback ? <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4"><p className="text-sm font-semibold text-amber-900">Feedback do Mestre</p><p className="mt-2 text-sm leading-6 text-amber-900/80">{character.masterFeedback}</p></div> : null}
