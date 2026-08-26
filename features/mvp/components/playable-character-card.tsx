@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Download, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { InstagramStoryShareButton } from "@/features/mvp/components/instagram-story-share-button";
 import {
   ATTRIBUTE_KEYS,
   ATTRIBUTE_LABELS,
@@ -293,6 +294,13 @@ export function PlayableCharacterCard({
           <Button type="button" variant="outline" onClick={() => void download("back")} disabled={downloading}>
             <Download className="mr-2 size-4" /> Baixar verso
           </Button>
+          {character.sheetStatus === "APPROVED" ? (
+            <InstagramStoryShareButton
+              characterId={character.id}
+              characterName={character.name}
+              imageUrl={imageUrl}
+            />
+          ) : null}
         </div>
       </div>
     </div>

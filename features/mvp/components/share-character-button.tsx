@@ -6,14 +6,20 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
+const PUBLIC_ORIGIN = "https://gob.bardosamigos.com.br";
+
 export function ShareCharacterButton({ characterId }: { characterId: string }) {
   const [copied, setCopied] = useState(false);
 
   async function share() {
-    const url = `${window.location.origin}/personagens/${characterId}`;
+    const url = `${PUBLIC_ORIGIN}/personagens/${characterId}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Guardian of Bravantus", text: "Conheça este Guardião", url });
+        await navigator.share({
+          title: "Guardian of Bravantus",
+          text: "Meu guardião despertou em Bravantus! @bar_dos_amigos_online #Guardianofbravantus",
+          url
+        });
         return;
       }
       await navigator.clipboard.writeText(url);
