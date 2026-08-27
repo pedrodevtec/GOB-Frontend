@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Minha Jornada — Guardian of Bravantus</title>
+  <style>
+    /* Governado por DESIGN.md: Colors, Typography, Layout & Spacing, Components.
+       Governado por EXPERIENCE.md: Information Architecture (Minha Jornada), Component Patterns
+       (Primary action, Editorial panel, Journey navigation, Status indicator, Guardian progress,
+       Personal artifact), State Patterns (COMPLETED_PENDING_REVIEW), UJ-4. */
+    :root{--canvas:#F7F2E8;--paper:#FFFAF2;--ink:#2F291F;--muted:#665D50;--action:#8F4933;--on-action:#FFF8ED;--focus:#8A6427;--gold:#C8A96E;--forest:#3F684B;--sage:#77836E;--warning:#8B5A20;--border:#CFC1A8;--shadow:0 18px 50px rgba(78,63,39,.08)}
+    *{box-sizing:border-box} body{margin:0;background:#ded8ce;color:var(--ink);font:400 16px/1.6 Inter,"Segoe UI",Arial,sans-serif} button,a{font:inherit} a{color:inherit} button:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+    .browser{max-width:1440px;margin:24px auto;border:1px solid #aca398;border-radius:16px;overflow:hidden;background:var(--canvas);box-shadow:0 28px 80px rgba(45,41,31,.18)}
+    .chrome{height:44px;background:#eeeae4;border-bottom:1px solid #c9c2b8;display:flex;align-items:center;gap:8px;padding:0 16px}.dot{width:12px;height:12px;border-radius:50%;background:#c6beb3}.address{margin-left:12px;max-width:580px;flex:1;height:26px;border:1px solid #d5cec4;border-radius:6px;background:#faf8f5;color:#756f67;font-size:13px;line-height:24px;padding:0 12px}
+    .topbar{min-height:68px;background:var(--paper);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:12px 32px}.brand{font-family:Cinzel,Cambria,Georgia,serif;font-weight:700;letter-spacing:.04em}.nav{display:flex;align-items:center;gap:8px}.nav a{min-height:44px;display:flex;align-items:center;padding:0 14px;border-radius:6px;text-decoration:none;color:var(--muted)}.nav .active{color:var(--action);font-weight:700;border-bottom:2px solid var(--action)}
+    main{max-width:1200px;margin:auto;padding:32px}.hero{min-height:270px;border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;background:var(--paper) url('../../../../../public/images/bravantus/journey-chronicle.webp') center top/cover no-repeat;box-shadow:var(--shadow)}.hero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(247,242,232,0) 24%,rgba(247,242,232,.45) 58%,rgba(247,242,232,.96) 100%)}.hero-copy{position:absolute;z-index:1;left:40px;right:40px;bottom:28px}.eyebrow{margin:0;color:var(--focus);font-size:13px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}.hero h1,.name{font-family:Cinzel,Cambria,Georgia,serif}.hero h1{font-size:36px;line-height:1.2;margin:7px 0 5px}.hero p:last-child{margin:0;max-width:720px;color:var(--muted)}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;margin-top:24px}.panel{background:var(--paper);border:1px solid var(--border);border-radius:10px;padding:24px;box-shadow:var(--shadow)}.status{display:flex;gap:14px;align-items:flex-start}.status-icon{width:44px;height:44px;flex:0 0 44px;border-radius:50%;display:grid;place-items:center;background:#f4ead8;color:var(--warning);font-weight:800}.status h2{font-size:24px;line-height:1.3;margin:0}.status p{color:var(--muted);margin:6px 0 0}.rule{border:0;border-top:1px solid var(--border);margin:22px 0}.next{display:flex;justify-content:space-between;gap:20px;align-items:center}.next h3{font-size:18px;margin:0}.next p{font-size:14px;color:var(--muted);margin:4px 0 0}.primary,.secondary{min-height:44px;border-radius:6px;padding:10px 18px;font-weight:700;cursor:pointer}.primary{border:1px solid var(--action);background:var(--action);color:var(--on-action)}.secondary{border:1px solid var(--border);background:var(--paper);color:var(--ink)}
+    .progress h2{font-size:18px;margin:0}.track{height:12px;background:var(--border);border-radius:9999px;margin:18px 0 12px;overflow:hidden}.fill{height:100%;width:86%;background:var(--forest)}.progress-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}.guardian{display:flex;align-items:center;gap:12px;margin-top:20px}.guardian img{width:64px;height:64px;image-rendering:pixelated}.guardian strong{display:block}.guardian span{font-size:13px;color:var(--muted)}
+    .journey{margin-top:24px}.journey h2{font-size:24px;margin:0 0 18px}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.step{min-height:88px;border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--paper)}.step .kicker{font-size:13px;color:var(--muted)}.step strong{display:block;margin-top:5px}.step.done{border-top:4px solid var(--forest)}.step.current{border:2px solid var(--action);padding:13px}.step .mark{color:var(--forest);font-weight:700}.step.current .mark{color:var(--action)}
+    .artifacts{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}.artifact{min-height:182px;background:var(--paper);border:1px solid var(--gold);border-radius:10px;padding:20px}.artifact-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:10px;background:#f3e8cf;color:var(--focus);font-size:22px}.artifact h3{margin:14px 0 4px}.artifact p{font-size:14px;color:var(--muted);margin:0 0 15px}.artifact .secondary{width:100%}
+    @media(max-width:800px){.browser{margin:0;border-radius:0}.chrome{display:none}.topbar{padding:10px 16px}.nav a{display:none}.nav a.active{display:flex}.topbar .brand{font-size:14px}main{padding:16px}.hero{min-height:260px}.hero-copy{left:20px;right:20px;bottom:20px}.hero h1{font-size:28px}.layout{grid-template-columns:1fr}.next{align-items:stretch;flex-direction:column}.primary,.secondary{width:100%}.steps,.artifacts{grid-template-columns:1fr}.step{min-height:auto}.panel{padding:20px}}
+  </style>
+</head>
+<body>
+  <div class="browser">
+    <div class="chrome"><i class="dot"></i><i class="dot"></i><i class="dot"></i><div class="address">bravantus.com/dashboard</div></div>
+    <header class="topbar"><div class="brand">GUARDIAN OF BRAVANTUS</div><nav class="nav" aria-label="Navegação principal"><a class="active" href="#">Minha Jornada</a><a href="#">Meu Personagem</a><a href="#">Perfil</a></nav></header>
+    <main>
+      <section class="hero"><div class="hero-copy"><p class="eyebrow">Crônica do Guardião</p><h1>Minha Jornada</h1><p>Cada escolha deixa uma marca. Veja onde sua história está e siga pelo próximo passo indicado.</p></div></section>
+      <div class="layout">
+        <section class="panel">
+          <div class="status"><div class="status-icon" aria-hidden="true">⌛</div><div><h2>Participação concluída</h2><p>Sua pesquisa foi salva e seu personagem aguarda a leitura do Mestre. Você não precisa fazer nenhum ajuste agora.</p></div></div>
+          <hr class="rule">
+          <div class="next"><div><h3>Próximo passo</h3><p>Acompanhe a revisão ou consulte a ficha que você enviou.</p></div><button class="primary">Ver meu personagem</button></div>
+        </section>
+        <aside class="panel progress">
+          <h2>Sua preparação</h2><div class="track" aria-label="86% da preparação concluída"><div class="fill"></div></div><div class="progress-row"><span>Pesquisa concluída</span><strong>86%</strong></div>
+          <div class="guardian"><img src="../../../../../public/images/bravantus/pixel-guardians/guardian-sword-still.png" alt=""><div><strong>Aguardando o Mestre</strong><span>Voltaremos a avisar quando houver uma decisão.</span></div></div>
+        </aside>
+      </div>
+      <section class="panel journey"><h2>Seu caminho em Bravantus</h2><div class="steps"><div class="step done"><span class="kicker">Etapas 1–3</span><strong>Entrada e contexto</strong><span class="mark">✓ Concluído</span></div><div class="step done"><span class="kicker">Etapa 4</span><strong>Criação</strong><span class="mark">✓ Concluído</span></div><div class="step done"><span class="kicker">Etapas 5–6</span><strong>Envio e pesquisa</strong><span class="mark">✓ Concluído</span></div><div class="step current"><span class="kicker">Agora</span><strong>Revisão humana</strong><span class="mark">Aguardando</span></div></div></section>
+      <section class="artifacts" aria-label="Artefatos do personagem"><article class="artifact"><div class="artifact-icon">◉</div><h3>Retrato</h3><p>Disponível para criação explícita enquanto você aguarda.</p><button class="secondary">Criar retrato</button></article><article class="artifact"><div class="artifact-icon">▣</div><h3>Carta Jogável</h3><p>Uma carta pessoal com informações da ficha confirmada.</p><button class="secondary">Criar carta</button></article><article class="artifact"><div class="artifact-icon">⇩</div><h3>Ficha em PDF</h3><p>Uma fotografia local da ficha enviada para consulta.</p><button class="secondary">Baixar ficha</button></article></section>
+    </main>
+  </div>
+</body>
+</html>
