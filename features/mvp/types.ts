@@ -1,3 +1,7 @@
+import type { JourneyState } from "@/lib/campaign/player-journey";
+
+export type { JourneyState } from "@/lib/campaign/player-journey";
+
 export interface PublicCampaign {
   id: string;
   slug: string;
@@ -51,6 +55,7 @@ export interface CampaignResume {
   nextRecommendedAction?: { key?: string; title?: string; description?: string } | null;
   journeyState?: JourneyState;
   nextRoute?: string;
+  journeyRevision?: number | null;
   character?: {
     id: string;
     name: string;
@@ -63,19 +68,6 @@ export interface CampaignResume {
   } | null;
   finalSurvey?: { id: string; surveyVersion?: string; submittedAt?: string } | null;
 }
-
-export type JourneyState =
-  | "CONSENT_REQUIRED"
-  | "JOIN_REQUIRED"
-  | "CONTEXT_REQUIRED"
-  | "CHARACTER_DRAFT"
-  | "CHANGES_REQUIRED"
-  | "SURVEY_REQUIRED"
-  | "COMPLETED_PENDING_REVIEW"
-  | "COMPLETED_CHANGES_REQUIRED"
-  | "COMPLETED_APPROVED"
-  | "LEGACY_REVIEW"
-  | "BLOCKED";
 
 export interface BuilderConfig {
   version: string;

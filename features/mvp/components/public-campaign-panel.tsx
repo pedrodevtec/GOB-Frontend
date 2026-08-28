@@ -30,6 +30,7 @@ import {
   type GuardianAction
 } from "@/lib/guardian-companion";
 import { authPathWithReturnTo } from "@/lib/routing/auth-redirects";
+import { safeCampaignJourneyRoute } from "@/lib/routing/journey-routing";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -104,12 +105,21 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
   if (campaign.isLoading) return <GuardianPageLoader title="Preparando Bravantus" />;
 
   if (campaign.isError) {
+    const unavailable = statusCode(campaign.error) === 404;
     return (
       <MvpState
-        variant="error"
-        title="Não foi possível abrir esta jornada"
-        description="Tente novamente. Se o problema continuar, volte mais tarde."
-        actions={[{ label: "Tentar novamente", onClick: () => void campaign.refetch() }]}
+        variant={unavailable ? "empty" : "error"}
+        title={unavailable ? "Esta jornada não está disponível" : "Não foi possível abrir esta jornada"}
+        description={
+          unavailable
+            ? "Confira o endereço recebido ou volte à página inicial."
+            : "Tente novamente. Se o problema continuar, volte mais tarde."
+        }
+        actions={
+          unavailable
+            ? [{ label: "Voltar ao início", href: "/", variant: "outline" }]
+            : [{ label: "Tentar novamente", onClick: () => void campaign.refetch() }]
+        }
       />
     );
   }
@@ -131,6 +141,9 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
   const hasMembership = resume.data?.membership?.status === "ACTIVE";
   const journeyStarted = Boolean(hasConsent || hasMembership || character.data);
   const journeyCompleted = Boolean(resume.data?.journeyState?.startsWith("COMPLETED_"));
+  const journeyBlocked =
+    resume.data?.journeyState === "BLOCKED" ||
+    resume.data?.journeyState === "LEGACY_REVIEW";
   const guardianChoiceRequired = Boolean(
     isAuthenticated &&
     data.status === "ACTIVE" &&
@@ -153,24 +166,24 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
     : progressPercentage < 100
       ? "Iniciar seu personagem"
       : undefined;
-  const continueHref =
-    resume.data?.nextRoute ??
-    (hasMembership
-      ? campaignFlowPath(slug, "/episodio-1")
-      : campaignFlowPath(slug, "/consentimento"));
-  const primaryAction = {
-    label: journeyCompleted
-      ? "Ver meu personagem"
-      : isAuthenticated && journeyStarted
-        ? "Continuar minha jornada"
-        : "Começar minha jornada",
-    href: journeyCompleted
-      ? "/meu-personagem"
-      : isAuthenticated
-        ? continueHref
-      : authPathWithReturnTo("/register", campaignPath),
-    variant: "default" as const
-  };
+  const continueHref = safeCampaignJourneyRoute(slug, resume.data?.nextRoute);
+  const primaryAction = isAuthenticated
+    ? continueHref
+      ? {
+          label: journeyCompleted
+            ? "Ver conclusão"
+            : journeyStarted
+              ? "Continuar minha jornada"
+              : "Começar minha jornada",
+          href: continueHref,
+          variant: "default" as const
+        }
+      : null
+    : {
+        label: "Começar minha jornada",
+        href: authPathWithReturnTo("/register", campaignPath),
+        variant: "default" as const
+      };
   const secondaryAction = isAuthenticated
     ? null
     : {
@@ -278,6 +291,24 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
             description="Seu progresso continua guardado. Tente novamente em alguns instantes."
             actions={[{ label: "Tentar novamente", onClick: () => void resume.refetch() }]}
           />
+        ) : isAuthenticated && journeyBlocked ? (
+          <MvpState
+            variant="access-denied"
+            title={
+              resume.data?.journeyState === "LEGACY_REVIEW"
+                ? "Seu personagem precisa de uma atualização"
+                : "Sua jornada está temporariamente pausada"
+            }
+            description={journeyMessage(resume.data?.journeyState)}
+            actions={[{ label: "Atualizar", onClick: () => void resume.refetch() }]}
+          />
+        ) : isAuthenticated && resume.isSuccess && !continueHref ? (
+          <MvpState
+            variant="error"
+            title="Não foi possível localizar a próxima etapa"
+            description="Seu progresso está salvo, mas não recebemos uma rota segura para continuar."
+            actions={[{ label: "Atualizar", onClick: () => void resume.refetch() }]}
+          />
         ) : character.isLoading ? (
           <GuardianPageLoader
             title="Carregando personagem"
@@ -298,7 +329,13 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
                 ? journeyMessage(resume.data?.journeyState)
                 : "Entre em Bravantus, conheça o começo da história e crie seu personagem."
             }
-            actions={secondaryAction ? [primaryAction, secondaryAction] : [primaryAction]}
+            actions={
+              primaryAction
+                ? secondaryAction
+                  ? [primaryAction, secondaryAction]
+                  : [primaryAction]
+                : []
+            }
           />
         )}
       </Card>

@@ -79,6 +79,10 @@ export function useCampaignResume(slug: string, enabled = true) {
     queryKey: mvpKeys.resume(slug),
     queryFn: () => mvpService.getResume(slug),
     enabled: Boolean(slug && enabled && hasUsableAccessToken(accessToken)),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+    refetchOnReconnect: "always",
     retry: false
   });
 }
