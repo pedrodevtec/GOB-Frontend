@@ -156,6 +156,7 @@ export function JourneyRouteGuard({
     hydrated,
     pathname,
     redirectRoute,
+    resume.dataUpdatedAt,
     returnTo,
     router,
     slug
