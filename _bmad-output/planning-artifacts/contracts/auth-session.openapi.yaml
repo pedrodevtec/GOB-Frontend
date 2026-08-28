@@ -1,0 +1,314 @@
+openapi: 3.0.3
+info:
+  title: Guardian of Bravantus - Auth Session Contract
+  version: 1.0.0
+  description: >-
+    Contrato conjunto entre GOB-Frontend e Gob-Backend para o gate da Story 1.2.
+    Rotas /api/auth pertencem ao BFF Next.js; rotas /api/v1/auth pertencem ao backend Express.
+servers:
+  - url: https://web.example.invalid
+    description: GOB-Frontend - placeholder por ambiente
+  - url: https://api.example.invalid
+    description: Gob-Backend - placeholder por ambiente
+tags:
+  - name: Frontend Auth BFF
+  - name: Backend Auth
+paths:
+  /api/auth/login:
+    post:
+      tags: [Frontend Auth BFF]
+      summary: Iniciar sessao pelo BFF sem expor refresh token ao browser
+      operationId: frontendLogin
+      x-owner: GOB-Frontend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Sessao iniciada; refresh token enviado somente em Set-Cookie HttpOnly
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: __Host-gob_refresh_token em producao
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FrontendSessionResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/auth/refresh:
+    post:
+      tags: [Frontend Auth BFF]
+      summary: Rotacionar a sessao usando o refresh cookie HttpOnly
+      operationId: frontendRefresh
+      x-owner: GOB-Frontend
+      responses:
+        '200':
+          description: Access token renovado e refresh cookie substituido
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FrontendSessionResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/auth/logout:
+    post:
+      tags: [Frontend Auth BFF]
+      summary: Revogar a sessao e limpar o refresh cookie
+      operationId: frontendLogout
+      x-owner: GOB-Frontend
+      responses:
+        '200':
+          description: Outcome do logout; cookie local e sempre expirado
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: Cookie expirado
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LogoutResponse' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503':
+          description: Revogacao remota indisponivel; cookie local removido e outcome local_only
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LogoutResponse' }
+  /api/v1/auth/login:
+    post:
+      tags: [Backend Auth]
+      summary: Validar credenciais e criar sessao persistida
+      operationId: backendLogin
+      x-owner: Gob-Backend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BackendLoginRequest' }
+      responses:
+        '200':
+          description: Sessao e tokens criados
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BackendSessionResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/v1/auth/refresh:
+    post:
+      tags: [Backend Auth]
+      summary: Consumir refresh token e criar sucessor atomico
+      operationId: backendRefresh
+      x-owner: Gob-Backend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshRequest' }
+      responses:
+        '200':
+          description: Tokens rotacionados
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BackendSessionResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/v1/auth/logout:
+    post:
+      tags: [Backend Auth]
+      summary: Revogar a sessao representada pelo refresh token
+      operationId: backendLogout
+      x-owner: Gob-Backend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshRequest' }
+      responses:
+        '200':
+          description: Logout idempotente concluido
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LogoutResponse' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/v1/auth/me:
+    get:
+      tags: [Backend Auth]
+      summary: Obter usuario da sessao ativa
+      operationId: backendMe
+      x-owner: Gob-Backend
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Sessao ativa e usuario atual
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, user, session]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  user: { $ref: '#/components/schemas/AuthUser' }
+                  session: { $ref: '#/components/schemas/SessionProjection' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Unauthorized:
+      description: Autenticacao ausente, invalida, expirada ou revogada
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: Usuario autenticado sem permissao ou com e-mail nao confirmado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: Rotacao concorrente ja concluida
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    TooManyRequests:
+      description: Limite de tentativas excedido
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+  schemas:
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 6, maxLength: 120, writeOnly: true }
+    BackendLoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, senha]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        senha: { type: string, minLength: 6, maxLength: 120, writeOnly: true }
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          minLength: 32
+          maxLength: 512
+          writeOnly: true
+    AuthUser:
+      type: object
+      additionalProperties: false
+      required: [id, nome, email, accountRole, emailVerifiedAt]
+      properties:
+        id: { type: string, format: uuid }
+        nome: { type: string }
+        email: { type: string, format: email }
+        accountRole: { type: string, enum: [USER, ADMIN] }
+        emailVerifiedAt: { type: string, format: date-time, nullable: true }
+        theme: { type: string, nullable: true }
+    SessionProjection:
+      type: object
+      additionalProperties: false
+      required: [id, expiresAt]
+      properties:
+        id: { type: string, format: uuid }
+        expiresAt: { type: string, format: date-time }
+    FrontendSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [success, accessToken, accessTokenExpiresAt, session, user]
+      properties:
+        success: { type: boolean, enum: [true] }
+        accessToken: { type: string }
+        accessTokenExpiresAt: { type: string, format: date-time }
+        session: { $ref: '#/components/schemas/SessionProjection' }
+        user: { $ref: '#/components/schemas/AuthUser' }
+    BackendSessionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - accessToken
+        - accessTokenExpiresAt
+        - refreshToken
+        - refreshTokenExpiresAt
+        - session
+        - user
+      properties:
+        success: { type: boolean, enum: [true] }
+        accessToken: { type: string }
+        accessTokenExpiresAt: { type: string, format: date-time }
+        refreshToken: { type: string }
+        refreshTokenExpiresAt: { type: string, format: date-time }
+        session: { $ref: '#/components/schemas/SessionProjection' }
+        user: { $ref: '#/components/schemas/AuthUser' }
+    LogoutResponse:
+      type: object
+      additionalProperties: false
+      required: [success, outcome]
+      properties:
+        success: { type: boolean }
+        outcome:
+          type: string
+          enum: [revoked, already_inactive, local_only]
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - AUTH_REQUIRED
+                - TOKEN_EXPIRED
+                - INVALID_TOKEN
+                - SESSION_REVOKED
+                - SESSION_EXPIRED
+                - REFRESH_REQUIRED
+                - INVALID_REFRESH_TOKEN
+                - REFRESH_TOKEN_REUSED
+                - REFRESH_ALREADY_ROTATED
+                - FORBIDDEN
+                - INVALID_CREDENTIALS
+                - EMAIL_NOT_VERIFIED
+                - RATE_LIMIT_EXCEEDED
+            message: { type: string }
+            requestId: { type: string, nullable: true }
