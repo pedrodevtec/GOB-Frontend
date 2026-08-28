@@ -7,6 +7,10 @@ import {
   useConfirmEmail,
   useResendEmail
 } from "@/features/mvp/hooks/use-mvp";
+import {
+  authPathWithReturnTo,
+  RETURN_TO_PARAM
+} from "@/lib/routing/auth-redirects";
 
 export function EmailConfirmationClient({
   token,
@@ -22,6 +26,10 @@ export function EmailConfirmationClient({
   };
 }) {
   const confirm = useConfirmEmail();
+  const resendHref = `/confirmar-email/reenvio?${new URLSearchParams({
+    [RETURN_TO_PARAM]: returnTo
+  }).toString()}`;
+  const loginHref = authPathWithReturnTo("/login", returnTo);
 
   useEffect(() => {
     if (token && confirm.isIdle) {
@@ -51,8 +59,8 @@ export function EmailConfirmationClient({
         title="Nao foi possivel confirmar"
         description="O link pode ter perdido a validade. Peça um novo envio para continuar."
         actions={[
-          { label: "Solicitar reenvio", href: "/confirmar-email/reenvio", variant: "outline" },
-          { label: "Voltar ao login", href: "/login", variant: "ghost" }
+          { label: "Solicitar reenvio", href: resendHref, variant: "outline" },
+          { label: "Voltar ao login", href: loginHref, variant: "ghost" }
         ]}
       />
     );
@@ -64,8 +72,8 @@ export function EmailConfirmationClient({
       title={fallbackStatus.title}
       description={fallbackStatus.description}
       actions={[
-        { label: "Solicitar reenvio", href: "/confirmar-email/reenvio", variant: "outline" },
-        { label: "Voltar ao login", href: "/login", variant: "ghost" }
+        { label: "Solicitar reenvio", href: resendHref, variant: "outline" },
+        { label: "Voltar ao login", href: loginHref, variant: "ghost" }
       ]}
     />
   );

@@ -2,6 +2,7 @@ import { AxiosError } from "axios";
 
 import { apiClient } from "@/lib/api/client";
 import { ApiRequestError } from "@/lib/api/errors";
+import { normalizeJourneyResumeDecision } from "@/lib/campaign/player-journey";
 import type {
   BuilderConfig,
   CampaignMembership,
@@ -753,13 +754,15 @@ export const mvpService = {
   getResume: (slug: string) =>
     request(apiClient.get(`/api/v1/campaigns/public/${slug}/resume`), (data) => {
       const source = record(unwrap(data, "resume"));
+      const decision = normalizeJourneyResumeDecision(source);
       return {
         campaign: isObject(source.campaign) ? mapCampaign(source.campaign) : undefined,
         consent: isObject(source.consent) ? mapConsent(source.consent) : null,
         membership: isObject(source.membership) ? mapMembership(source.membership) : null,
         playerOverview: source.playerOverview,
-        journeyState: text(source.journeyState) as CampaignResume["journeyState"],
-        nextRoute: text(source.nextRoute) || undefined,
+        journeyState: decision.journeyState ?? undefined,
+        nextRoute: decision.nextRoute ?? undefined,
+        journeyRevision: decision.revision,
         character: isObject(source.character)
           ? {
               id: text(record(source.character).id),

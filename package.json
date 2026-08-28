@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:routing": "tsc --outDir .tmp-tests --noEmit false --incremental false --module commonjs --moduleResolution node --target ES2022 tests/routing/navigation.test.ts lib/routing/auth-redirects.ts lib/routing/journey-routing.ts lib/campaign/player-journey.ts && node --test .tmp-tests/tests/routing/navigation.test.js",
     "generate:api": "openapi-typescript ./openapi/openapi.yaml -o ./types/api-schema.d.ts"
   },
   "dependencies": {

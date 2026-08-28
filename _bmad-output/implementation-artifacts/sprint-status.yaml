@@ -29,19 +29,19 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 08-27-2026 20:15
-last_updated: 08-27-2026 20:51
+last_updated: 08-28-2026 20:20
 project: GOB-Frontend
 project_key: NOKEY
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
 development_status:
   epic-1: in-progress
-  1-1-corrigir-o-baseline-de-segurança-do-frontend: review
+  1-1-corrigir-o-baseline-de-segurança-do-frontend: done
   1-2-unificar-sessão-e-autenticação-protegida: backlog
-  1-3-abrir-a-campanha-e-retornar-após-autenticação: backlog
+  1-3-abrir-a-campanha-e-retornar-após-autenticação: review
   1-4-consentir-e-ingressar-sem-duplicação: backlog
   1-5-conhecer-o-contexto-e-iniciar-um-único-rascunho: backlog
-  1-6-retomar-pela-rota-canônica-sem-loops: backlog
+  1-6-retomar-pela-rota-canônica-sem-loops: review
   epic-1-retrospective: optional
 
   epic-2: backlog

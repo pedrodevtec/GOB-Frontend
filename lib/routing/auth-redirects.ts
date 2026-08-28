@@ -23,6 +23,19 @@ function isAbsoluteExternalUrl(value: string) {
   return /^[a-z][a-z\d+\-.]*:/i.test(value) || value.startsWith("//");
 }
 
+function hasUnsafeEncodedPath(value: string) {
+  try {
+    const decoded = decodeURIComponent(value);
+    return (
+      decoded.startsWith("//") ||
+      decoded.includes("\\") ||
+      /[\u0000-\u001f\u007f]/.test(decoded)
+    );
+  } catch {
+    return true;
+  }
+}
+
 function isPublicCampaignLanding(pathname: string) {
   const parts = pathname.split("/").filter(Boolean);
   return parts.length === 2 && (parts[0] === "campanhas" || parts[0] === "campaigns");
@@ -44,7 +57,19 @@ export function isAuthEntryRoute(pathname: string) {
 
 export function isSafeReturnPath(value?: string | null) {
   if (!value) return false;
-  return value.startsWith("/") && !isAbsoluteExternalUrl(value);
+  if (!value.startsWith("/") || isAbsoluteExternalUrl(value)) return false;
+  if (value.includes("\\") || /[\u0000-\u001f\u007f]/.test(value)) return false;
+  if (hasUnsafeEncodedPath(value)) return false;
+
+  try {
+    const parsed = new URL(value, "https://bravantus.invalid");
+    return (
+      parsed.origin === "https://bravantus.invalid" &&
+      !isAuthEntryRoute(parsed.pathname)
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function safeReturnPath(value?: string | null, fallback = DEFAULT_LOGIN_REDIRECT) {

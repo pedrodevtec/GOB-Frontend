@@ -17,7 +17,12 @@ Este roteiro deve ser executado contra uma instância com banco migrado, campanh
 
 | Cenário | Estado inicial | Ações e chamadas que devem ser observadas | Estado e rota final esperados | Resultado |
 |---|---|---|---|---|
+| Convite e retorno seguro | visitante sem sessão | abrir landing; iniciar cadastro/login com `returnTo`; confirmar e-mail; repetir com `https://externo.test`, `//externo.test` e rota codificada | destino interno preservado; destinos externos rejeitados; nenhuma navegação fora da aplicação | NÃO EXECUTADO |
+| Campanha indisponível | slug inexistente, campanha encerrada ou mesa indisponível | abrir a landing e observar `GET /campaigns/public/{slug}` | mesma mensagem pública segura, sem revelar o motivo interno | NÃO EXECUTADO |
 | Participante novo | E-mail ainda não confirmado; sem consentimento e sem vínculo | cadastrar; confirmar e-mail; `GET /campaigns/public/pilot-v1/resume`; aceitar consentimento; entrar; ler contexto; iniciar ficha | `CHARACTER_DRAFT`; `/campanhas/pilot-v1/personagem` | NÃO EXECUTADO |
+| URL direta incompatível | participante autenticado em cada estado canônico | abrir diretamente consentimento, contexto, builder, revisão, pesquisa e conclusão; observar `GET .../resume` | rota compatível é permitida; incompatível usa somente `nextRoute`; rota ausente/desconhecida bloqueia com recuperação | NÃO EXECUTADO |
+| Estado alterado em outra aba | mesma conta aberta em duas abas | avançar uma transição na aba A; focar e atualizar uma rota antiga na aba B | novo `resume` é consultado e a aba B converge para o estado vigente sem loop | NÃO EXECUTADO |
+| Sessão expirada durante retomada | token expirado em rota protegida | atualizar a página ou focar a aba; observar `401` | tokens locais são limpos e login recebe somente `returnTo` interno seguro | NÃO EXECUTADO |
 | Retomar rascunho | `DRAFT` persistido | sair; entrar novamente; abrir Minha Jornada; `GET .../resume`; `GET /tables/{tableId}/characters/me` | mesmos dados e revisão; builder no ponto salvo | NÃO EXECUTADO |
 | Criação com IA | narrativa confirmada e revisão conhecida | pedir ajuda em um campo; usar/editar/descartar; pedir proposta mecânica; decidir os cinco blocos; confirmar escolhas | nenhuma sugestão aplicada antes da confirmação; rascunho salvo depois dela | NÃO EXECUTADO |
 | Criação sem IA | participante em `DRAFT` | preencher manualmente os três blocos narrativos e a ficha mecânica; revisar; submeter | `SUBMITTED`; `/campanhas/pilot-v1/pesquisa` | NÃO EXECUTADO |
