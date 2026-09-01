@@ -1,55 +1,34 @@
-const ACCESS_TOKEN_KEY = "gob.access-token";
-const REFRESH_TOKEN_KEY = "gob.refresh-token";
-const AUTH_COOKIE = "gob_access_token";
+import {
+  clearMemorySession,
+  getMemoryAccessToken
+} from "@/lib/auth/session";
+
+const LEGACY_ACCESS_TOKEN_KEY = "gob.access-token";
+const LEGACY_REFRESH_TOKEN_KEY = "gob.refresh-token";
+const LEGACY_STORE_KEY = "gob-auth";
 
 function isBrowser() {
   return typeof window !== "undefined";
 }
 
 export function getAccessToken() {
-  return isBrowser() ? window.localStorage.getItem(ACCESS_TOKEN_KEY) : null;
-}
-
-function decodeJwtPayload(token: string) {
-  try {
-    const payload = token.split(".")[1];
-    if (!payload) return null;
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const json = window.atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
-    return JSON.parse(json) as { exp?: number };
-  } catch {
-    return null;
-  }
-}
-
-export function isAccessTokenExpired(token?: string | null) {
-  if (!token || !isBrowser()) return true;
-
-  const payload = decodeJwtPayload(token);
-  if (!payload?.exp) return false;
-
-  return payload.exp * 1000 <= Date.now() + 10_000;
+  return getMemoryAccessToken();
 }
 
 export function hasUsableAccessToken(token = getAccessToken()) {
-  return Boolean(token && !isAccessTokenExpired(token));
-}
-
-export function persistTokens(accessToken: string, refreshToken?: string) {
-  if (!isBrowser()) return;
-
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  if (refreshToken) {
-    window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  }
-
-  document.cookie = `${AUTH_COOKIE}=${accessToken}; path=/; max-age=2592000; SameSite=Lax`;
+  return Boolean(token && token === getMemoryAccessToken());
 }
 
 export function clearTokens() {
+  clearMemorySession();
+  clearLegacyAuthStorage();
+}
+
+export function clearLegacyAuthStorage() {
   if (!isBrowser()) return;
 
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
-  document.cookie = `${AUTH_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+  window.localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
+  window.localStorage.removeItem(LEGACY_STORE_KEY);
+  document.cookie = "gob_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
 }

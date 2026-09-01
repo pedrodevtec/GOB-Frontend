@@ -85,6 +85,7 @@ import type {
   WalletSummary
 } from "@/types/app";
 import { normalizeAccountRole } from "@/lib/permissions";
+import { loginSession } from "@/lib/auth/session";
 
 type Dict = Record<string, unknown>;
 
@@ -2465,21 +2466,7 @@ function adminBasePath(type: string) {
 
 export const apiContracts = {
   auth: {
-    login: (input) =>
-      request(
-        apiClient.post("/api/v1/auth/login", {
-          email: input.email,
-          senha: input.password
-        }),
-        (data) => {
-          const root = asRecord(data);
-          return {
-            accessToken: toStringValue(root.token),
-            user: mapUser(root.user),
-            refreshToken: undefined
-          };
-        }
-      ),
+    login: loginSession,
     register: (input) =>
       request(
         apiClient.post("/api/v1/auth/register", {
@@ -2490,9 +2477,9 @@ export const apiContracts = {
         (data) => {
           const root = asRecord(data);
           return {
-            accessToken: toStringValue(root.token),
-            user: mapUser(root.user),
-            refreshToken: undefined
+            // Cadastro nao cria sessao: login passa obrigatoriamente pelo BFF.
+            accessToken: "",
+            user: mapUser(root.user)
           };
         }
       ),

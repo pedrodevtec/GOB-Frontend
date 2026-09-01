@@ -1,16 +1,15 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
-import { clearTokens, persistTokens } from "@/lib/auth/token-storage";
+import { clearTokens } from "@/lib/auth/token-storage";
+import { setMemorySession } from "@/lib/auth/session";
 import { normalizeAccountRole } from "@/lib/permissions";
 import type { AuthSession, AuthUser } from "@/types/app";
 
 interface AuthState {
   user: AuthUser | null;
   accessToken: string | null;
-  refreshToken: string | null;
   hydrated: boolean;
   setSession: (session: AuthSession) => void;
   setUser: (user: AuthUser) => void;
@@ -24,33 +23,22 @@ function normalizeUser(user: AuthUser): AuthUser {
 }
 
 export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
+  (set) => ({
       user: null,
       accessToken: null,
-      refreshToken: null,
       hydrated: false,
       setSession: (session) => {
-        persistTokens(session.accessToken, session.refreshToken);
+        setMemorySession(session);
         set({
           user: normalizeUser(session.user),
-          accessToken: session.accessToken,
-          refreshToken: session.refreshToken ?? null
+          accessToken: session.accessToken
         });
       },
       setUser: (user) => set({ user: normalizeUser(user) }),
       markHydrated: () => set({ hydrated: true }),
       logout: () => {
         clearTokens();
-        set({ user: null, accessToken: null, refreshToken: null });
+        set({ user: null, accessToken: null });
       }
-    }),
-    {
-      name: "gob-auth",
-      onRehydrateStorage: () => (state) => {
-        if (state?.user) state.setUser(state.user);
-        state?.markHydrated();
-      }
-    }
-  )
+    })
 );

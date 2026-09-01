@@ -1,7 +1,5 @@
-import { cookies } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import {
   ArrowRight,
   Castle,
@@ -54,13 +52,7 @@ const journeySteps = [
   }
 ];
 
-export default async function HomePage() {
-  const token = (await cookies()).get("gob_access_token")?.value;
-
-  if (token) {
-    redirect("/dashboard");
-  }
-
+export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#f3efe5] text-[#2d281f]">
       <section className="relative flex min-h-[92vh] items-center overflow-hidden">
