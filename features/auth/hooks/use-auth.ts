@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
@@ -78,10 +78,22 @@ export function useAuthUser(enabled = true) {
 export function useLogout() {
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
+  const queryClient = useQueryClient();
 
-  return () => {
-    logout();
-    router.replace("/login");
-    toast.success("Sessão encerrada.");
+  return async () => {
+    try {
+      const result = await authService.logout();
+      if (result.remote) {
+        toast.success("Sessão encerrada.");
+      } else {
+        toast.warning("Sessão encerrada neste dispositivo; revogação remota não confirmada.");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao encerrar a sessão.");
+    } finally {
+      logout();
+      queryClient.clear();
+      router.replace("/login");
+    }
   };
 }

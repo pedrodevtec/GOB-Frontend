@@ -4,9 +4,10 @@ import { appConfig } from "@/lib/api/config";
 import { UnauthorizedApiError } from "@/lib/api/errors";
 import {
   clearTokens,
-  getAccessToken,
-  isAccessTokenExpired
+  getAccessToken
 } from "@/lib/auth/token-storage";
+import { shouldRefreshAccessToken } from "@/lib/auth/retry-policy";
+import { refreshSession } from "@/lib/auth/session";
 import { authPathWithReturnTo, isAuthEntryRoute } from "@/lib/routing/auth-redirects";
 
 export const apiClient = axios.create({
@@ -19,10 +20,8 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const token = getAccessToken();
 
-  if (token && !isAccessTokenExpired(token)) {
+  if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-  } else if (token) {
-    clearTokens();
   }
 
   return config;
@@ -43,12 +42,33 @@ function redirectToLoginOnce() {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error?.response?.status === 401) {
-      clearTokens();
-      if (!String(error?.config?.url ?? "").includes("/api/v1/auth/login")) {
+  async (error) => {
+    const status = error?.response?.status;
+    const errorCode = error?.response?.data?.error?.code;
+    const originalRequest = error?.config as
+      | (typeof error.config & { _authRetry?: boolean })
+      | undefined;
+
+    if (
+      shouldRefreshAccessToken(status, errorCode, Boolean(originalRequest?._authRetry)) &&
+      originalRequest &&
+      originalRequest.headers
+    ) {
+      originalRequest._authRetry = true;
+      try {
+        const session = await refreshSession();
+        originalRequest.headers.Authorization = `Bearer ${session.accessToken}`;
+        return apiClient(originalRequest);
+      } catch {
+        clearTokens();
         redirectToLoginOnce();
+        throw new UnauthorizedApiError();
       }
+    }
+
+    if (status === 401) {
+      clearTokens();
+      redirectToLoginOnce();
       throw new UnauthorizedApiError();
     }
 
