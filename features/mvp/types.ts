@@ -27,8 +27,23 @@ export interface PublicCampaign {
 
 export interface ConsentDocument {
   version: string;
+  title?: string;
+  purpose?: string;
+  dataUses?: string[];
+  voluntary?: boolean;
+  revocable?: boolean;
   text: string;
   requiresLegalReviewBeforeExternalPilot?: boolean;
+}
+
+export type ConsentDecisionStatus = "ACCEPTED" | "DECLINED" | "REVOKED";
+
+export interface ConsentDecisionResult {
+  consent: ParticipantConsent;
+  campaign: PublicCampaign;
+  membership: CampaignMembership | null;
+  journeyState?: JourneyState;
+  nextRoute?: string;
 }
 
 export interface ParticipantConsent {

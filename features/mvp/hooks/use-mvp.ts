@@ -4,14 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { mvpService } from "@/features/mvp/services/mvp.service";
-import type { CampaignResume, CharacterCardArtVariant } from "@/features/mvp/types";
+import type { CampaignResume, CharacterCardArtVariant, ConsentDecisionStatus } from "@/features/mvp/types";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
 import { useAuthStore } from "@/stores/auth-store";
 
 export const mvpKeys = {
   campaign: (slug: string) => ["mvp", "campaign", slug] as const,
   adminCampaign: (slug: string) => ["mvp", "admin-campaign", slug] as const,
-  consentDocument: ["mvp", "consent-document"] as const,
+  consentDocument: (slug: string) => ["mvp", "campaign", slug, "consent-document"] as const,
   resume: (slug: string) => ["mvp", "campaign", slug, "resume"] as const,
   builderConfig: (version?: string) => ["mvp", "builder-config", version ?? "active"] as const,
   finalSurvey: ["mvp", "final-survey"] as const,
@@ -65,10 +65,12 @@ export function useAdminCampaign(slug: string) {
   });
 }
 
-export function useConsentDocument() {
+export function useConsentDocument(slug: string) {
   return useQuery({
-    queryKey: mvpKeys.consentDocument,
-    queryFn: mvpService.getConsentDocument
+    queryKey: mvpKeys.consentDocument(slug),
+    queryFn: () => mvpService.getConsentDocument(slug),
+    enabled: Boolean(slug),
+    retry: false
   });
 }
 
@@ -87,14 +89,21 @@ export function useCampaignResume(slug: string, enabled = true) {
   });
 }
 
-export function useAcceptConsent(slug: string) {
+export function useRecordConsent(slug: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => mvpService.acceptConsent(slug),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: mvpKeys.resume(slug) });
-      toast.success("Consentimento registrado.");
+    mutationFn: (input: { status: ConsentDecisionStatus; consentVersion: string }) =>
+      mvpService.recordConsent(slug, input.status, input.consentVersion),
+    onSuccess: async (_result, input) => {
+      await queryClient.invalidateQueries({ queryKey: mvpKeys.resume(slug) });
+      toast.success(
+        input.status === "ACCEPTED"
+          ? "Participação confirmada."
+          : input.status === "REVOKED"
+            ? "Participação interrompida."
+            : "Sua decisão foi registrada."
+      );
     },
     onError: (error: Error) => toast.error(error.message)
   });
