@@ -8,6 +8,8 @@ import type {
   CampaignMembership,
   CampaignResume,
   ConsentDocument,
+  ConsentDecisionResult,
+  ConsentDecisionStatus,
   FinalSurveyConfig,
   FinalSurveyResponse,
   OperationalOverview,
@@ -146,11 +148,28 @@ function mapConsentDocument(input: unknown): ConsentDocument {
   const source = record(input);
   return {
     version: text(source.version),
+    title: text(source.title) || undefined,
+    purpose: text(source.purpose) || undefined,
+    dataUses: arr(source.dataUses, (item) => text(item)).filter(Boolean),
+    voluntary: bool(source.voluntary),
+    revocable: bool(source.revocable),
     text: text(source.text),
     requiresLegalReviewBeforeExternalPilot:
       typeof source.requiresLegalReviewBeforeExternalPilot === "boolean"
         ? source.requiresLegalReviewBeforeExternalPilot
         : undefined
+  };
+}
+
+export function mapConsentDecision(input: unknown): ConsentDecisionResult {
+  const source = record(input);
+  const normalizedJourney = normalizeJourneyResumeDecision(source);
+  return {
+    consent: mapConsent(source.consent),
+    campaign: mapCampaign(source.campaign),
+    membership: isObject(source.membership) ? mapMembership(source.membership) : null,
+    journeyState: normalizedJourney.journeyState ?? undefined,
+    nextRoute: normalizedJourney.nextRoute ?? undefined
   };
 }
 
@@ -731,20 +750,18 @@ export const mvpService = {
     request(apiClient.get(`/api/v1/campaigns/public/${slug}`), (data) =>
       mapCampaign(unwrap(data, "campaign"))
     ),
-  getConsentDocument: () =>
-    request(apiClient.get("/api/v1/campaigns/public/consent"), (data) =>
+  getConsentDocument: (slug: string) =>
+    request(apiClient.get(`/api/v1/campaigns/public/${slug}/consent`), (data) =>
       mapConsentDocument(unwrap(data, "consentDocument"))
     ),
-  acceptConsent: (slug: string) =>
+  recordConsent: (slug: string, status: ConsentDecisionStatus, consentVersion: string) =>
     request(
       apiClient.post(`/api/v1/campaigns/public/${slug}/consent`, {
-        status: "ACCEPTED",
+        status,
+        consentVersion,
         source: "campaign_public_flow"
       }),
-      (data) => ({
-        consent: mapConsent(unwrap(data, "consent")),
-        campaign: mapCampaign(unwrap(data, "campaign"))
-      })
+      mapConsentDecision
     ),
   joinCampaign: (slug: string) =>
     request(apiClient.post(`/api/v1/campaigns/public/${slug}/join`, {}), (data) => ({

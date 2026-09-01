@@ -10,10 +10,12 @@ import { campaignFlowPath } from "@/features/mvp/campaign-flow";
 
 interface ConsentPageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ gerenciar?: string }>;
 }
 
-export default async function ConsentPage({ params }: ConsentPageProps) {
+export default async function ConsentPage({ params, searchParams }: ConsentPageProps) {
   const { slug } = await params;
+  const manageMode = (await searchParams).gerenciar === "1";
 
   return (
     <MvpFlowShell
@@ -28,8 +30,13 @@ export default async function ConsentPage({ params }: ConsentPageProps) {
       aside={<CampaignFlowAside currentStep="consent" blockedSteps={["episode", "builder"]} />}
     >
       <AnalyticsEvent slug={slug} eventKey="registration_completed" metadata={{ step: "consent" }} />
-      <JourneyRouteGuard slug={slug} allow={["CONSENT_REQUIRED", "JOIN_REQUIRED"]}>
-        <ConsentFlowPanel slug={slug} />
+      <JourneyRouteGuard
+        slug={slug}
+        allow={manageMode
+          ? ["CONSENT_REQUIRED", "JOIN_REQUIRED", "CONTEXT_REQUIRED", "CHARACTER_DRAFT", "CHANGES_REQUIRED", "SURVEY_REQUIRED", "COMPLETED_PENDING_REVIEW", "COMPLETED_CHANGES_REQUIRED", "COMPLETED_APPROVED"]
+          : ["CONSENT_REQUIRED", "JOIN_REQUIRED"]}
+      >
+        <ConsentFlowPanel slug={slug} manageMode={manageMode} />
       </JourneyRouteGuard>
     </MvpFlowShell>
   );

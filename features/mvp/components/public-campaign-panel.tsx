@@ -237,6 +237,13 @@ export function PublicCampaignPanel({ slug }: { slug: string }) {
             <p className="mt-3 text-sm font-medium text-primary">A ajuda criativa sugere. Você confirma. O Mestre acompanha.</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {isAuthenticated && journeyStarted ? (
+              <Button asChild variant="outline" size="sm">
+                <Link href={`${campaignFlowPath(slug, "/consentimento")}?gerenciar=1`}>
+                  Gerenciar participação
+                </Link>
+              </Button>
+            ) : null}
             <Button asChild variant="outline" size="sm">
               <Link href="/termos">Termos</Link>
             </Button>
