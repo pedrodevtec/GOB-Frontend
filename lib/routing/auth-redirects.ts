@@ -1,11 +1,13 @@
 export const DEFAULT_LOGIN_REDIRECT = "/dashboard";
 export const DEFAULT_REGISTER_REDIRECT = "/characters/create";
 
-export const AUTH_ENTRY_ROUTES = ["/login", "/register"];
+export const AUTH_ENTRY_ROUTES = ["/login", "/register", "/esqueci-senha", "/redefinir-senha"];
 export const PUBLIC_ROUTE_PREFIXES = [
   "/",
   "/login",
   "/register",
+  "/esqueci-senha",
+  "/redefinir-senha",
   "/terms",
   "/termos",
   "/privacy",

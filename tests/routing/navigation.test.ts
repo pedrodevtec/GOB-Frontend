@@ -24,6 +24,8 @@ test("returnTo aceita somente destinos internos bem formados", () => {
   assert.equal(isSafeReturnPath("/%5cexample.com"), false);
   assert.equal(isSafeReturnPath("/%invalid"), false);
   assert.equal(isSafeReturnPath("/login?returnTo=/login"), false);
+  assert.equal(isSafeReturnPath("/esqueci-senha"), false);
+  assert.equal(isSafeReturnPath("/redefinir-senha?token=secret"), false);
   assert.equal(safeReturnPath("//example.com", "/dashboard"), "/dashboard");
 });
 

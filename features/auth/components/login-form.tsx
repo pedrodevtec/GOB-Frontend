@@ -21,6 +21,10 @@ export function LoginForm() {
     "/register",
     searchParams.get(RETURN_TO_PARAM)
   );
+  const forgotPasswordHref = authPathWithReturnTo(
+    "/esqueci-senha",
+    searchParams.get(RETURN_TO_PARAM)
+  );
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" }
@@ -37,7 +41,12 @@ export function LoginForm() {
         <p className="text-xs text-destructive">{form.formState.errors.email?.message}</p>
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium">Senha</label>
+        <div className="flex items-center justify-between gap-4">
+          <label className="text-sm font-medium">Senha</label>
+          <Link href={forgotPasswordHref} className="text-sm text-primary hover:text-primary/80">
+            Esqueci minha senha
+          </Link>
+        </div>
         <Input type="password" placeholder="••••••••" {...form.register("password")} />
         <p className="text-xs text-destructive">{form.formState.errors.password?.message}</p>
       </div>
