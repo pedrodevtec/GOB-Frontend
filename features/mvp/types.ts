@@ -84,6 +84,33 @@ export interface CampaignResume {
   finalSurvey?: { id: string; surveyVersion?: string; submittedAt?: string } | null;
 }
 
+export interface CampaignPublicContextUnit {
+  id: string;
+  classification: string;
+  visibility: "PUBLIC";
+  title: string;
+  content: string;
+  sortOrder: number;
+}
+
+export interface CampaignPublicContext {
+  id: string;
+  version: number;
+  layer: string;
+  status: "PUBLISHED";
+  setting: { id: string; stableKey: string; title: string };
+  episode?: { id: string; stableKey: string; title: string } | null;
+  units: CampaignPublicContextUnit[];
+}
+
+export interface CampaignCharacterDraftResult {
+  created: boolean;
+  character: MvpTableCharacter;
+  publicContext: CampaignPublicContext;
+  journeyState: JourneyState;
+  nextRoute: string;
+}
+
 export interface BuilderConfig {
   version: string;
   status: string;

@@ -21,14 +21,9 @@ export default async function EpisodeOnePage({ params }: EpisodeOnePageProps) {
       title="Conheça apenas o necessário"
       description="Este é o ponto de partida para imaginar alguém que pertence a Bravantus. Você não precisa conhecer RPG nem toda a história do mundo."
       actions={
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link href={campaignFlowPath(slug, "/consentimento")}>Voltar</Link>
-          </Button>
-          <Button asChild>
-            <Link href={campaignFlowPath(slug, "/personagem")}>Criar personagem</Link>
-          </Button>
-        </div>
+        <Button asChild variant="outline">
+          <Link href={campaignFlowPath(slug, "/consentimento")}>Voltar</Link>
+        </Button>
       }
       aside={<CampaignFlowAside currentStep="episode" />}
     >

@@ -40,7 +40,7 @@ development_status:
   1-2-unificar-sessão-e-autenticação-protegida: review
   1-3-abrir-a-campanha-e-retornar-após-autenticação: review
   1-4-consentir-e-ingressar-sem-duplicação: review
-  1-5-conhecer-o-contexto-e-iniciar-um-único-rascunho: backlog
+  1-5-conhecer-o-contexto-e-iniciar-um-único-rascunho: review
   1-6-retomar-pela-rota-canônica-sem-loops: review
   1-7-recuperar-acesso-sem-expor-contas: review
   epic-1-retrospective: optional
