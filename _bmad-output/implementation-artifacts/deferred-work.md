@@ -1,11 +1,14 @@
-- source_spec: `_bmad-output/implementation-artifacts/spec-1-1-security-baseline.md`
-  summary: Adicionar teste de integração para hidratação da sessão persistida em `useAuthStore` e `AuthBootstrap`.
-  evidence: O repositório não possui harness de testes de aplicação; lint, typecheck, build e smoke público não exercitam a reidratação browser de uma sessão autenticada após upgrades de React/Zustand.
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-2-auth-session.md`
+  issue: `#42`
+  summary: Executar a matriz E2E integrada do Épico 1 e da recuperação de senha.
+  evidence: Login, rotação, revogação, logout, duas abas, Consentimento, retorno canônico e recuperação de senha possuem testes isolados, mas ainda não foram comprovados juntos com frontend, backend, PostgreSQL migrado, navegador e e-mail reais. Esta pendência substitui o teste antigo de hidratação da sessão persistida, pois a Story 1.2 removeu a autenticação de Zustand/localStorage.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-1-security-baseline.md`
-  summary: Automatizar instalação, build e auditoria crítica em CI para impedir regressão do baseline de dependências.
-  evidence: A Story 1.1 valida os comandos nesta execução, mas o repositório ainda não possui workflow que os execute a cada alteração futura do lockfile.
+  issue: `#41`
+  summary: Automatizar instalação, lint, typecheck, testes, build e auditoria crítica em CI.
+  evidence: As validações foram executadas nas histórias, mas o repositório ainda não possui um gate contínuo que impeça regressão do lockfile ou merge com verificação obrigatória falhando.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-1-security-baseline.md`
-  summary: Tratar as vulnerabilidades altas restantes em Axios, form-data, nanoid, PostCSS e Sharp numa história própria.
-  evidence: A auditoria de produção passou no gate crítico, porém reportou cinco grupos de severidade alta; o PostCSS embarcado no Next 15 exige migração para Next 16 segundo o fix sugerido pelo npm, mudança proibida no escopo aprovado desta história.
+  issue: `#43`
+  summary: Reauditar e tratar as vulnerabilidades residuais do frontend contra o lockfile atual.
+  evidence: A fotografia da Story 1.1 registrou grupos altos em Axios, form-data, nanoid, PostCSS e Sharp. O backend chegou a zero vulnerabilidades em trabalho próprio, mas isso não comprova o estado atual do frontend; qualquer migração major permanece decisão separada.

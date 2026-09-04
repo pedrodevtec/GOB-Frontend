@@ -2,6 +2,8 @@
 
 Este roteiro deve ser executado contra uma instância com banco migrado, campanha `pilot-v1` ativa, provedor de IA configurado e contas reais separadas. Um cenário só recebe `PASSOU` quando as chamadas, o estado persistido e a rota final forem conferidos.
 
+**Acompanhamento:** GitHub issue [#42](https://github.com/pedrodevtec/GOB-Frontend/issues/42).
+
 ## Variáveis do ambiente de teste
 
 - URL do frontend:
@@ -25,6 +27,7 @@ Este roteiro deve ser executado contra uma instância com banco migrado, campanh
 | URL direta incompatível | participante autenticado em cada estado canônico | abrir diretamente consentimento, contexto, builder, revisão, pesquisa e conclusão; observar `GET .../resume` | rota compatível é permitida; incompatível usa somente `nextRoute`; rota ausente/desconhecida bloqueia com recuperação | NÃO EXECUTADO |
 | Estado alterado em outra aba | mesma conta aberta em duas abas | avançar uma transição na aba A; focar e atualizar uma rota antiga na aba B | novo `resume` é consultado e a aba B converge para o estado vigente sem loop | NÃO EXECUTADO |
 | Sessão expirada durante retomada | access token expirado em rota protegida | atualizar a página ou focar a aba; observar `401 TOKEN_EXPIRED`, `POST /api/auth/refresh` e repetição única; repetir em duas abas; revogar a sessão e tentar novamente | rotação converge sem expor refresh token; `403` nunca renova; sessão revogada limpa memória/cache e login recebe somente `returnTo` interno seguro | NÃO EXECUTADO |
+| Recuperação de senha | conta confirmada com sessão ativa; repetir com e-mail inexistente | solicitar redefinição; abrir e-mail real; confirmar token válido; repetir com token ausente, expirado e reutilizado; tentar usar sessão anterior | solicitação não enumera conta; senha muda uma vez; tokens inválidos falham com recuperação; todas as sessões anteriores são revogadas e novo login usa apenas `returnTo` interno seguro | NÃO EXECUTADO |
 | Retomar rascunho | `DRAFT` persistido | sair; entrar novamente; abrir Minha Jornada; `GET .../resume`; `GET /tables/{tableId}/characters/me` | mesmos dados e revisão; builder no ponto salvo | NÃO EXECUTADO |
 | Criação com IA | narrativa confirmada e revisão conhecida | pedir ajuda em um campo; usar/editar/descartar; pedir proposta mecânica; decidir os cinco blocos; confirmar escolhas | nenhuma sugestão aplicada antes da confirmação; rascunho salvo depois dela | NÃO EXECUTADO |
 | Criação sem IA | participante em `DRAFT` | preencher manualmente os três blocos narrativos e a ficha mecânica; revisar; submeter | `SUBMITTED`; `/campanhas/pilot-v1/pesquisa` | NÃO EXECUTADO |
