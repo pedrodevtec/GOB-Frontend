@@ -5,7 +5,7 @@ stepsCompleted:
   - step-03-create-stories
   - step-04-final-validation
 status: final
-updated: 2026-08-27
+updated: 2026-09-04
 inputDocuments:
   - prds/prd-GOB-Frontend-2026-08-27/prd.md
   - prds/prd-GOB-Frontend-2026-08-27/addendum.md
@@ -301,6 +301,23 @@ So that refresh, novo login ou URL direta não criem uma segunda verdade.
 **When** uma rota é aberta ou uma transição termina
 **Then** `lib/campaign` normaliza o estado e `lib/routing` retorna `permit | redirect | block` usando catálogo seguro de rotas
 **And** a UI não sintetiza `journeyState`/`nextRoute`; estado desconhecido, rota ausente, `BLOCKED`, `LEGACY_REVIEW` e repetição de redirect terminam em mensagem humana recuperável, com refetch em mount/focus para estado decisório.
+
+
+### Story 1.7: Recuperar acesso sem expor contas
+
+**Requisitos:** NFR-1–NFR-2; extensão operacional aprovada do fluxo de autenticação
+
+As a Participante,
+I want redefinir minha senha com segurança,
+So that eu recupere o acesso sem revelar contas ou manter sessões antigas válidas.
+
+**Acceptance Criteria:**
+
+**Given** um e-mail informado na recuperação, exista ou não uma conta correspondente
+**When** a solicitação é enviada e um token válido é confirmado
+**Then** a resposta inicial permanece genérica, o token é aleatório, armazenado somente como hash, de uso único e expira em 30 minutos
+**And** a troca de senha é transacional, revoga todas as sessões ativas, limpa a sessão do navegador, rejeita token ausente/inválido/expirado/reutilizado com recuperação segura e nunca aceita as próprias rotas de redefinição como `returnTo`.
+
 
 ## Épico 2: Criar um Personagem autoral e mecanicamente válido
 
