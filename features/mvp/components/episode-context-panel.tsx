@@ -13,6 +13,8 @@ import {
   useStartMvpCharacter
 } from "@/features/mvp/hooks/use-mvp";
 import { hasUsableAccessToken } from "@/lib/auth/token-storage";
+import { characterDraftRecovery } from "@/lib/campaign/character-draft-flow";
+import { authPathWithReturnTo } from "@/lib/routing/auth-redirects";
 import { useAuthStore } from "@/stores/auth-store";
 
 export function EpisodeContextPanel({ slug }: { slug: string }) {
@@ -22,6 +24,14 @@ export function EpisodeContextPanel({ slug }: { slug: string }) {
   const resume = useCampaignResume(slug);
   const tableId = resume.data?.membership?.tableId;
   const startCharacter = useStartMvpCharacter(slug, tableId);
+  const startDraft = async () => {
+    try {
+      const result = await startCharacter.mutateAsync();
+      router.push(result.nextRoute);
+    } catch {
+      // A falha permanece nesta etapa e oferece uma recuperacao segura abaixo.
+    }
+  };
 
   if (campaign.isLoading) return <MvpState variant="loading" title="Preparando a história" />;
   if (campaign.isError) {
@@ -46,6 +56,55 @@ export function EpisodeContextPanel({ slug }: { slug: string }) {
   }
   const canCreate = hasUsableAccessToken(accessToken) && resume.data?.membership?.status === "ACTIVE";
 
+  if (startCharacter.isError) {
+    const recovery = characterDraftRecovery(startCharacter.error);
+    const actions = recovery.kind === "LOGIN"
+      ? [{
+          label: "Entrar novamente",
+          href: authPathWithReturnTo("/login", campaignFlowPath(slug, "/episodio-1")),
+          variant: "default" as const
+        }]
+      : recovery.kind === "CONSENT"
+        ? [{
+            label: "Revisar participação",
+            href: campaignFlowPath(slug, "/consentimento"),
+            variant: "default" as const
+          }]
+        : recovery.kind === "CAMPAIGN"
+          ? [{
+              label: "Voltar ao início",
+              href: campaignFlowPath(slug),
+              variant: "default" as const
+            }]
+          : [
+              {
+                label: "Tentar novamente",
+                onClick: () => void startDraft(),
+                variant: "default" as const
+              },
+              {
+                label: "Voltar ao início",
+                href: campaignFlowPath(slug),
+                variant: "outline" as const
+              }
+            ];
+
+    return (
+      <MvpState
+        variant={
+          recovery.kind === "LOGIN"
+            ? "session-expired"
+            : recovery.kind === "CAMPAIGN"
+              ? "campaign-closed"
+              : "error"
+        }
+        title={recovery.title}
+        description={recovery.description}
+        actions={actions}
+      />
+    );
+  }
+
   return (
     <Card className="space-y-4">
       <p className="text-xs uppercase tracking-wide text-primary">Onde sua história começa</p>
@@ -64,15 +123,7 @@ export function EpisodeContextPanel({ slug }: { slug: string }) {
           <Button
             type="button"
             disabled={startCharacter.isPending}
-            onClick={async () => {
-              try {
-                await startCharacter.mutateAsync();
-                router.push(campaignFlowPath(slug, "/personagem"));
-              } catch {
-                // The mutation already displays a useful error and keeps the
-                // participant on this safe, retryable step.
-              }
-            }}
+            onClick={() => void startDraft()}
           >
             {startCharacter.isPending ? "Preparando sua criação..." : "Criar meu personagem"}
           </Button>

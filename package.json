@@ -11,6 +11,7 @@
     "test:routing": "tsc --outDir .tmp-tests --noEmit false --incremental false --module commonjs --moduleResolution node --target ES2022 tests/routing/navigation.test.ts lib/routing/auth-redirects.ts lib/routing/journey-routing.ts lib/campaign/player-journey.ts && node --test .tmp-tests/tests/routing/navigation.test.js",
     "test:auth": "tsc --outDir .tmp-tests-auth --noEmit false --incremental false --module commonjs --moduleResolution node --target ES2022 --esModuleInterop tests/auth/refresh-coordinator.test.ts lib/auth/refresh-coordinator.ts lib/auth/retry-policy.ts lib/auth/logout-coordinator.ts && node --test .tmp-tests-auth/tests/auth/refresh-coordinator.test.js",
     "test:consent": "tsc --outDir .tmp-tests-consent --noEmit false --incremental false --module commonjs --moduleResolution node --target ES2022 --esModuleInterop tests/campaign/consent-flow.test.ts lib/campaign/consent-flow.ts lib/routing/journey-routing.ts lib/campaign/player-journey.ts && node --test .tmp-tests-consent/tests/campaign/consent-flow.test.js",
+    "test:character-draft": "tsc --outDir .tmp-tests-character-draft --noEmit false --incremental false --module commonjs --moduleResolution node --target ES2022 --esModuleInterop tests/campaign/character-draft-flow.test.ts lib/campaign/character-draft-flow.ts lib/routing/journey-routing.ts lib/campaign/player-journey.ts && node --test .tmp-tests-character-draft/tests/campaign/character-draft-flow.test.js",
     "generate:api": "openapi-typescript ./openapi/openapi.yaml -o ./types/api-schema.d.ts"
   },
   "dependencies": {
