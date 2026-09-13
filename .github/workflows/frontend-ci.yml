@@ -1,0 +1,76 @@
+name: Frontend CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  quality:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Clean installation
+        run: npm ci --ignore-scripts
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Authentication tests
+        run: npm run test:auth
+      - name: Routing tests
+        run: npm run test:routing
+      - name: Consent tests
+        run: npm run test:consent
+      - name: Character draft tests when available
+        run: npm run test:character-draft --if-present
+      - name: Production build
+        run: npm run build
+      - name: Summary
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+        run: echo "Quality gate result — $RESULT. See individual steps above. Real-environment E2E remains a separate gate (issue 42)." >> "$GITHUB_STEP_SUMMARY"
+
+  audit:
+    name: Critical dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Clean installation
+        run: npm ci --ignore-scripts
+      - name: Audit all dependencies
+        run: npm audit --audit-level=critical
+      - name: Summary
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+        run: echo "Critical dependency audit — $RESULT. Lower severities remain tracked in issue 43." >> "$GITHUB_STEP_SUMMARY"
