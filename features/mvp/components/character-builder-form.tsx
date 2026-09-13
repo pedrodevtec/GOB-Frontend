@@ -838,6 +838,23 @@ export function CharacterBuilderForm({ slug }: { slug: string }) {
     );
   }
 
+  if (!character.data?.id) {
+    return (
+      <MvpState
+        variant="error"
+        title="Não localizamos o rascunho desta jornada"
+        description="Volte ao começo da história para criar ou retomar o personagem com segurança."
+        actions={[
+          {
+            label: "Voltar ao começo da história",
+            href: campaignFlowPath(slug, "/episodio-1"),
+            variant: "default"
+          }
+        ]}
+      />
+    );
+  }
+
   const readOnly = !editable;
   const hasMechanicalProgress = Boolean(
     form.archetypeKey ||

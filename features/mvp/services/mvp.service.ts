@@ -5,6 +5,7 @@ import { ApiRequestError } from "@/lib/api/errors";
 import { normalizeJourneyResumeDecision } from "@/lib/campaign/player-journey";
 import type {
   BuilderConfig,
+  CampaignCharacterDraftResult,
   CampaignMembership,
   CampaignResume,
   ConsentDocument,
@@ -38,6 +39,7 @@ import type {
   JourneyMilestone,
   PublicApprovedCharacterProfile
 } from "@/features/mvp/types";
+import { validateAtomicCharacterDraftContract } from "@/lib/campaign/character-draft-flow";
 
 type Dict = Record<string, unknown>;
 
@@ -736,6 +738,58 @@ function mapAnalyticsEvent(input: unknown): AnalyticsEventResult {
   };
 }
 
+export function mapCampaignCharacterDraftResult(
+  input: unknown,
+  slug: string
+): CampaignCharacterDraftResult {
+  const root = record(input);
+  const source = isObject(root.data) ? record(root.data) : root;
+  const contract = validateAtomicCharacterDraftContract(source, slug);
+  const context = record(source.publicContext);
+  const setting = record(context.setting);
+  const episode = record(context.episode);
+  const character = mapMvpCharacter(source.character);
+
+  return {
+    created: contract.created,
+    character: {
+      ...character,
+      editable: character.sheetStatus === "DRAFT" ? true : character.editable
+    },
+    publicContext: {
+      id: contract.publicContext.id,
+      version: num(context.version) ?? 0,
+      layer: text(context.layer),
+      status: "PUBLISHED",
+      setting: {
+        id: text(setting.id),
+        stableKey: text(setting.stableKey),
+        title: text(setting.title)
+      },
+      episode: isObject(context.episode)
+        ? {
+            id: text(episode.id),
+            stableKey: text(episode.stableKey),
+            title: text(episode.title)
+          }
+        : null,
+      units: arr(context.units, (item) => {
+        const unit = record(item);
+        return {
+          id: text(unit.id),
+          classification: text(unit.classification),
+          visibility: "PUBLIC" as const,
+          title: text(unit.title),
+          content: text(unit.content),
+          sortOrder: num(unit.sortOrder) ?? 0
+        };
+      })
+    },
+    journeyState: contract.journeyState,
+    nextRoute: contract.nextRoute
+  };
+}
+
 export const mvpService = {
   getPublicApprovedCharacter: (characterId: string): Promise<PublicApprovedCharacterProfile> =>
     request(apiClient.get(`/api/v1/characters/public/${characterId}`), (data) => {
@@ -804,6 +858,11 @@ export const mvpService = {
           : null
       } satisfies CampaignResume;
     }),
+  createOrResumeCharacterDraft: (slug: string) =>
+    request(
+      apiClient.post(`/api/v1/campaigns/public/${slug}/character-draft`, {}),
+      (data) => mapCampaignCharacterDraftResult(data, slug)
+    ),
   getBuilderConfig: (version?: string) =>
     request(
       version

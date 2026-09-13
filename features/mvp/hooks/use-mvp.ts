@@ -323,46 +323,36 @@ export function useStartMvpCharacter(slug: string, tableId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
-      if (!tableId) throw new Error("Entre na campanha antes de criar seu personagem.");
-
-      // The action is idempotent from the participant's perspective. If a draft
-      // was created but the previous navigation failed, resume that draft
-      // instead of creating a duplicate character.
-      const existing = await mvpService.getMyCharacter(tableId);
-      return existing ?? mvpService.createCharacterDraft(tableId, {});
-    },
-    onSuccess: (character) => {
-      if (!tableId) return;
-
-      queryClient.setQueryData(mvpKeys.myCharacter(tableId), character);
+    mutationFn: () => mvpService.createOrResumeCharacterDraft(slug),
+    onSuccess: (result) => {
+      const character = result.character;
+      if (tableId) {
+        queryClient.setQueryData(mvpKeys.myCharacter(tableId), character);
+      }
       queryClient.setQueryData<CampaignResume>(mvpKeys.resume(slug), (current) =>
-        current
-          ? {
-              ...current,
-              character: {
-                id: character.id,
-                name: character.name,
-                sheetStatus: character.sheetStatus ?? "DRAFT",
-                sheetRevision: character.sheetRevision,
-                submittedRevision: character.submittedRevision,
-                submittedAt: character.submittedAt,
-                approvedAt: character.approvedAt,
-                builderConfigVersion: character.builderConfigVersion
-              },
-              journeyState: "CHARACTER_DRAFT",
-              nextRoute: `/campanhas/${slug}/personagem`,
-              nextRecommendedAction: {
-                key: "EDIT_CHARACTER",
-                title: "Continuar personagem",
-                description: "Seu rascunho está salvo e pode ser retomado."
-              }
-            }
-          : current
+        ({
+          ...(current ?? {}),
+          character: {
+            id: character.id,
+            name: character.name,
+            sheetStatus: character.sheetStatus ?? "DRAFT",
+            sheetRevision: character.sheetRevision,
+            submittedRevision: character.submittedRevision,
+            submittedAt: character.submittedAt,
+            approvedAt: character.approvedAt,
+            builderConfigVersion: character.builderConfigVersion
+          },
+          journeyState: result.journeyState,
+          nextRoute: result.nextRoute,
+          nextRecommendedAction: {
+            key: "EDIT_CHARACTER",
+            title: "Continuar personagem",
+            description: "Seu rascunho está salvo e pode ser retomado."
+          }
+        })
       );
-      toast.success("Personagem iniciado.");
-    },
-    onError: (error: Error) => toast.error(error.message)
+      toast.success(result.created ? "Personagem iniciado." : "Rascunho retomado.");
+    }
   });
 }
 
@@ -444,10 +434,10 @@ export function useSaveMvpCharacter(tableId?: string, characterId?: string | nul
 
   return useMutation({
     mutationFn: (input: Parameters<typeof mvpService.createCharacterDraft>[1]) => {
-      if (!tableId) throw new Error("Entre na campanha antes de salvar personagem.");
-      return characterId
-        ? mvpService.updateCharacterDraft(tableId, characterId, input)
-        : mvpService.createCharacterDraft(tableId, input);
+      if (!tableId || !characterId) {
+        throw new Error("Retome sua jornada antes de salvar o personagem.");
+      }
+      return mvpService.updateCharacterDraft(tableId, characterId, input);
     },
     onSuccess: () => {
       if (tableId) queryClient.invalidateQueries({ queryKey: mvpKeys.myCharacter(tableId) });
