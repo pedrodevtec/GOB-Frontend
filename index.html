@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Acompanhamento das tarefas do Guardian of Bravantus.">
+  <title>Bravantus — Kanban de tarefas</title>
+  <style>
+    :root {
+      --bg:#f4f5f7; --panel:#fff; --text:#20242b; --muted:#68707c; --line:#dfe3e8;
+      --brand:#176b43; --done:#238657; --validation:#2779b8; --doing:#b77809; --planned:#6c5aa7;
+      --p0:#a23838; --p1:#3c698c; --p2:#66558f;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    button,input,select { font:inherit; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    .container { width:min(1500px,calc(100% - 32px)); margin:0 auto; }
+    header { padding:24px 0 18px; background:var(--panel); border-bottom:1px solid var(--line); }
+    .header-row { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; }
+    h1 { margin:0; font-size:clamp(1.45rem,3vw,2.1rem); line-height:1.15; }
+    .subtitle { margin:7px 0 0; color:var(--muted); font-size:.92rem; }
+    .updated { color:var(--muted); font-size:.8rem; white-space:nowrap; }
+    main { padding:18px 0 40px; }
+    .summary { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+    .summary-item { display:flex; align-items:center; gap:7px; padding:7px 10px; background:var(--panel); border:1px solid var(--line); border-radius:8px; color:var(--muted); font-size:.78rem; }
+    .summary-item strong { color:var(--text); font-size:.88rem; }
+    .status-dot { width:8px; height:8px; border-radius:50%; background:var(--color); }
+    .filters { display:grid; grid-template-columns:minmax(240px,1fr) 190px 190px auto; gap:8px; margin-bottom:14px; }
+    .control { width:100%; min-height:40px; padding:0 11px; color:var(--text); background:var(--panel); border:1px solid #cfd5dc; border-radius:8px; outline:none; }
+    .control:focus { border-color:var(--brand); box-shadow:0 0 0 3px rgba(23,107,67,.12); }
+    button.control { width:auto; padding-inline:16px; cursor:pointer; font-weight:600; }
+    .board-scroll { overflow-x:auto; padding-bottom:10px; }
+    .board { display:grid; grid-template-columns:repeat(4,minmax(280px,1fr)); gap:12px; min-width:1160px; align-items:start; }
+    .column { background:#eaedf0; border:1px solid #d9dde2; border-radius:10px; overflow:hidden; }
+    .column-header { display:flex; justify-content:space-between; align-items:center; padding:12px 13px; background:var(--panel); border-top:3px solid var(--color); border-bottom:1px solid var(--line); }
+    .column-title { display:flex; align-items:center; gap:8px; font-size:.9rem; font-weight:750; }
+    .count { min-width:24px; padding:3px 7px; border-radius:999px; color:var(--color); background:#f2f4f6; text-align:center; font-size:.72rem; font-weight:800; }
+    .cards { display:grid; gap:9px; padding:9px; }
+    .empty { padding:18px 10px; color:var(--muted); text-align:center; font-size:.82rem; }
+    .card { padding:13px; background:var(--panel); border:1px solid #d9dde2; border-radius:8px; box-shadow:0 1px 2px rgba(20,28,38,.05); }
+    .card-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .card-id { color:var(--brand); font-size:.72rem; font-weight:800; letter-spacing:.04em; }
+    .priority { padding:2px 6px; border:1px solid currentColor; border-radius:5px; font-size:.64rem; font-weight:800; }
+    .priority.p0 { color:var(--p0); } .priority.p1 { color:var(--p1); } .priority.p2 { color:var(--p2); }
+    .card h2 { margin:8px 0 5px; font-size:.96rem; line-height:1.3; }
+    .card p { margin:0; color:#505863; font-size:.8rem; line-height:1.45; }
+    .meta { display:flex; flex-wrap:wrap; gap:5px; margin-top:10px; }
+    .tag { padding:3px 6px; color:#5e6671; background:#f0f2f4; border-radius:5px; font-size:.65rem; font-weight:650; }
+    .note { margin-top:10px; padding-top:9px; border-top:1px solid #edf0f2; color:var(--muted); font-size:.72rem; line-height:1.4; }
+    .note strong { color:#49515c; }
+    footer { padding:15px 0 24px; color:var(--muted); font-size:.72rem; }
+    @media (max-width:800px) {
+      .header-row { align-items:flex-start; flex-direction:column; gap:10px; }
+      .filters { grid-template-columns:1fr 1fr; }
+      .filters label:first-child { grid-column:1 / -1; }
+      button.control { width:100%; }
+    }
+    @media (max-width:520px) {
+      .container { width:calc(100% - 20px); }
+      .filters { grid-template-columns:1fr; }
+      .filters label:first-child { grid-column:auto; }
+    }
+    @media print {
+      body { background:#fff; } .filters { display:none; } .board-scroll { overflow:visible; }
+      .board { min-width:0; grid-template-columns:repeat(2,1fr); } .card { break-inside:avoid; box-shadow:none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container header-row">
+      <div>
+        <h1>Guardian of Bravantus — Kanban</h1>
+        <p class="subtitle">Tarefas do MVP e preparação do primeiro playtest na plataforma.</p>
+      </div>
+      <div class="updated">Atualizado em 22/09/2026</div>
+    </div>
+  </header>
+  <main class="container">
+    <div id="summary" class="summary" aria-live="polite"></div>
+    <div class="filters" role="search">
+      <label><span class="sr-only">Buscar tarefa</span><input id="search" class="control" type="search" placeholder="Buscar tarefa…"></label>
+      <label><span class="sr-only">Filtrar prioridade</span><select id="priority" class="control"><option value="all">Todas as prioridades</option><option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option></select></label>
+      <label><span class="sr-only">Filtrar frente</span><select id="area" class="control"><option value="all">Todas as frentes</option></select></label>
+      <button id="reset" class="control" type="button">Limpar</button>
+    </div>
+    <div class="board-scroll" tabindex="0" aria-label="Quadro Kanban com rolagem horizontal"><div id="board" class="board"></div></div>
+  </main>
+  <footer class="container">Status conservador: uma tarefa só é concluída após validação funcional.</footer>
+  <script>
+    const columns = [
+      {id:'done',title:'Concluído',color:'var(--done)'},
+      {id:'validation',title:'Em validação',color:'var(--validation)'},
+      {id:'doing',title:'Em andamento',color:'var(--doing)'},
+      {id:'planned',title:'Planejado',color:'var(--planned)'}
+    ];
+    const cards = [
+      {id:'DEV03',title:'Character Builder',priority:'P0',area:'Personagem',status:'done',description:'Criar ficha, Marca, traits e respostas guiadas em etapas.',tags:['PT05','Jogador'],note:'Builder v2 e fluxo de criação reportados como entregues.'},
+      {id:'DEV04',title:'Revisão e aprovação',priority:'P0',area:'Personagem',status:'done',description:'Enviar personagem, solicitar ajustes e aprovar sem alteração silenciosa.',tags:['PT07','Mestre'],note:'Estados DRAFT, SUBMITTED, APPROVED e CHANGES_REQUESTED implementados.'},
+      {id:'DEV02',title:'Mesa, papéis e convites',priority:'P0',area:'Mesa',status:'validation',description:'Criar mesa, atribuir Mestre/Jogador e manter autorização durante a sessão.',tags:['PT02','PT03','RBAC'],note:'Validar continuidade da sessão e permissões ponta a ponta.'},
+      {id:'DEV06',title:'Assistente de criação',priority:'P0',area:'IA',status:'validation',description:'Perguntar, sugerir e verificar consistência sem decidir pelo jogador.',tags:['PT06','IA assistiva'],note:'Falta fechar os testes de contexto autorizado.'},
+      {id:'DEV10',title:'Auditoria e telemetria de IA',priority:'P0',area:'IA',status:'validation',description:'Registrar caso de uso, modelo, custo, sugestão e decisão humana.',tags:['Auditoria','Custos'],note:'Validar a cobertura dos eventos registrados.'},
+      {id:'QLT03',title:'Dependências vulneráveis',priority:'P0',area:'Qualidade',status:'done',description:'Atualizar dependências sinalizadas e confirmar ausência de regressões.',tags:['Segurança','Issue #43'],note:'Concluído pela PR #47, com auditorias sem vulnerabilidades.'},
+      {id:'UX02',title:'Ações do combate no mobile',priority:'P0',area:'UX',status:'validation',description:'Garantir acesso à ação principal e aos controles em telas pequenas.',tags:['Mobile','Playtest'],note:'Requer novo teste em dispositivo real.'},
+      {id:'DEV08',title:'Sessão, eventos e combate',priority:'P0',area:'Sessão',status:'validation',description:'Iniciar episódio e registrar ações, testes, resultados e consequências.',tags:['PT09–PT11','Mestre'],note:'Combate em página própria pelas PRs #61 e #62; falta validar o registro completo.'},
+      {id:'UX01',title:'Persistência após atualizar a página',priority:'P0',area:'UX',status:'doing',description:'Impedir logout ou perda de contexto ao recarregar a aplicação.',tags:['Sessão','F5'],note:'Falha reproduzida durante o teste.'},
+      {id:'UX03',title:'Paridade dos painéis de combate',priority:'P1',area:'UX',status:'done',description:'Uniformizar menus dos personagens e reduzir espaços da interface.',tags:['Desktop','Mobile'],note:'Concluído e mesclado pela PR #62.'},
+      {id:'DEV01',title:'Pacotes de contexto',priority:'P0',area:'Contexto',status:'planned',description:'Persistir setting e episódio por versão, camada e visibilidade.',tags:['PT01','Governança'],note:'Implementação ainda não confirmada.'},
+      {id:'DEV05',title:'Filtro de contexto por papel',priority:'P0',area:'IA',status:'planned',description:'Montar contexto permitido para Mestre, jogador e espectador.',tags:['Spoilers','Segurança'],note:'Obrigatório antes das chamadas de IA do playtest.'},
+      {id:'DEV07',title:'Preparação do Mestre',priority:'P0',area:'Mestre',status:'planned',description:'Visualizar vínculos e salvar decisões e conteúdo restrito.',tags:['PT08','Segredo'],note:'Implementação ainda não confirmada.'},
+      {id:'DEV09',title:'Crônica revisável',priority:'P0',area:'Crônica',status:'planned',description:'Gerar rascunho dos eventos aprovados e publicar após revisão.',tags:['PT12','Publicação'],note:'Depende dos eventos e da aprovação do Mestre.'},
+      {id:'QLT01',title:'Checks obrigatórios de merge',priority:'P0',area:'Qualidade',status:'done',description:'Impedir merge quando verificações obrigatórias falharem.',tags:['CI','Issue #41'],note:'Ruleset ativo e teste negativo concluído; evidências registradas na PR #49.'},
+      {id:'QLT02',title:'Testes integrados reais',priority:'P0',area:'Qualidade',status:'validation',description:'Testar o fluxo real entre frontend, backend, sessão e banco.',tags:['E2E','Issue #42'],note:'PostgreSQL real validado; navegador, duas abas e e-mail real continuam pendentes.'},
+      {id:'DEV11',title:'Página pública sem spoilers',priority:'P1',area:'Público',status:'planned',description:'Exibir resumo, personagens autorizados e timeline publicável.',tags:['Espectador','PT12'],note:'Planejado após a espinha dorsal do playtest.'},
+      {id:'DEV12',title:'Relatório do playtest',priority:'P1',area:'Produto',status:'planned',description:'Consolidar feedback, erros, tempos, custos e decisões futuras.',tags:['PT13','Evidência'],note:'Será produzido após o primeiro ciclo completo.'}
+    ];
+    const filters={search:'',priority:'all',area:'all'};
+    const esc=value=>String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
+    function visibleCards(){
+      const term=filters.search.trim().toLocaleLowerCase('pt-BR');
+      return cards.filter(card=>{
+        const text=[card.id,card.title,card.area,card.description,card.note,...card.tags].join(' ').toLocaleLowerCase('pt-BR');
+        return (!term||text.includes(term))&&(filters.priority==='all'||card.priority===filters.priority)&&(filters.area==='all'||card.area===filters.area);
+      });
+    }
+    function renderSummary(){
+      document.querySelector('#summary').innerHTML=`<div class="summary-item"><strong>${cards.length}</strong> tarefas</div>${columns.map(column=>`<div class="summary-item"><span class="status-dot" style="--color:${column.color}"></span><strong>${cards.filter(card=>card.status===column.id).length}</strong> ${column.title.toLowerCase()}</div>`).join('')}`;
+    }
+    function renderCard(card){
+      return `<article class="card"><div class="card-head"><span class="card-id">${esc(card.id)}</span><span class="priority ${card.priority.toLowerCase()}">${esc(card.priority)}</span></div><h2>${esc(card.title)}</h2><p>${esc(card.description)}</p><div class="meta"><span class="tag">${esc(card.area)}</span>${card.tags.map(tag=>`<span class="tag">${esc(tag)}</span>`).join('')}</div><div class="note"><strong>Observação:</strong> ${esc(card.note)}</div></article>`;
+    }
+    function renderBoard(){
+      const visible=visibleCards();
+      document.querySelector('#board').innerHTML=columns.map(column=>{
+        const list=visible.filter(card=>card.status===column.id);
+        return `<section class="column" style="--color:${column.color}" aria-labelledby="${column.id}-title"><header class="column-header"><div class="column-title"><span class="status-dot" style="--color:${column.color}"></span><span id="${column.id}-title">${column.title}</span></div><span class="count">${list.length}</span></header><div class="cards">${list.length?list.map(renderCard).join(''):'<div class="empty">Nenhuma tarefa.</div>'}</div></section>`;
+      }).join('');
+    }
+    function setup(){
+      const area=document.querySelector('#area');
+      [...new Set(cards.map(card=>card.area))].sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;area.appendChild(option);});
+      document.querySelector('#search').addEventListener('input',e=>{filters.search=e.target.value;renderBoard();});
+      document.querySelector('#priority').addEventListener('change',e=>{filters.priority=e.target.value;renderBoard();});
+      area.addEventListener('change',e=>{filters.area=e.target.value;renderBoard();});
+      document.querySelector('#reset').addEventListener('click',()=>{filters.search='';filters.priority='all';filters.area='all';document.querySelector('#search').value='';document.querySelector('#priority').value='all';area.value='all';renderBoard();});
+    }
+    renderSummary(); setup(); renderBoard();
+  </script>
+</body>
+</html>
