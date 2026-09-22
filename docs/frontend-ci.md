@@ -1,17 +1,26 @@
 # Frontend CI — issue #41
 
-Executa em PRs, pushes na main e por acionamento manual. Node 22 está definido em `.nvmrc`; instalação usa o lockfile com scripts automáticos desabilitados. O cache guarda downloads npm, não node_modules. Execuções antigas da mesma referência são canceladas.
+Checks: `Quality gate` e `Critical dependency audit`, executados em PRs e pushes da main com Node 22, lockfile, lint, typecheck, testes, build e auditoria crítica. O workflow não usa secrets nem executa migrations/deploy. A integração Vercel existente pode gerar previews de PR independentemente desse workflow.
 
-Checks estáveis: `Quality gate` e `Critical dependency audit`. Não usam secrets, banco, migrations nem deploy. Actions fixadas por SHA e token com apenas leitura de conteúdo; não se utiliza pull_request_target.
+## Proteção ativa — 2026-09-21
 
-## Ativação administrativa pendente
+Ruleset [main-quality-gates](https://github.com/pedrodevtec/GOB-Frontend/rules/23790598), ativo na branch padrão `main`:
 
-O YAML sozinho não impede merges. Após a primeira execução, o administrador deve configurar proteção/ruleset da main exigindo os dois checks acima, PR e branch atualizada. Não desabilitar proteções existentes. Essa configuração não foi alterada por esta entrega.
+- pull request obrigatório;
+- `Quality gate` e `Critical dependency audit` obrigatórios, origem GitHub Actions;
+- branch atualizada antes do merge;
+- bloqueio de force push e exclusão;
+- nenhum ator de bypass.
 
-## Aceite ainda pendente
+A proteção clássica estava desativada e recusou a criação. O ruleset foi salvo e confirmado como ativo.
 
-- Registrar execução verde no GitHub Actions.
-- Em uma PR temporária, introduzir erro de lint/typecheck e comprovar check vermelho e merge bloqueado; corrigir o erro e verificar recuperação.
-- Registrar configuração dos required checks.
+## Evidências
 
-O teste de rascunho é opcional enquanto a PR #45 estiver separada; após seu merge, o script existente também é executado. Esta CI não substitui a matriz integrada da issue #42. A auditoria bloqueia criticidade crítica e mantém os demais achados visíveis para #43. Erro de rede na auditoria também falha o job.
+- Main verde após #47: https://github.com/pedrodevtec/GOB-Frontend/actions/runs/35651166965
+- Erro proposital de tipo faz Quality gate falhar: https://github.com/pedrodevtec/GOB-Frontend/actions/runs/35651851205
+- Correção recupera ambos os checks: https://github.com/pedrodevtec/GOB-Frontend/actions/runs/35651995447
+- PR temporária #48 usada para validar bloqueio de merge com checks obrigatórios; não deve ser mesclada.
+
+## Limite
+
+Esta CI não substitui a matriz E2E da #42. Integração PostgreSQL foi executada no backend pela PR pedrodevtec/Gob-Backend#28. Testes com frontend, navegador, duas abas e e-mail real continuam pendentes.
