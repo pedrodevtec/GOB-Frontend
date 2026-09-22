@@ -822,3 +822,17 @@ So that o Piloto seja aberto somente quando papéis, estados e superfícies conc
 **When** fila, revisão, funil, Participantes, legado e custos são exercitados com backend/banco reais
 **Then** `401/403/409`, autorrevisão, ID trocado, membership e atribuição são validados pelo backend e nenhuma UI vazada antecede a negação
 **And** evidência registra papel, HTTP, persistência, caches, rota e DOM sem credenciais; lint/typecheck/build ou mocks isolados não substituem a matriz.
+
+
+## Extensão experimental — Épico 8 (planejamento)
+
+A solicitação do PO de 21–22/09/2026 autoriza planejar a demo no navegador com personagem próprio, cinco habilidades fixas e dois cenários. Não altera o baseline dos épicos 1–7 nem libera combate no pilot-core.
+
+- [Épico 8 e histórias 8.1–8.7](card-demo/epic-8.md) — backlog, hipóteses pendentes.
+- [Registro de decisões](card-demo/decisions.md).
+- [Revisão de prontidão e roteiro](card-demo/readiness-and-roadmap.md).
+- [Épico GitHub #50](https://github.com/pedrodevtec/GOB-Frontend/issues/50).
+
+O frontmatter histórico deste índice descreve a rodada dos épicos 1–7; a extensão possui status e trilha BMAD próprios.
+
+Atualização 22/09/2026: combate **manual**, primeiro cenário antes do segundo, com [protótipo local e roteiro de vídeo](card-demo/manual-scene-v0.2.md). A extensão continua separada do pilot-core.
