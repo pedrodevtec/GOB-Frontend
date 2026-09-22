@@ -5,7 +5,7 @@ import { MandukuruCardScenePage } from "@/features/mvp/components/mandukuru-card
 
 export default function CharacterCombatPage() {
   return (
-    <div className="space-y-5 pb-8">
+    <div className="space-y-4 pb-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Cena experimental · 01</p>

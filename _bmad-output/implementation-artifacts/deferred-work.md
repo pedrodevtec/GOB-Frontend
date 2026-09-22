@@ -15,3 +15,7 @@
   status: `resolved`
   summary: Reauditar e tratar as vulnerabilidades residuais do frontend contra o lockfile atual.
   evidence: Em 2026-09-13, a auditoria partiu de 14 ocorrências na árvore completa e 7 em produção. Atualizações compatíveis corrigiram Axios, form-data, follow-redirects, nanoid, Sharp e ferramentas de desenvolvimento; o PostCSS interno do Next 15 foi fixado na mesma versão segura declarada pelo projeto por meio de override. `npm audit` e `npm audit --omit=dev` passaram com zero vulnerabilidades, assim como lint, typecheck, quatro suítes de teste e build. A migração para Next 16 não foi necessária e continua fora deste escopo.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-8-4-unificar-paineis-e-densidade-do-combate.md`
+  summary: Adicionar fallback visual para falha de carregamento da arte local do Mandukuru.
+  evidence: A imagem do inimigo já dependia de um asset local sem tratamento de `onError`; se o arquivo falhar, a caixa visual permanece vazia. A correção não é causada pela unificação dos painéis e merece tratamento separado sem ampliar este refactor.
