@@ -72,3 +72,9 @@ Implementação registrada em `mandukuru-card-scene-validation.md`. Primeiro cen
 - **CD-D13 — DECISÃO DE PRODUTO:** usar o retrato salvo do próprio personagem durante o combate, no lugar do símbolo neutro. O Guardião pixel art continua companheiro da interface; a carta completa não substitui o retrato na arena.
 - Reutilizar somente a variante PORTRAIT via leitura autorizada existente, sem gerar imagem, consumir cota ou alterar a ficha. Sem retrato ou com falha de carregamento, a cena permanece jogável com representação neutra.
 - O retrato acompanha os efeitos existentes de ataque, dano e derrota. URL local de imagem é liberada ao sair, suspender acesso ou trocar contexto; resposta atrasada não reaparece na cena seguinte.
+
+## Combate em página dedicada — 22/09/2026
+
+- **CD-D14 — DECISÃO DE PRODUTO:** a cena de combate deixa de abrir em popup e passa a ocupar uma página própria, acessível em `/meu-personagem/combate` pelo card existente em Meu personagem.
+- A mudança é de apresentação e navegação: preserva combate manual, cinco habilidades, Mandukuru, retrato, narrativa personalizada, regras e validação autenticada. Não cria persistência da tentativa nem altera o fluxo obrigatório da jornada.
+- A página oferece retorno explícito para Meu personagem, carrega a cena automaticamente e mantém o comportamento responsivo já previsto para desktop e mobile.
