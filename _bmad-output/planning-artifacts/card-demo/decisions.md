@@ -66,3 +66,9 @@ ESTACIONADAS: PvP, loja, compra aleatória de cartas, progressão permanente, cr
 - **CD-D12 — DECISÃO DE PRODUTO:** a abertura usa nome e trecho fiel da história salva, com ligação neutra e desfecho retomando a motivação. Ataque, dano, vitória e derrota recebem efeitos visuais. A narrativa autorizada permanece texto, não HTML; ficha, aprovação, cânone e dados privados do Mestre não são alterados ou divulgados.
 
 Implementação registrada em `mandukuru-card-scene-validation.md`. Primeiro cenário em revisão; validação visual e integração autenticada são gates separados dos testes determinísticos. Demais histórias do épico permanecem abertas.
+
+## Retrato na arena — 22/09/2026
+
+- **CD-D13 — DECISÃO DE PRODUTO:** usar o retrato salvo do próprio personagem durante o combate, no lugar do símbolo neutro. O Guardião pixel art continua companheiro da interface; a carta completa não substitui o retrato na arena.
+- Reutilizar somente a variante PORTRAIT via leitura autorizada existente, sem gerar imagem, consumir cota ou alterar a ficha. Sem retrato ou com falha de carregamento, a cena permanece jogável com representação neutra.
+- O retrato acompanha os efeitos existentes de ataque, dano e derrota. URL local de imagem é liberada ao sair, suspender acesso ou trocar contexto; resposta atrasada não reaparece na cena seguinte.

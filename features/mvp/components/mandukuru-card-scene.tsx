@@ -9,6 +9,7 @@ import { hasUsableAccessToken } from '@/lib/auth/token-storage';
 import { mvpService } from '@/features/mvp/services/mvp.service';
 import { allowsScene, loadSceneCharacter, narrativeLink, outcomeText, sameScope, type AccessResume, type SceneCharacter, type SceneScope } from '@/features/mvp/card-demo/context';
 import { CARDS, cardBlockReason, combatReducer, freshCombat, incomingDamage, type CombatAction } from '@/features/mvp/card-demo/engine';
+import { useScenePortrait } from '@/features/mvp/card-demo/use-scene-portrait';
 import styles from './mandukuru-card-scene.module.css';
 
 export function MandukuruCardSceneEntry({ resume, characterId, tableId, revalidateResume }: { resume?: AccessResume; characterId: string; tableId?: string; revalidateResume: () => Promise<AccessResume> }) {
@@ -86,7 +87,7 @@ export function MandukuruCardSceneEntry({ resume, characterId, tableId, revalida
         </div>
         {loading && <p role="status" className={styles.notice}>Conferindo seu acesso e a história salva…</p>}
         {loaded && <div hidden={loading || !visible}>
-          <MandukuruEncounter key={loaded.generation} character={loaded.character} suspended={loading || !visible} />
+          <PortraitEncounter key={loaded.generation} character={loaded.character} tableId={loaded.scope.tableId} suspended={loading || !visible} />
         </div>}
         {!loading && !visible && <div className={styles.notice} role="alert"><p>{error || !eligible ? 'A cena foi descartada: não foi possível confirmar seu personagem e acesso atuais.' : 'Abra uma nova tentativa para conferir seu personagem.'}</p><button className={styles.control} onClick={() => void validate()}>Tentar novamente</button></div>}
       </DialogContent>
@@ -94,8 +95,14 @@ export function MandukuruCardSceneEntry({ resume, characterId, tableId, revalida
   </Card>;
 }
 
+function PortraitEncounter({ character, tableId, suspended }: { character: SceneCharacter; tableId: string; suspended: boolean }) {
+  const portraitUrl = useScenePortrait(tableId, character.id, !suspended);
+  return <MandukuruEncounter character={character} suspended={suspended} portraitUrl={portraitUrl} />;
+}
+
 /** Exported for isolated rendering; receives only the authorized allowlist projection. */
-export function MandukuruEncounter({ character, suspended = false }: { character: SceneCharacter; suspended?: boolean }) {
+export function MandukuruEncounter({ character, suspended = false, portraitUrl }: { character: SceneCharacter; suspended?: boolean; portraitUrl?: string }) {
+  const [failedPortrait, setFailedPortrait] = useState<string>();
   const [state, setState] = useState(freshCombat);
   const [attempt, setAttempt] = useState(0);
   const stateRef = useRef(state);
@@ -138,7 +145,9 @@ export function MandukuruEncounter({ character, suspended = false }: { character
         <div className={styles.enemyIntro}><img src="/images/bravantus/enemies/mandukuru-sentinel-v1.webp" alt="Mandukuru, sentinela que bloqueia a passagem" /><span>Mandukuru · aparência provisória</span></div>
       </div> : <div className={styles.combat}>
         <article key={`hero-${attempt}-${state.revision}`} className={`${styles.fighter} ${last?.actor === 'hero' && last.damage ? styles.heroAttack : last?.actor === 'enemy' ? styles.hit : ''} ${state.phase === 'defeat' ? styles.defeated : ''}`}>
-          <div className={styles.avatar} aria-label="Avatar neutro do personagem">✧</div>
+          {portraitUrl && portraitUrl !== failedPortrait
+            ? <img className={styles.portrait} src={portraitUrl} alt={`Retrato de ${character.name}`} onError={() => setFailedPortrait(portraitUrl)} />
+            : <div className={styles.avatar} role="img" aria-label={`Retrato indisponível de ${character.name}`}>✧</div>}
           <h2>{character.name}</h2><p>Vida <strong>{state.hp} / 28</strong></p><meter min={0} max={28} value={state.hp} aria-label="Vida do personagem" />
           <p>Energia <strong>{state.energy} / 5</strong><br />Escudo <strong>{state.shield}</strong></p>
           {state.bonus > 0 && <p><strong>Primeiro golpe: +{state.bonus} de dano pendente</strong></p>}
