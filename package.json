@@ -12,7 +12,8 @@
     "test:auth": "tsc --outDir .tmp-tests-auth --noEmit false --incremental false --module commonjs --moduleResolution node --target ES2022 --esModuleInterop tests/auth/refresh-coordinator.test.ts lib/auth/refresh-coordinator.ts lib/auth/retry-policy.ts lib/auth/logout-coordinator.ts && node --test .tmp-tests-auth/tests/auth/refresh-coordinator.test.js",
     "test:consent": "tsc --outDir .tmp-tests-consent --noEmit false --incremental false --module commonjs --moduleResolution node --target ES2022 --esModuleInterop tests/campaign/consent-flow.test.ts lib/campaign/consent-flow.ts lib/routing/journey-routing.ts lib/campaign/player-journey.ts && node --test .tmp-tests-consent/tests/campaign/consent-flow.test.js",
     "test:character-draft": "tsc --outDir .tmp-tests-character-draft --noEmit false --incremental false --module commonjs --moduleResolution node --target ES2022 --esModuleInterop tests/campaign/character-draft-flow.test.ts lib/campaign/character-draft-flow.ts lib/routing/journey-routing.ts lib/campaign/player-journey.ts && node --test .tmp-tests-character-draft/tests/campaign/character-draft-flow.test.js",
-    "generate:api": "openapi-typescript ./openapi/openapi.yaml -o ./types/api-schema.d.ts"
+    "generate:api": "openapi-typescript ./openapi/openapi.yaml -o ./types/api-schema.d.ts",
+    "test:card-demo": "tsc --outDir .tmp-tests-card-demo --noEmit false --incremental false --module commonjs --moduleResolution node --target ES2022 --esModuleInterop tests/card-demo/mandukuru.test.ts features/mvp/card-demo/engine.ts features/mvp/card-demo/context.ts && node --test .tmp-tests-card-demo/tests/card-demo/mandukuru.test.js && node --preserve-symlinks --test tests/card-demo/scene.test.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -42,6 +43,7 @@
     "eslint-config-next": "15.5.24",
     "openapi-typescript": "^7.4.2",
     "postcss": "^8.5.28",
+    "react-test-renderer": "^19.2.8",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.6.3"
   },
