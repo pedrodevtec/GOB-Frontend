@@ -834,3 +834,5 @@ A solicitação do PO de 21–22/09/2026 autoriza planejar a demo no navegador c
 - [Épico GitHub #50](https://github.com/pedrodevtec/GOB-Frontend/issues/50).
 
 O frontmatter histórico deste índice descreve a rodada dos épicos 1–7; a extensão possui status e trilha BMAD próprios.
+
+Atualização 22/09/2026: combate **manual**, primeiro cenário antes do segundo, com [protótipo local e roteiro de vídeo](card-demo/manual-scene-v0.2.md). A extensão continua separada do pilot-core.

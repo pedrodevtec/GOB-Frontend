@@ -17,6 +17,10 @@ inputDocuments:
 
 # Épico 8 — Experimentar meu Guardião em uma demo de cartas
 
+## Atualização vigente — combate manual e cenário inicial primeiro
+
+CD-D07..09 prevalecem: jogador escolhe cada carta; primeiro cenário é a entrega inicial para teste/vídeo. Segundo cenário fica para rodada posterior. Protótipo local em [Abrir passagem](prototypes/abrir-passagem.html); parâmetros e roteiro em [manual-scene-v0.2.md](manual-scene-v0.2.md). Integração real não concluída.
+
 ## Visão geral
 
 Extensão experimental, não obrigatória, do piloto. O objetivo é o jogador reconhecer seu personagem em uma pequena história jogável com cinco habilidades fixas e dois cenários selecionáveis. O sucesso da demo não comprova o loop com Mestre, nem o equilíbrio do RPG D20.
@@ -28,12 +32,12 @@ Documento incremental: épicos 1–7 e FR-1..34 continuam no índice principal s
 ### Funcionais
 
 - CD-FR01: exibir identidade do personagem do próprio jogador com leitura autorizada e tratamento de ausência/erro.
-- CD-FR02: oferecer exatamente dois cenários com objetivo e escolha explícita.
+- CD-FR02: oferecer o cenário inicial com objetivo explícito; seleção entre dois cenários pertence à etapa posterior 8.5.
 - CD-FR03: apresentar cinco habilidades fixas, nome, efeito e custo legíveis; catálogo versionado.
-- CD-FR04 (condicional H01): permitir ordenar cinco cartas e revisar a preparação antes de iniciar.
+- CD-FR04 (CD-D07): permitir escolher manualmente uma das cinco cartas a cada turno; informar efeito e custo antes da ação.
 - CD-FR05 (condicional H03/H05): apresentar introdução e uma escolha narrativa com consequência mecânica conhecida.
-- CD-FR06 (condicional H01/H03/H07): resolver combate conforme contrato fechado, com registro ordenado dos eventos.
-- CD-FR07 (condicional H01): mostrar Vida, Energia, intenção inimiga, carta ativa, pausa e velocidade.
+- CD-FR06 (CD-D07; H03/H07 pendentes): resolver combate conforme contrato fechado, com registro ordenado dos eventos.
+- CD-FR07 (CD-D07): mostrar Vida, Energia, intenção inimiga e carta escolhida; nenhuma ação avança enquanto o jogador decide.
 - CD-FR08 (condicional H05): produzir desfecho previamente escrito, ligado à escolha e ao resultado.
 - CD-FR09: permitir nova tentativa e troca de cenário sem resíduos da partida anterior.
 - CD-FR10: manter demo separada de ficha oficial, aprovação, pesquisa, canon e Crônica; nenhuma recompensa persistente.
@@ -43,7 +47,7 @@ Documento incremental: épicos 1–7 e FR-1..34 continuam no índice principal s
 
 - CD-NFR01: respeitar backend como autoridade; dados privados não vão para bundle público ou analytics.
 - CD-NFR02: versão de cenário/regras acompanha evidência; mesma configuração e mesmas decisões produzem resultado repetível se H07 aprovada.
-- CD-NFR03: pausa, velocidade, aba oculta e desempenho não mudam resultado; não processar eventos duplicados.
+- CD-NFR03: espera entre cliques, aba oculta e desempenho não mudam resultado; não processar eventos duplicados.
 - CD-NFR04: indisponibilidade da demo/retrato não bloqueia criação ou consulta normal.
 - CD-NFR05: validar integração com backend real; mock não comprova acesso ao personagem.
 - CD-NFR06: sem chamadas de IA em runtime na proposta H09; sem nova geração de arte automática.
@@ -61,7 +65,7 @@ Estado de partida seria local; personagem permanece remoto e somente leitura. Ev
 ### UX
 
 - CD-UX01: preservar papel/marfim, tinta, terracota e verde dos tokens existentes; não mudar tema global.
-- CD-UX02: ordem das cartas operável com teclado e botões de mover; arrastar pode ser extra, nunca obrigatório.
+- CD-UX02: cartas ativáveis por teclado/toque; custo e estado indisponível legíveis; não requer arrastar ou ordenar.
 - CD-UX03: controles ≥44px, foco visível, texto e ícone além de cor, zoom 200%, reflow desde 320px.
 - CD-UX04: movimento reduzido substitui animações sem ocultar ação ou resultado; log legível sem anúncio excessivo.
 - CD-UX05: loading, sem personagem, retrato ausente, sessão expirada, acesso negado, cenário inválido e erro têm mensagem e saída segura.
@@ -101,11 +105,11 @@ Como Product Owner, quero revisar decisões, regras e integração, para autoriz
 - **Dado** os dois roteiros propostos, **quando** revisarmos conteúdo e UX, **então** haverá introdução, escolha, consequência e finais aprovados para a audiência da demo, mais mockup de seleção/preparação/combate/resultado seguindo os spines.
 - **Dado** o escopo aprovado, **quando** encerrarmos a análise, **então** prioridade e sequência de execução serão ratificadas; liberação de planejamento não equivalerá a liberação de código.
 
-**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar por inferência.
+**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar integração por inferência. CD-D07..09 autorizam protótipo isolado da cena inicial, sem concluir a integração destas histórias.
 
 ### Story 8.2: Escolher cenário com meu personagem
 
-Como jogador, quero ver meu personagem e escolher um de dois cenários, para entender o desafio antes de jogar.
+Como jogador, quero ver meu personagem e entrar no cenário inicial, para entender o desafio antes de jogar.
 
 **Status:** backlog. **Dependências:** 8.1
 
@@ -115,12 +119,12 @@ Como jogador, quero ver meu personagem e escolher um de dois cenários, para ent
 
 **Critérios de aceite:**
 
-- **Dado** sessão e personagem autorizados, **quando** abrir a demo, **então** verei identidade do meu Character.id, exatamente dois cenários aprovados e seus objetivos.
+- **Dado** sessão e personagem autorizados, **quando** abrir a demo, **então** verei identidade do meu Character.id, o cenário inicial aprovado e seu objetivo; segundo cenário não bloqueia esta entrega.
 - **Dado** ausência de personagem, retrato indisponível ou erro de leitura, **quando** abrir a seleção, **então** receberei estados distintos; retrato ausente terá fallback neutro sem gerar imagem e ausência de personagem não criará um automaticamente.
 - **Dado** 401, 403, perda de acesso ou troca de conta, **quando** revalidar a leitura, **então** dados anteriores serão removidos da superfície e haverá recuperação segura; URL manipulada não permitirá personagem alheio.
 - **Dado** a seleção, **quando** usar teclado, toque ou viewport de 320px, **então** poderei escolher cenário e voltar sem alterar ficha ou jornada oficial.
 
-**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar por inferência.
+**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar integração por inferência. CD-D07..09 autorizam protótipo isolado da cena inicial, sem concluir a integração destas histórias.
 
 ### Story 8.3: Conhecer habilidades e preparar minha estratégia
 
@@ -135,11 +139,11 @@ Como jogador, quero compreender cinco cartas e revisar minha preparação, para 
 **Critérios de aceite:**
 
 - **Dado** cenário escolhido e catálogo aprovado, **quando** abrir preparação, **então** verei introdução, uma escolha com efeito conhecido e cinco cartas distintas com custos e efeitos completos.
-- **Dado** H01 ratificada como automática, **quando** reordenar cartas, **então** cada carta continuará presente exatamente uma vez; botões de mover funcionarão por teclado e toque, com anúncio da nova posição.
+- **Dado** meu turno, **quando** ativar uma carta válida por teclado ou toque, **então** apenas essa ação será resolvida; cartas sem energia suficiente ou já consumidas ficam indisponíveis e não gastam recursos.
 - **Dado** catálogo inválido ou versão desconhecida, **quando** tentar iniciar, **então** o início será bloqueado com recuperação segura, sem preencher regra faltante por fallback.
-- **Dado** preparação válida, **quando** confirmar, **então** a configuração local conservará versão, cenário, escolha e ordem; nenhuma habilidade será gravada na ficha oficial.
+- **Dado** preparação válida, **quando** confirmar, **então** a configuração local conservará versão, cenário, escolha e ações manuais; nenhuma habilidade será gravada na ficha oficial.
 
-**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar por inferência.
+**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar integração por inferência. CD-D07..09 autorizam protótipo isolado da cena inicial, sem concluir a integração destas histórias.
 
 ### Story 8.4: Jogar o primeiro cenário do início ao desfecho
 
@@ -154,12 +158,12 @@ Como jogador, quero executar meu confronto e compreender o resultado, para senti
 **Critérios de aceite:**
 
 - **Dado** configuração válida do cenário A, **quando** iniciar uma vez ou com clique repetido, **então** existirá uma única partida com eventos ordenados e resultados calculados pelo motor puro, sem dependência de animação.
-- **Dado** combate em execução, **quando** pausar, acelerar ou ocultar a aba, **então** o estado respeitará a política definida na 8.1 e o resultado será idêntico ao da execução normal; não haverá ativação duplicada.
+- **Dado** combate em execução, **quando** aguardar, ocultar a aba ou clicar repetidamente, **então** o estado respeitará a política definida na 8.1 e o resultado será idêntico ao da execução normal; não haverá ativação duplicada.
 - **Dado** energia insuficiente, defesa ativa ou Marca já usada, **quando** resolver a próxima ação, **então** o contrato aprovado será aplicado exatamente, sem energia negativa, repetição da Marca ou loop infinito.
 - **Dado** vitória, derrota ou limite de rodadas, **quando** encerrar, **então** verei um único desfecho pré-escrito coerente com a escolha e resultado, e nenhuma ação posterior será processada.
 - **Dado** movimento reduzido ou leitor de tela, **quando** acompanhar o combate, **então** carta ativa, recursos, intenção e resultado terão equivalente textual; não haverá chamada a IA nem mutação da ficha.
 
-**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar por inferência.
+**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar integração por inferência. CD-D07..09 autorizam protótipo isolado da cena inicial, sem concluir a integração destas histórias.
 
 ### Story 8.5: Jogar um segundo cenário com objetivo diferente
 
@@ -176,15 +180,15 @@ Como jogador, quero escolher e concluir outro desafio, para experimentar outra e
 - **Dado** cenário B aprovado, **quando** selecionar e jogar, **então** a introdução, escolha, objetivo e padrão inimigo serão distintos do cenário A, usando o mesmo motor.
 - **Dado** objetivo de sobrevivência ratificado, **quando** alcançar a rodada alvo ou cair antes dela, **então** o resultado seguirá a ordem de resolução e regra de empate definidas, com desfecho correspondente.
 - **Dado** mesmo personagem e cartas, **quando** alternar cenário, **então** apenas configuração do encontro será alterada; não haverá cópia divergente do motor.
-- **Dado** duas preparações previstas no teste de balanceamento, **quando** simular o cenário, **então** a evidência mostrará influência mensurável da estratégia ou registrará necessidade de ajuste antes de afirmar que é divertida.
+- **Dado** duas sequências de decisões manuais previstas no teste, **quando** simular o cenário, **então** a evidência mostrará influência mensurável da estratégia ou registrará necessidade de ajuste antes de afirmar que é divertida.
 
-**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar por inferência.
+**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar integração por inferência. CD-D07..09 autorizam protótipo isolado da cena inicial, sem concluir a integração destas histórias.
 
 ### Story 8.6: Repetir e sair da demo com estado íntegro
 
 Como jogador, quero recomeçar ou trocar de cenário, para experimentar estratégias sem perder meu personagem.
 
-**Status:** backlog. **Dependências:** 8.5
+**Status:** backlog. **Dependências:** 8.4
 
 **Cobertura:** CD-FR09,10; CD-NFR01,03,04,05; CD-UX03,04,05.
 
@@ -197,7 +201,7 @@ Como jogador, quero recomeçar ou trocar de cenário, para experimentar estraté
 - **Dado** refresh, logout ou troca de conta, **quando** retomar a interface, **então** a partida efêmera não será prometida como salva; dados privados não sobreviverão à sessão anterior e o backend será reconsultado.
 - **Dado** ficha antes do teste, **quando** concluir, perder e reiniciar, **então** revisão, atributos, pesquisa e aprovação permanecerão iguais; nenhuma recompensa ou Crônica será publicada.
 
-**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar por inferência.
+**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar integração por inferência. CD-D07..09 autorizam protótipo isolado da cena inicial, sem concluir a integração destas histórias.
 
 ### Story 8.7: Validar a demo com jogadores e registrar aprendizado
 
@@ -212,11 +216,11 @@ Como Product Owner, quero observar ambos os cenários em uso, para decidir se de
 **Critérios de aceite:**
 
 - **Dado** build candidata e backend real, **quando** executar matriz integrada, **então** registraremos versão, papel/conta sem credenciais, HTTP, rota final e estado antes/depois; mocks, lint e build não serão chamados de E2E real.
-- **Dado** participantes de teste, **quando** jogar os dois cenários, **então** registraremos reconhecimento do personagem, entendimento de energia/cartas, influência da ordem, intervenções e vontade de repetir; tamanho da amostra será informado.
+- **Dado** participantes de teste, **quando** jogar os dois cenários, **então** registraremos reconhecimento do personagem, entendimento de energia/cartas, influência das escolhas de cartas, intervenções e vontade de repetir; tamanho da amostra será informado.
 - **Dado** interface em desktop e celular, **quando** validar teclado, zoom 200%, reflow, contraste e movimento reduzido, **então** resultados e falhas terão evidência, sem afirmar acessibilidade só pela intenção no código.
 - **Dado** resultados coletados, **quando** revisar com o PO, **então** decidiremos continuar, ajustar ou estacionar; nenhum resultado provará automaticamente o loop com Mestre ou balanceamento do D20.
 
-**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar por inferência.
+**Gate:** regras e roteiros são hipóteses até decisão registrada na 8.1; não implementar integração por inferência. CD-D07..09 autorizam protótipo isolado da cena inicial, sem concluir a integração destas histórias.
 
 ## Mapa de cobertura
 

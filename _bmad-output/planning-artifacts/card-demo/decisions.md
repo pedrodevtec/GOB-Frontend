@@ -1,6 +1,6 @@
 # Registro de decisões — Demo de cartas
 
-Versão: 0.1 • Registro: 2026-09-22 • Responsável por aprovação: Joao Pedro (Product Owner).
+Versão: 0.2 • Registro: 2026-09-22 • Responsável por aprovação: Joao Pedro (Product Owner).
 Origem: conversa de produto de 21–22/09/2026. Autor do registro: assistente de desenvolvimento.
 Visibilidade: documentação interna de produto; sem segredos narrativos. Nada neste documento cria canon.
 
@@ -19,7 +19,7 @@ Visibilidade: documentação interna de produto; sem segredos narrativos. Nada n
 
 | ID | Hipótese | Recomendação para validação | Gate |
 |---|---|---|---|
-| CD-H01 | Combate automático após ordenar as cinco cartas | Rodadas discretas; alternativa é ativação manual por turno | PO confirma antes do contrato executável |
+| CD-H01 | Combate automático após ordenar as cinco cartas | SUPERADA em 22/09: PO pediu sem combate automático | Substituída por CD-D07 |
 | CD-H02 | Atributos padronizados; identidade visual real | Facilita balanceamento; não traduz ainda toda a ficha para o combate | PO confirma antes da integração |
 | CD-H03 | Vida e Energia; recuperação por rodada | Valores, teto, ordem de resolução e empate ainda pendentes | Design de jogo + PO antes do motor |
 | CD-H04 | Golpe, Guarda, Concentração, Técnica, Poder da Marca | Catálogo provisório; Marca de uso único é hipótese | PO aprova efeitos, custos e nomes |
@@ -49,3 +49,12 @@ ESTACIONADAS: PvP, loja, compra aleatória de cartas, progressão permanente, cr
 - Impactos: extensão experimental do PRD; não altera escopo obrigatório de pilot-core.
 - Pendências: CD-H01..09, acesso elegível, valores de combate e validação narrativa.
 - Próximo passo: revisar contrato e dependências na Story 8.1; implementação continua em backlog.
+
+## Atualização do PO — 22/09/2026 (prevalece sobre o registro anterior)
+
+- **CD-D07 — DECISÃO DE PRODUTO:** sem combate automático por enquanto. O jogador escolhe manualmente cada habilidade. Preparar uma sequência para execução automática está fora do recorte.
+- **CD-D08 — DECISÃO DE PRODUTO:** produzir primeiro o cenário inicial, com impacto visual e narrativo para teste e gravação de vídeo. O segundo cenário continua na visão posterior, mas não bloqueia a primeira entrega.
+- **CD-D09 — DECISÃO DE PRODUTO:** começar pela cena/protótipo demonstrável; isto não equivale à autorização de publicar em produção ou alterar ficha/conta.
+- **Proposta de implementação visual:** uma resposta inimiga explícita após cada escolha, avançada pelo botão “Resolver resposta”, para controlar ritmo do vídeo. Não é combate autônomo.
+- **Valores e narrativa:** parâmetros de protótipo em manual-scene-v0.2.md, não regras oficiais aprovadas.
+- **Próximo passo:** avaliar protótipo inicial; depois fechar contrato de integração do personagem e calibrar regras.

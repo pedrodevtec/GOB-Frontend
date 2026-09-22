@@ -64,3 +64,9 @@ Não há prazo nem responsável de execução presumidos. Aprovação de regras:
 - Brownfield: sem novo template, banco, auth ou pipeline; preservar módulos, contratos e configurações existentes.
 - Prontidão: **PENDENTE**. Bloqueios CD-H01..09 e contrato/rota específicos são visíveis; não marcar workflow como final/ready-for-dev.
 - Testes desta PR: verificação documental, links locais, cobertura e preservação de status anteriores. Nenhum teste funcional declarado.
+
+## Revisão v0.2 — decisão mais recente
+
+Combate manual aprovado pelo PO; H01 automática foi superada. Primeiro cenário e protótipo para teste/vídeo passam à frente do segundo cenário.
+Sequência vigente: 8.1 (contrato + protótipo local) → 8.2 → 8.3 → 8.4 → 8.6 (repetição do primeiro cenário) → 8.7 (primeira rodada formativa). 8.5 entra depois, seguida de ampliação do teste em 8.7.
+Sem reordenação de cartas, autoplay, velocidade de combate ou dependência do cenário B para gravar A. Os registros de processo anteriores são históricos; a implementação integrada permanece pendente.
