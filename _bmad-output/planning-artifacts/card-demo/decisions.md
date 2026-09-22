@@ -78,3 +78,9 @@ Implementação registrada em `mandukuru-card-scene-validation.md`. Primeiro cen
 - **CD-D14 — DECISÃO DE PRODUTO:** a cena de combate deixa de abrir em popup e passa a ocupar uma página própria, acessível em `/meu-personagem/combate` pelo card existente em Meu personagem.
 - A mudança é de apresentação e navegação: preserva combate manual, cinco habilidades, Mandukuru, retrato, narrativa personalizada, regras e validação autenticada. Não cria persistência da tentativa nem altera o fluxo obrigatório da jornada.
 - A página oferece retorno explícito para Meu personagem, carrega a cena automaticamente e mantém o comportamento responsivo já previsto para desktop e mobile.
+
+## Painéis e densidade do combate — 22/09/2026
+
+- **CD-D15 — DECISÃO DE APRESENTAÇÃO:** personagem e Mandukuru passam a usar a mesma composição de caixa visual e painel de atributos, com larguras e alinhamento equivalentes em cada breakpoint.
+- A arena, mensagens e cartas usam menos espaço ocioso, sempre na grade de 4 px. Em até 420 px, os combatentes refluem para uma coluna; as cartas preservam a grade móvel compacta de duas colunas, com a última ocupando a linha completa.
+- A mudança não altera arte, conteúdo, valores, motor, acesso, persistência ou informações visíveis; retrato e fallback continuam ocupando a mesma caixa e a arte do Mandukuru preserva `object-fit: contain`.

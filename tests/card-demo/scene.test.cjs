@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const Module = require('node:module');
 const ts = require('typescript');
+const postcss = require('postcss');
 const React = require('react');
 const { act, create } = require('react-test-renderer');
 global.IS_REACT_ACT_ENVIRONMENT = true;
@@ -50,7 +51,29 @@ const button = label => renderer.root.findAllByType('button').find(node => conte
 const click = async label => { const node = button(label); assert.ok(node, label); await act(async () => node.props.onClick()); };
 const rendered = () => content(renderer.root);
 const deferred = () => { let resolve, reject; const promise = new Promise((yes,no) => { resolve=yes; reject=no; }); return { promise, resolve, reject }; };
-async function renderEncounter() { await act(async () => { renderer = create(React.createElement(MandukuruEncounter, { character: projectCharacter(source) })); }); }
+const normalizedMediaParams = value => value.replace(/\s/g, '').replace(/^\(|\)$/g, '');
+const cssMedia = (root, params) => {
+  let media;
+  root.walkAtRules('media', rule => {
+    if (normalizedMediaParams(rule.params) === normalizedMediaParams(params)) media = rule;
+  });
+  assert.ok(media, `missing CSS media query ${params}`);
+  return media;
+};
+const cssRule = (container, selector) => {
+  let match;
+  container.walkRules(rule => {
+    if (rule.selector === selector) match = rule;
+  });
+  assert.ok(match, `missing CSS rule ${selector}`);
+  return match;
+};
+const cssValue = (rule, property) => {
+  const declaration = rule.nodes.find(node => node.type === 'decl' && node.prop === property);
+  assert.ok(declaration, `missing CSS declaration ${property} in ${rule.selector}`);
+  return `${declaration.value}${declaration.important ? ' !important' : ''}`;
+};
+async function renderEncounter(props = {}) { await act(async () => { renderer = create(React.createElement(MandukuruEncounter, { character: projectCharacter(source), ...props })); }); }
 async function renderEntry(readResume = async () => resume, initialResume = resume) {
   getCharacter = async () => source;
   function Parent() {
@@ -86,6 +109,62 @@ test('React consumer chooses approach, card, explicit response and restart; unav
   assert.match(rendered(), /28 \/ 28/);
   assert.match(rendered(), /36 \/ 36/);
   assert.doesNotMatch(rendered(), /12 de dano ao Mandukuru/);
+});
+test('combatants share the same image and status-panel structure without losing combat information', async () => {
+  await renderEncounter({ portraitUrl: 'blob:portrait' });
+  await click('Avançar com firmeza');
+  const combatants = renderer.root.findAll(node => node.type === 'article' && String(node.props.className).split(' ').includes('combatant'));
+  assert.equal(combatants.length, 2);
+  for (const combatant of combatants) {
+    assert.equal(combatant.findAll(node => String(node.props.className).split(' ').includes('combatantVisual')).length, 1);
+    assert.equal(combatant.findAll(node => String(node.props.className).split(' ').includes('statusPanel')).length, 1);
+  }
+  assert.match(rendered(), /Vida 28 \/ 28/);
+  assert.match(rendered(), /Energia 3 \/ 5/);
+  assert.match(rendered(), /Escudo 0/);
+  assert.match(rendered(), /Vida 36 \/ 36/);
+  assert.match(rendered(), /A seguir: Investida · 4 de dano/);
+});
+test('long character name and portrait fallback preserve shared structure and untruncated critical text', async () => {
+  const longName = 'Iara Guardiã das Sete Correntes do Rio de Pedra e da Passagem do Norte';
+  await renderEncounter({ character: { ...projectCharacter(source), name: longName } });
+  await click('Avançar com firmeza');
+  const combatants = renderer.root.findAll(node => node.type === 'article' && String(node.props.className).split(' ').includes('combatant'));
+  assert.equal(combatants.length, 2);
+  for (const combatant of combatants) {
+    assert.equal(combatant.findAll(node => String(node.props.className).split(' ').includes('combatantVisual')).length, 1);
+    assert.equal(combatant.findAll(node => String(node.props.className).split(' ').includes('statusPanel')).length, 1);
+  }
+  assert.equal(content(combatants[0].findByType('h2')), longName);
+  assert.ok(combatants[0].findByProps({ 'aria-label': `Retrato indisponível de ${longName}` }));
+  assert.match(rendered(), /Vida 28 \/ 28/);
+  assert.match(rendered(), /Energia 3 \/ 5/);
+  assert.match(rendered(), /Escudo 0/);
+  assert.match(rendered(), /Primeiro golpe: \+3 de dano pendente/);
+  assert.match(rendered(), /Vida 36 \/ 36/);
+  assert.match(rendered(), /A seguir: Investida · 4 de dano/);
+  await click('Golpe');
+  assert.match(rendered(), /−7 Vida/);
+  assert.match(rendered(), /Resolver resposta · 4 de dano/);
+});
+test('combat CSS retains narrow reflow, minimum control target and reduced-motion contracts', () => {
+  const root = postcss.parse(fs.readFileSync(path.join(project, 'features/mvp/components/mandukuru-card-scene.module.css'), 'utf8'));
+  const narrow = cssMedia(root, 'max-width:420px');
+  assert.equal(cssValue(cssRule(narrow, '.combat'), 'grid-template-columns'), '1fr');
+  assert.equal(narrow.nodes.some(node => node.type === 'rule' && node.selector === '.cards'), false);
+  const mobile = cssMedia(root, 'max-width:700px');
+  assert.equal(cssValue(cssRule(mobile, '.cards'), 'grid-template-columns'), 'repeat(2,minmax(0,1fr))');
+  assert.equal(cssValue(cssRule(mobile, '.card:last-child'), 'grid-column'), '1/-1');
+  assert.equal(cssValue(cssRule(root, '.control'), 'min-height'), '44px');
+  const portraitRule = cssRule(root, '.portrait');
+  assert.equal(cssValue(portraitRule, 'border-radius'), '6px');
+  assert.match(cssValue(portraitRule, 'background'), /^radial-gradient/);
+  assert.equal(portraitRule.nodes.some(node => node.type === 'decl' && node.prop === 'filter'), false);
+  assert.match(cssValue(cssRule(root, '.enemyArt'), 'filter'), /^drop-shadow/);
+  const reduced = cssMedia(root, 'prefers-reduced-motion:reduce');
+  const reducedScene = cssRule(reduced, '.scene *');
+  assert.equal(cssValue(reducedScene, 'animation'), 'none !important');
+  assert.equal(cssValue(reducedScene, 'transition'), 'none !important');
 });
 test('React focus revalidation hides and suspends the encounter, then preserves unchanged attempt', async () => {
   await renderEntry(); await click('Avançar com firmeza'); await click('Golpe');

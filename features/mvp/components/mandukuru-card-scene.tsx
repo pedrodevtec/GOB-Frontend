@@ -159,19 +159,23 @@ export function MandukuruEncounter({ character, suspended = false, portraitUrl }
         </article>
         <div className={styles.enemyIntro}><img src="/images/bravantus/enemies/mandukuru-sentinel-v1.webp" alt="Mandukuru, sentinela que bloqueia a passagem" /><span>Mandukuru · aparência provisória</span></div>
       </div> : <div className={styles.combat}>
-        <article key={`hero-${attempt}-${state.revision}`} className={`${styles.fighter} ${last?.actor === 'hero' && last.damage ? styles.heroAttack : last?.actor === 'enemy' ? styles.hit : ''} ${state.phase === 'defeat' ? styles.defeated : ''}`}>
-          {portraitUrl && portraitUrl !== failedPortrait
-            ? <img className={styles.portrait} src={portraitUrl} alt={`Retrato de ${character.name}`} onError={() => setFailedPortrait(portraitUrl)} />
-            : <div className={styles.avatar} role="img" aria-label={`Retrato indisponível de ${character.name}`}>✧</div>}
-          <h2>{character.name}</h2><p>Vida <strong>{state.hp} / 28</strong></p><meter min={0} max={28} value={state.hp} aria-label="Vida do personagem" />
-          <p>Energia <strong>{state.energy} / 5</strong><br />Escudo <strong>{state.shield}</strong></p>
-          {state.bonus > 0 && <p><strong>Primeiro golpe: +{state.bonus} de dano pendente</strong></p>}
-          {last?.actor === 'enemy' && <span className={styles.damage}>−{last.hpRemoved} Vida · {last.blocked} bloqueados</span>}
-          {state.phase === 'defeat' && <strong>Derrota · Vida esgotada</strong>}
+        <article key={`hero-${attempt}-${state.revision}`} className={`${styles.combatant} ${styles.fighter} ${last?.actor === 'hero' && last.damage ? styles.heroAttack : last?.actor === 'enemy' ? styles.hit : ''} ${state.phase === 'defeat' ? styles.defeated : ''}`}>
+          <div className={styles.combatantVisual}>
+            {portraitUrl && portraitUrl !== failedPortrait
+              ? <img className={styles.portrait} src={portraitUrl} alt={`Retrato de ${character.name}`} onError={() => setFailedPortrait(portraitUrl)} />
+              : <div className={styles.avatar} role="img" aria-label={`Retrato indisponível de ${character.name}`}>✧</div>}
+          </div>
+          <div className={styles.statusPanel}>
+            <h2>{character.name}</h2><p>Vida <strong>{state.hp} / 28</strong></p><meter min={0} max={28} value={state.hp} aria-label="Vida do personagem" />
+            <p>Energia <strong>{state.energy} / 5</strong><br />Escudo <strong>{state.shield}</strong></p>
+            {state.bonus > 0 && <p><strong>Primeiro golpe: +{state.bonus} de dano pendente</strong></p>}
+            {last?.actor === 'enemy' && <span className={styles.damage}>−{last.hpRemoved} Vida · {last.blocked} bloqueados</span>}
+            {state.phase === 'defeat' && <strong>Derrota · Vida esgotada</strong>}
+          </div>
         </article>
-        <article key={`enemy-${attempt}-${state.revision}`} className={`${styles.enemy} ${last?.actor === 'enemy' ? styles.enemyAttack : last?.damage ? styles.hit : ''} ${state.phase === 'victory' ? styles.defeated : ''}`}>
-          <img src="/images/bravantus/enemies/mandukuru-sentinel-v1.webp" alt="Sentinela Mandukuru" />
-          <div className={styles.enemyStats}><h2>Mandukuru</h2><p>Vida <strong>{state.enemy} / 36</strong></p><meter min={0} max={36} value={state.enemy} aria-label="Vida do Mandukuru" />
+        <article key={`enemy-${attempt}-${state.revision}`} className={`${styles.combatant} ${styles.enemy} ${last?.actor === 'enemy' ? styles.enemyAttack : last?.damage ? styles.hit : ''} ${state.phase === 'victory' ? styles.defeated : ''}`}>
+          <div className={styles.combatantVisual}><img className={styles.enemyArt} src="/images/bravantus/enemies/mandukuru-sentinel-v1.webp" alt="Sentinela Mandukuru" /></div>
+          <div className={styles.statusPanel}><h2>Mandukuru</h2><p>Vida <strong>{state.enemy} / 36</strong></p><meter min={0} max={36} value={state.enemy} aria-label="Vida do Mandukuru" />
             {!ended && <p>A seguir: <strong>{incomingDamage(state.round) === 9 ? 'Golpe pesado' : 'Investida'} · {incomingDamage(state.round)} de dano</strong></p>}
             {last?.actor === 'hero' && last.damage > 0 && <span className={styles.damage}>−{last.hpRemoved} Vida</span>}
             {state.phase === 'victory' && <strong>Mandukuru derrotado</strong>}

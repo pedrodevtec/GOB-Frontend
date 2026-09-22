@@ -49,11 +49,10 @@
 }
 
 .stage {
-  padding:24px;
+  padding:16px;
   border:1px solid #baaa8b;
   border-radius:8px;
   background:linear-gradient(90deg,#e9dfc766,#e9dfc722),url('/images/bravantus/landing-ruins.webp') center/cover;
-  min-height:360px;
 }
 
 .introGrid {
@@ -142,29 +141,66 @@
 .combat {
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:30px;
-  align-items:end;
-  min-height:360px;
+  gap:16px;
+  align-items:start;
 }
 
-.fighter {
-  background:#fffaf2f2;
-  border:1px solid #c7b797;
-  border-radius:6px;
-  padding:22px;
-  align-self:end;
+.combatant {
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+  gap:8px;
   position:relative;
 }
 
-.avatar {
-  font-size:68px;
-  color:#806131;
-  text-align:center;
-  padding:20px;
+.combatantVisual {
+  display:flex;
+  width:100%;
+  height:240px;
+  align-items:center;
+  justify-content:center;
+}
+
+.combatantVisual>img {
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
+.portrait {
+  border-radius:6px;
   background:radial-gradient(ellipse,#d5c49955,transparent);
 }
 
-.fighter p,.enemyStats p {
+.enemyArt {
+  filter:drop-shadow(0 10px 8px #2e231f66);
+}
+
+.avatar {
+  display:flex;
+  width:100%;
+  height:100%;
+  align-items:center;
+  justify-content:center;
+  font-size:68px;
+  color:#806131;
+  text-align:center;
+  border-radius:6px;
+  background:radial-gradient(ellipse,#d5c49955,transparent);
+}
+
+.statusPanel {
+  position:relative;
+  width:100%;
+  background:#fffaf2f2;
+  border:1px solid #c7b797;
+  border-radius:6px;
+  padding:12px;
+  text-align:left;
+}
+
+.statusPanel p {
   margin:8px 0;
   font:14px/1.6 Arial,sans-serif;
 }
@@ -175,27 +211,11 @@
   accent-color:#48624c;
 }
 
-.enemy {
-  position:relative;
+.fighter,.enemy {
   text-align:center;
 }
 
-.enemy>img {
-  width:100%;
-  height:300px;
-  object-fit:contain;
-  filter:drop-shadow(0 10px 8px #2e231f66);
-}
-
-.enemyStats {
-  position:relative;
-  background:#fffaf2f2;
-  border:1px solid #c7b797;
-  border-radius:6px;
-  padding:12px;
-}
-
-.enemyStats h2 {
+.statusPanel h2 {
   margin:0 0 8px;
 }
 
@@ -210,8 +230,8 @@
 }
 
 .narration,.result,.notice {
-  margin:16px 0;
-  padding:18px;
+  margin:12px 0;
+  padding:12px;
   background:#eae0cc;
   border:1px solid #c5b38e;
   border-radius:6px;
@@ -239,8 +259,8 @@
 .cards {
   display:grid;
   grid-template-columns:repeat(5,minmax(0,1fr));
-  gap:12px;
-  margin-top:16px;
+  gap:8px;
+  margin-top:12px;
 }
 
 .card {
@@ -249,13 +269,13 @@
   border-top:3px solid #98703d;
   border-radius:6px;
   background:linear-gradient(145deg,#fffaf2,#eee3cd);
-  padding:16px;
-  min-height:210px;
+  padding:12px;
+  min-height:176px;
   position:relative;
   transition:transform .18s;
   display:flex;
   flex-direction:column;
-  gap:12px;
+  gap:8px;
   color:#352c21;
 }
 
@@ -295,7 +315,7 @@
 
 .help {
   font:13px/1.7 Arial,sans-serif;
-  margin-top:14px;
+  margin:8px 0;
 }
 
 .history {
@@ -390,21 +410,13 @@
     padding:16px;
   }
   .combat {
-    gap:10px;
-    min-height:270px;
-  }
-  .fighter {
-    padding:12px;
+    gap:8px;
   }
   .avatar {
     font-size:44px;
-    padding:8px;
   }
-  .enemy>img {
-    height:210px;
-  }
-  .enemyStats {
-    padding:8px;
+  .combatantVisual {
+    height:176px;
   }
   .cards {
     grid-template-columns:repeat(2,minmax(0,1fr));
@@ -414,7 +426,7 @@
     grid-column:1/-1;
   }
   .card {
-    min-height:190px;
+    min-height:176px;
     padding:12px;
   }
   .toolbar {
@@ -439,16 +451,4 @@
   .card:hover:not([aria-disabled="true"]) {
     transform:none;
   }
-}
-
-.portrait {
-  display: block;
-  width: 100%;
-  height: 300px;
-  object-fit: contain;
-  border-radius: 6px;
-  background: radial-gradient(ellipse, #d5c49955, transparent);
-}
-@media (max-width: 700px) {
-  .portrait { height: 210px; }
 }
