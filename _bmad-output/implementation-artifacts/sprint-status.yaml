@@ -95,12 +95,13 @@ development_status:
   7-6-comprovar-autorização-e-coerência-operacional: backlog
   epic-7-retrospective: optional
 
-  # Extensão experimental autorizada para planejamento; prioridade de execução pendente.
-  epic-8: backlog
+  # Extensão experimental: integração do primeiro cenário autorizada na spec Mandukuru.
+  epic-8: in-progress
   8-1-fechar-contrato-roteiro-e-acesso-da-demo: backlog
   8-2-escolher-cenario-com-meu-personagem: backlog
   8-3-conhecer-habilidades-e-preparar-minha-estrategia: backlog
-  8-4-jogar-o-primeiro-cenario-do-inicio-ao-desfecho: backlog
+  # Implementação manual Mandukuru em revisão; validação visual e E2E autenticado pendentes.
+  8-4-jogar-o-primeiro-cenario-do-inicio-ao-desfecho: review
   8-5-jogar-um-segundo-cenario-com-objetivo-diferente: backlog
   8-6-repetir-e-sair-da-demo-com-estado-integro: backlog
   8-7-validar-a-demo-com-jogadores-e-registrar-aprendizado: backlog
