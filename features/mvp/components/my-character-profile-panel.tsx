@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MandukuruCardSceneEntry } from "@/features/mvp/components/mandukuru-card-scene";
 
 import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
@@ -114,6 +115,17 @@ export function MyCharacterProfilePanel() {
           </CardDescription>
         </Card>
       )}
+
+      <MandukuruCardSceneEntry
+        resume={resume.data}
+        characterId={character.data.id}
+        tableId={tableId}
+        revalidateResume={async () => {
+          const result = await resume.refetch();
+          if (result.isError || !result.data) throw new Error("SCENE_UNAVAILABLE");
+          return result.data;
+        }}
+      />
 
       <MyCharacterReadonlyPanel character={character.data} tableId={tableId} layout="sheet" />
     </div>

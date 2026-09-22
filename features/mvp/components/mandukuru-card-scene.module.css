@@ -1,0 +1,430 @@
+.scene {
+  color:#332c22;
+  background:#f6f0e4;
+  font-family:Georgia,serif;
+  overflow-wrap:anywhere;
+}
+
+.heading,.toolbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+.heading {
+  padding-bottom:16px;
+  border-bottom:1px solid #cbbb9e;
+}
+
+.toolbar {
+  padding:12px 0;
+  font:13px/1.5 Arial,sans-serif;
+}
+
+.control {
+  min-height:44px;
+  border:1px solid #8a7553;
+  border-radius:6px;
+  padding:10px 16px;
+  background:#fffaf2;
+  color:#392f23;
+  font:600 14px/1.5 Arial,sans-serif;
+  cursor:pointer;
+}
+
+.control:hover {
+  background:#e8ddc6;
+}
+
+.control:focus-visible,.card:focus-visible,.history summary:focus-visible {
+  outline:3px solid #2f6551;
+  outline-offset:3px;
+}
+
+.control small {
+  display:block;
+  font-weight:400;
+}
+
+.stage {
+  padding:24px;
+  border:1px solid #baaa8b;
+  border-radius:8px;
+  background:linear-gradient(90deg,#e9dfc766,#e9dfc722),url('/images/bravantus/landing-ruins.webp') center/cover;
+  min-height:360px;
+}
+
+.introGrid {
+  display:grid;
+  grid-template-columns:3fr 2fr;
+  gap:20px;
+  align-items:center;
+}
+
+.paper {
+  background:#fffaf2f2;
+  border:1px solid #c7b797;
+  padding:24px;
+  border-radius:6px;
+}
+
+.scene h2 {
+  font-size:clamp(22px,3vw,30px);
+  line-height:1.2;
+  margin:10px 0 16px;
+}
+
+.paper p,.result p {
+  line-height:1.65;
+  margin:12px 0;
+}
+
+.eyebrow {
+  font:600 11px/1.5 Arial,sans-serif!important;
+  text-transform:uppercase;
+  letter-spacing:.15em;
+  color:#755530;
+}
+
+.paper blockquote {
+  border-left:3px solid #987347;
+  padding-left:14px;
+  white-space:pre-wrap;
+  font-style:italic;
+  font-size:16px;
+  line-height:1.6;
+}
+
+.choices {
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.choices button {
+  flex:1;
+  min-width:150px;
+}
+
+.enemyIntro {
+  text-align:center;
+}
+
+.enemyIntro img {
+  width:100%;
+  max-height:460px;
+  object-fit:contain;
+  filter:drop-shadow(0 10px 8px #2e231f66);
+}
+
+.enemyIntro span {
+  display:inline-block;
+  padding:6px 12px;
+  background:#fffaf2ed;
+  border-radius:6px;
+  font:12px Arial,sans-serif;
+}
+
+.combat {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:30px;
+  align-items:end;
+  min-height:360px;
+}
+
+.fighter {
+  background:#fffaf2f2;
+  border:1px solid #c7b797;
+  border-radius:6px;
+  padding:22px;
+  align-self:end;
+  position:relative;
+}
+
+.avatar {
+  font-size:68px;
+  color:#806131;
+  text-align:center;
+  padding:20px;
+  background:radial-gradient(ellipse,#d5c49955,transparent);
+}
+
+.fighter p,.enemyStats p {
+  margin:8px 0;
+  font:14px/1.6 Arial,sans-serif;
+}
+
+.scene meter {
+  width:100%;
+  height:16px;
+  accent-color:#48624c;
+}
+
+.enemy {
+  position:relative;
+  text-align:center;
+}
+
+.enemy>img {
+  width:100%;
+  height:300px;
+  object-fit:contain;
+  filter:drop-shadow(0 10px 8px #2e231f66);
+}
+
+.enemyStats {
+  position:relative;
+  background:#fffaf2f2;
+  border:1px solid #c7b797;
+  border-radius:6px;
+  padding:12px;
+}
+
+.enemyStats h2 {
+  margin:0 0 8px;
+}
+
+.damage {
+  display:block;
+  background:#853f2d;
+  color:#fffaf2;
+  border-radius:4px;
+  padding:7px;
+  font:700 14px/1.5 Arial,sans-serif;
+  animation:damage .5s ease-out;
+}
+
+.narration,.result,.notice {
+  margin:16px 0;
+  padding:18px;
+  background:#eae0cc;
+  border:1px solid #c5b38e;
+  border-radius:6px;
+}
+
+.narration {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+.narration p {
+  flex:1;
+  min-width:150px;
+  line-height:1.6;
+}
+
+.result {
+  text-align:center;
+  background:#fffaf2;
+}
+
+.cards {
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:12px;
+  margin-top:16px;
+}
+
+.card {
+  text-align:left;
+  border:1px solid #ab9571;
+  border-top:3px solid #98703d;
+  border-radius:6px;
+  background:linear-gradient(145deg,#fffaf2,#eee3cd);
+  padding:16px;
+  min-height:210px;
+  position:relative;
+  transition:transform .18s;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  color:#352c21;
+}
+
+.card:hover:not([aria-disabled="true"]) {
+  transform:translateY(-5px);
+}
+
+.card[aria-disabled="true"] {
+  cursor:not-allowed;
+  background:#e9e2d4;
+  color:#6b6256;
+}
+
+.card strong {
+  font-size:18px;
+  font-weight:normal;
+}
+
+.card>span:not(.icon):not(.cost),.card small {
+  font:13px/1.5 Arial,sans-serif;
+}
+
+.card small {
+  margin-top:auto;
+}
+
+.cost {
+  align-self:flex-end;
+  font:bold 12px Arial,sans-serif;
+  color:#385441;
+}
+
+.icon {
+  font-size:28px;
+  color:#873f2d;
+}
+
+.help {
+  font:13px/1.7 Arial,sans-serif;
+  margin-top:14px;
+}
+
+.history {
+  font:14px/1.7 Arial,sans-serif;
+}
+
+.history summary {
+  min-height:44px;
+  cursor:pointer;
+  padding-top:10px;
+}
+
+.history ol {
+  max-height:180px;
+  overflow:auto;
+  padding-left:24px;
+  list-style:decimal;
+}
+
+.heroAttack {
+  animation:heroAttack .4s ease-out;
+}
+
+.enemyAttack {
+  animation:enemyAttack .4s ease-out;
+}
+
+.hit {
+  animation:hit .4s ease-out;
+}
+
+.defeated {
+  opacity:.65;
+  filter:grayscale(.8);
+  animation:defeat .7s ease-out;
+}
+
+@keyframes heroAttack {
+  50% {
+    transform:translateX(22px) rotate(2deg);
+  }
+}
+
+@keyframes enemyAttack {
+  50% {
+    transform:translateX(-22px) rotate(-2deg);
+  }
+}
+
+@keyframes hit {
+  30%,70% {
+    transform:translateX(5px);
+  }
+  50% {
+    transform:translateX(-5px);
+  }
+}
+
+@keyframes damage {
+  from {
+    transform:translateY(10px);
+    opacity:.2;
+  }
+  to {
+    transform:translateY(0);
+    opacity:1;
+  }
+}
+
+@keyframes defeat {
+  from {
+    transform:translateY(-8px);
+    opacity:1;
+  }
+  to {
+    transform:translateY(0);
+    opacity:.65;
+  }
+}
+
+@media(max-width:700px) {
+  .stage {
+    padding:12px;
+  }
+  .introGrid {
+    grid-template-columns:1fr;
+  }
+  .enemyIntro img {
+    max-height:230px;
+  }
+  .paper {
+    padding:16px;
+  }
+  .combat {
+    gap:10px;
+    min-height:270px;
+  }
+  .fighter {
+    padding:12px;
+  }
+  .avatar {
+    font-size:44px;
+    padding:8px;
+  }
+  .enemy>img {
+    height:210px;
+  }
+  .enemyStats {
+    padding:8px;
+  }
+  .cards {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  .card:last-child {
+    grid-column:1/-1;
+  }
+  .card {
+    min-height:190px;
+    padding:12px;
+  }
+  .toolbar {
+    font-size:12px;
+  }
+  .scene h2 {
+    font-size:22px;
+  }
+}
+
+@media(max-width:420px) {
+  .combat {
+    grid-template-columns:1fr;
+  }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  .scene * {
+    animation:none!important;
+    transition:none!important;
+  }
+  .card:hover:not([aria-disabled="true"]) {
+    transform:none;
+  }
+}

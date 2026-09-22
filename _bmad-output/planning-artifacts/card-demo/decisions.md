@@ -58,3 +58,11 @@ ESTACIONADAS: PvP, loja, compra aleatória de cartas, progressão permanente, cr
 - **Proposta de implementação visual:** uma resposta inimiga explícita após cada escolha, avançada pelo botão “Resolver resposta”, para controlar ritmo do vídeo. Não é combate autônomo.
 - **Valores e narrativa:** parâmetros de protótipo em manual-scene-v0.2.md, não regras oficiais aprovadas.
 - **Próximo passo:** avaliar protótipo inicial; depois fechar contrato de integração do personagem e calibrar regras.
+
+## Integração autorizada — 22/09/2026
+
+- **CD-D10 — DECISÃO DE PRODUTO:** pedido explícito autoriza integrar a cena manual Abrir passagem em Meu personagem, com os parâmetros da spec `spec-mandukuru-personalized-card-scene.md`. A autorização anterior restrita ao planejamento/protótipo fica superada somente neste recorte. Não autoriza publicação em produção, backend novo ou segundo cenário.
+- **CD-D11 — DECISÃO DE PRODUTO:** a sentinela da primeira cena é um Mandukuru. A arte fornecida é provisória e pode ser convertida/otimizada com transparência; não estabelece aparência canônica.
+- **CD-D12 — DECISÃO DE PRODUTO:** a abertura usa nome e trecho fiel da história salva, com ligação neutra e desfecho retomando a motivação. Ataque, dano, vitória e derrota recebem efeitos visuais. A narrativa autorizada permanece texto, não HTML; ficha, aprovação, cânone e dados privados do Mestre não são alterados ou divulgados.
+
+Implementação registrada em `mandukuru-card-scene-validation.md`. Primeiro cenário em revisão; validação visual e integração autenticada são gates separados dos testes determinísticos. Demais histórias do épico permanecem abertas.
