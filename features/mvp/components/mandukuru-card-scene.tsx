@@ -1,20 +1,49 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { MvpState } from '@/components/states/mvp-state';
+import { GuardianPageLoader } from '@/components/visual/guardian-page-loader';
 import { useAuthStore } from '@/stores/auth-store';
 import { hasUsableAccessToken } from '@/lib/auth/token-storage';
 import { mvpService } from '@/features/mvp/services/mvp.service';
+import { useCampaignResume, useMyMvpCharacter } from '@/features/mvp/hooks/use-mvp';
 import { allowsScene, loadSceneCharacter, narrativeLink, outcomeText, sameScope, type AccessResume, type SceneCharacter, type SceneScope } from '@/features/mvp/card-demo/context';
 import { CARDS, cardBlockReason, combatReducer, freshCombat, incomingDamage, type CombatAction } from '@/features/mvp/card-demo/engine';
+import { useScenePortrait } from '@/features/mvp/card-demo/use-scene-portrait';
 import styles from './mandukuru-card-scene.module.css';
+
+export function MandukuruCardScenePage() {
+  const resume = useCampaignResume('pilot-v1');
+  const tableId = resume.data?.membership?.tableId;
+  const character = useMyMvpCharacter(tableId);
+
+  if (resume.isLoading || character.isLoading) {
+    return <GuardianPageLoader title="Preparando a passagem" />;
+  }
+
+  if (resume.isError || character.isError) {
+    return <MvpState variant="error" title="Não foi possível preparar o combate" description="Sua ficha continua guardada. Tente carregar a cena novamente." actions={[{ label: 'Tentar novamente', onClick: () => void Promise.all([resume.refetch(), character.refetch()]) }]} />;
+  }
+
+  if (!character.data) {
+    return <MvpState variant="empty" title="Personagem não encontrado" description="Crie ou retome sua ficha antes de entrar nesta cena." actions={[{ label: 'Voltar para Meu personagem', href: '/meu-personagem' }]} />;
+  }
+
+  return <MandukuruCardSceneEntry
+    resume={resume.data}
+    characterId={character.data.id}
+    tableId={tableId}
+    revalidateResume={async () => {
+      const result = await resume.refetch();
+      if (result.isError || !result.data) throw new Error('SCENE_UNAVAILABLE');
+      return result.data;
+    }}
+  />;
+}
 
 export function MandukuruCardSceneEntry({ resume, characterId, tableId, revalidateResume }: { resume?: AccessResume; characterId: string; tableId?: string; revalidateResume: () => Promise<AccessResume> }) {
   const userId = useAuthStore((state) => state.user?.id);
   const token = useAuthStore((state) => state.accessToken);
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState<{ scope: SceneScope; character: SceneCharacter; generation: number } | null>(null);
   const [error, setError] = useState(false);
@@ -25,10 +54,6 @@ export function MandukuruCardSceneEntry({ resume, characterId, tableId, revalida
   current.current = scope;
   const eligible = hasUsableAccessToken(token) && allowsScene(resume, scope);
   const visible = eligible && loaded && sameScope(loaded.scope, scope);
-  function close() {
-    request.current++;
-    setOpen(false); setLoaded(null); setLoading(false); setError(false);
-  }
   async function validate() {
     const ticket = ++request.current;
     const expected = current.current;
@@ -53,11 +78,12 @@ export function MandukuruCardSceneEntry({ resume, characterId, tableId, revalida
     }
   }
   useEffect(() => {
-    // Discard attempts on session/context changes, including a silent token rotation.
+    // Discard attempts on session/context changes, including a silent token rotation,
+    // and validate whenever this dedicated page receives a complete context.
     request.current++;
-    setLoaded(null); setLoading(false);
-    if (open) setError(true);
-    // open intentionally excluded: opening explicitly performs fresh validation.
+    setLoaded(null); setLoading(false); setError(false);
+    if (userId && token && tableId && characterId) void validate();
+    else setError(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, token, tableId, characterId]);
   useEffect(() => {
@@ -65,37 +91,33 @@ export function MandukuruCardSceneEntry({ resume, characterId, tableId, revalida
   }, [eligible, loaded, loading]);
   useEffect(() => () => { request.current++; }, []);
   useEffect(() => {
-    if (!open) return;
     // Suspend the surface while checking access; identical context keeps the attempt mounted.
     const onFocus = () => { void validate(); };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, revalidateResume]);
+  }, [revalidateResume]);
 
-  return <Card className="space-y-3">
-    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cena experimental · 01</p>
-    <CardTitle>Experimente seu Guardião: Abrir passagem</CardTitle>
-    <CardDescription>Enfrente um Mandukuru com cinco cartas e decisões manuais. Sua ficha e a história da mesa permanecem intactas.</CardDescription>
-    <Dialog open={open} onOpenChange={(value) => { if (!value) close(); else { setOpen(true); void validate(); } }}>
-      <DialogTrigger asChild><Button>Jogar cena de cartas</Button></DialogTrigger>
-      <DialogContent showCloseButton={false} className={`max-h-[94dvh] w-[min(96vw,72rem)] overflow-y-auto p-3 sm:p-6 ${styles.scene}`}>
-        <div className={styles.heading}>
-          <div><DialogTitle>Abrir passagem</DialogTitle><DialogDescription>Cena manual · Mandukuru provisório · Regras experimentais v1</DialogDescription></div>
-          <DialogClose asChild><button className={styles.control}>Sair da cena</button></DialogClose>
-        </div>
-        {loading && <p role="status" className={styles.notice}>Conferindo seu acesso e a história salva…</p>}
-        {loaded && <div hidden={loading || !visible}>
-          <MandukuruEncounter key={loaded.generation} character={loaded.character} suspended={loading || !visible} />
-        </div>}
-        {!loading && !visible && <div className={styles.notice} role="alert"><p>{error || !eligible ? 'A cena foi descartada: não foi possível confirmar seu personagem e acesso atuais.' : 'Abra uma nova tentativa para conferir seu personagem.'}</p><button className={styles.control} onClick={() => void validate()}>Tentar novamente</button></div>}
-      </DialogContent>
-    </Dialog>
-  </Card>;
+  return <section className={`rounded-[1.5rem] border border-[#b99b61]/35 p-3 shadow-[0_22px_60px_rgba(45,40,31,0.12)] sm:p-6 ${styles.scene}`}>
+    <div className={styles.heading}>
+      <div><h2>Abrir passagem</h2><p>Cena manual · Mandukuru provisório · Regras experimentais v1</p></div>
+    </div>
+    {loading && <p role="status" className={styles.notice}>Conferindo seu acesso e a história salva…</p>}
+    {loaded && <div hidden={loading || !visible}>
+      <PortraitEncounter key={loaded.generation} character={loaded.character} tableId={loaded.scope.tableId} suspended={loading || !visible} />
+    </div>}
+    {!loading && !visible && <div className={styles.notice} role="alert"><p>{error || !eligible ? 'A cena foi descartada: não foi possível confirmar seu personagem e acesso atuais.' : 'Carregue uma nova tentativa para conferir seu personagem.'}</p><button className={styles.control} onClick={() => void validate()}>Tentar novamente</button></div>}
+  </section>;
+}
+
+function PortraitEncounter({ character, tableId, suspended }: { character: SceneCharacter; tableId: string; suspended: boolean }) {
+  const portraitUrl = useScenePortrait(tableId, character.id, !suspended);
+  return <MandukuruEncounter character={character} suspended={suspended} portraitUrl={portraitUrl} />;
 }
 
 /** Exported for isolated rendering; receives only the authorized allowlist projection. */
-export function MandukuruEncounter({ character, suspended = false }: { character: SceneCharacter; suspended?: boolean }) {
+export function MandukuruEncounter({ character, suspended = false, portraitUrl }: { character: SceneCharacter; suspended?: boolean; portraitUrl?: string }) {
+  const [failedPortrait, setFailedPortrait] = useState<string>();
   const [state, setState] = useState(freshCombat);
   const [attempt, setAttempt] = useState(0);
   const stateRef = useRef(state);
@@ -138,7 +160,9 @@ export function MandukuruEncounter({ character, suspended = false }: { character
         <div className={styles.enemyIntro}><img src="/images/bravantus/enemies/mandukuru-sentinel-v1.webp" alt="Mandukuru, sentinela que bloqueia a passagem" /><span>Mandukuru · aparência provisória</span></div>
       </div> : <div className={styles.combat}>
         <article key={`hero-${attempt}-${state.revision}`} className={`${styles.fighter} ${last?.actor === 'hero' && last.damage ? styles.heroAttack : last?.actor === 'enemy' ? styles.hit : ''} ${state.phase === 'defeat' ? styles.defeated : ''}`}>
-          <div className={styles.avatar} aria-label="Avatar neutro do personagem">✧</div>
+          {portraitUrl && portraitUrl !== failedPortrait
+            ? <img className={styles.portrait} src={portraitUrl} alt={`Retrato de ${character.name}`} onError={() => setFailedPortrait(portraitUrl)} />
+            : <div className={styles.avatar} role="img" aria-label={`Retrato indisponível de ${character.name}`}>✧</div>}
           <h2>{character.name}</h2><p>Vida <strong>{state.hp} / 28</strong></p><meter min={0} max={28} value={state.hp} aria-label="Vida do personagem" />
           <p>Energia <strong>{state.energy} / 5</strong><br />Escudo <strong>{state.shield}</strong></p>
           {state.bonus > 0 && <p><strong>Primeiro golpe: +{state.bonus} de dano pendente</strong></p>}

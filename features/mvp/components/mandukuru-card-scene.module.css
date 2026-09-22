@@ -76,6 +76,18 @@
   margin:10px 0 16px;
 }
 
+.heading h2 {
+  margin:0;
+  font-size:clamp(26px,4vw,38px);
+  line-height:1.15;
+}
+
+.heading p {
+  margin:8px 0 0;
+  font:14px/1.5 Arial,sans-serif;
+  color:#655b4d;
+}
+
 .paper p,.result p {
   line-height:1.65;
   margin:12px 0;
@@ -427,4 +439,16 @@
   .card:hover:not([aria-disabled="true"]) {
     transform:none;
   }
+}
+
+.portrait {
+  display: block;
+  width: 100%;
+  height: 300px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: radial-gradient(ellipse, #d5c49955, transparent);
+}
+@media (max-width: 700px) {
+  .portrait { height: 210px; }
 }

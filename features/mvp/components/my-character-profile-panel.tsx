@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { MandukuruCardSceneEntry } from "@/features/mvp/components/mandukuru-card-scene";
-
 import { MvpState } from "@/components/states/mvp-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -116,16 +114,12 @@ export function MyCharacterProfilePanel() {
         </Card>
       )}
 
-      <MandukuruCardSceneEntry
-        resume={resume.data}
-        characterId={character.data.id}
-        tableId={tableId}
-        revalidateResume={async () => {
-          const result = await resume.refetch();
-          if (result.isError || !result.data) throw new Error("SCENE_UNAVAILABLE");
-          return result.data;
-        }}
-      />
+      <Card className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cena experimental · 01</p>
+        <CardTitle>Experimente seu Guardião: Abrir passagem</CardTitle>
+        <CardDescription>Enfrente um Mandukuru com cinco cartas e decisões manuais em uma página própria. Sua ficha e a história da mesa permanecem intactas.</CardDescription>
+        <Button asChild><Link href="/meu-personagem/combate">Jogar cena de cartas</Link></Button>
+      </Card>
 
       <MyCharacterReadonlyPanel character={character.data} tableId={tableId} layout="sheet" />
     </div>
