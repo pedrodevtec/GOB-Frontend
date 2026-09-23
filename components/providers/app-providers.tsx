@@ -13,9 +13,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthBootstrap />
-      <ProfileCustomizationSync />
-      {children}
+      <AuthBootstrap>
+        <ProfileCustomizationSync />
+        {children}
+      </AuthBootstrap>
       <Toaster
         position="top-right"
         richColors

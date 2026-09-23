@@ -4,6 +4,18 @@
   summary: Executar a matriz E2E integrada do Épico 1 e da recuperação de senha.
   evidence: Login, rotação, revogação, logout, duas abas, Consentimento, retorno canônico e recuperação de senha possuem testes isolados, mas ainda não foram comprovados juntos com frontend, backend, PostgreSQL migrado, navegador e e-mail reais. Esta pendência substitui o teste antigo de hidratação da sessão persistida, pois a Story 1.2 removeu a autenticação de Zustand/localStorage.
 
+- source_spec: `_bmad-output/implementation-artifacts/spec-gh-60-restaurar-sessao-apos-reload.md`
+  issue: `#60`
+  status: `pending-e2e`
+  summary: Comprovar restauração após F5 contra o backend real em desktop, mobile e duas abas.
+  evidence: A política local cobre `401`, `409`, rede, `429`, `5xx`, origem rejeitada, retry limitado e resposta tardia. A causa real só pode ser fechada após login novo + F5 com registro sanitizado do status e `error.code` de `/api/auth/refresh`, sem cookie, token ou dados pessoais.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-gh-60-restaurar-sessao-apos-reload.md`
+  issue: `#60-follow-up-web-locks`
+  status: `pending-design`
+  summary: Definir recuperação de `409 REFRESH_ALREADY_ROTATED` quando Web Locks está disponível.
+  evidence: `createRefreshCoordinator` retorna diretamente de `withCrossTabLock(options.run)` e, nesse caminho preexistente, não consulta `isRotationConflict`; o fallback sem Web Locks mantém a repetição única. Alterar a semântica entre abas exige desenho e teste integrado próprios, fora desta correção.
+
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-1-security-baseline.md`
   issue: `#41`
   status: `pending-repository-setting`
