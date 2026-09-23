@@ -7,6 +7,7 @@ import {
   getAccessToken
 } from "@/lib/auth/token-storage";
 import { shouldRefreshAccessToken } from "@/lib/auth/retry-policy";
+import { refreshInterceptorFailureAction } from "@/lib/auth/bootstrap-policy";
 import { refreshSession } from "@/lib/auth/session";
 import { authPathWithReturnTo, isAuthEntryRoute } from "@/lib/routing/auth-redirects";
 
@@ -59,10 +60,13 @@ apiClient.interceptors.response.use(
         const session = await refreshSession();
         originalRequest.headers.Authorization = `Bearer ${session.accessToken}`;
         return apiClient(originalRequest);
-      } catch {
-        clearTokens();
-        redirectToLoginOnce();
-        throw new UnauthorizedApiError();
+      } catch (refreshError) {
+        if (refreshInterceptorFailureAction(refreshError) === "unauthorized") {
+          // refreshSession already clears and broadcasts the terminal session once.
+          redirectToLoginOnce();
+          throw new UnauthorizedApiError();
+        }
+        throw refreshError;
       }
     }
 

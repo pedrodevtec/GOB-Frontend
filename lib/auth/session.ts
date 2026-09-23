@@ -3,6 +3,12 @@ import {
   AUTH_SESSION_REFRESHED_EVENT
 } from "@/lib/auth/constants";
 import { ApiRequestError } from "@/lib/api/errors";
+import {
+  isRefreshRotationConflict,
+  isTerminalRefreshFailure,
+  shouldClearSessionAfterRefresh,
+  supersededRefreshFailure
+} from "@/lib/auth/bootstrap-policy";
 import { createRefreshCoordinator } from "@/lib/auth/refresh-coordinator";
 import { executeLogout } from "@/lib/auth/logout-coordinator";
 import type { AuthSession, AuthUser } from "@/types/app";
@@ -17,6 +23,7 @@ type PublicSessionPayload = {
 
 let accessToken: string | null = null;
 let accessTokenExpiresAt: string | null = null;
+let memorySessionGeneration = 0;
 
 function mapUser(input: Record<string, unknown>): AuthUser {
   const rawRole = input.accountRole ?? input.systemRole ?? input.role;
@@ -77,11 +84,13 @@ export function getMemoryAccessToken() {
 }
 
 export function setMemorySession(session: AuthSession) {
+  memorySessionGeneration += 1;
   accessToken = session.accessToken;
   accessTokenExpiresAt = session.accessTokenExpiresAt ?? null;
 }
 
 export function clearMemorySession(notify = true) {
+  memorySessionGeneration += 1;
   accessToken = null;
   accessTokenExpiresAt = null;
   if (notify && typeof window !== "undefined") {
@@ -123,15 +132,21 @@ function crossTabLock() {
 const coordinateRefresh = createRefreshCoordinator<AuthSession>({
   run: requestRefreshOnce,
   withCrossTabLock: crossTabLock(),
-  isRotationConflict: (error) =>
-    error instanceof ApiRequestError && error.statusCode === 409,
+  isRotationConflict: isRefreshRotationConflict,
   wait: () => new Promise((resolve) => setTimeout(resolve, 150))
 });
 
 export function refreshSession() {
+  const startedGeneration = memorySessionGeneration;
   return coordinateRefresh().catch((error) => {
-    if (error instanceof ApiRequestError && error.statusCode !== 409) {
+    const generation = {
+      started: startedGeneration,
+      current: memorySessionGeneration
+    };
+    if (shouldClearSessionAfterRefresh(error, generation)) {
       clearMemorySession();
+    } else if (isTerminalRefreshFailure(error)) {
+      throw supersededRefreshFailure(error);
     }
     throw error;
   });

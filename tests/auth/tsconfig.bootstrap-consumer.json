@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "incremental": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2022",
+    "jsx": "react-jsx",
+    "outDir": "../../.tmp-tests-auth-ui"
+  },
+  "include": [
+    "../../components/providers/auth-bootstrap.tsx"
+  ]
+}

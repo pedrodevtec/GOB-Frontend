@@ -14,6 +14,7 @@ Permitir que uma pessoa conheça o Piloto, autentique-se, registre Consentimento
 - Story 1.4: Consentir e ingressar sem duplicação
 - Story 1.5: Conhecer o contexto e iniciar um único Rascunho
 - Story 1.6: Retomar pela rota canônica sem loops
+- Story 1.7: Recuperar acesso sem expor contas
 
 ## Requirements & Constraints
 
@@ -24,18 +25,21 @@ Permitir que uma pessoa conheça o Piloto, autentique-se, registre Consentimento
 - O Contexto Público contém somente o necessário para iniciar; perguntas específicas do Episódio 1 não integram nem bloqueiam o Builder. O primeiro Rascunho preserva `Character.id`, revisão e `builderConfigVersion`.
 - Toda ação protegida depende de autorização vigente do backend. Presença de cookie, localStorage, store ou botão visível não constitui autorização.
 - Antes do Piloto externo, a sessão deve ser curta ou revogável, com rotação, logout efetivo e cenários reais de expiração, `401` e `403` comprovados.
+- Recuperação de senha não revela se uma conta existe. Tokens são aleatórios, persistidos somente como hash, expiram em 30 minutos e só podem ser usados uma vez; a troca de senha revoga todas as sessões e rejeita rotas de redefinição como `returnTo`.
 - As rotas críticas atendem WCAG 2.2 AA, funcionam por teclado, não comunicam estado apenas por cor, refluentem a 200% e permanecem utilizáveis desde 320 CSS px.
 - O baseline precisa usar Next.js e `eslint-config-next` em versão corrigida suportada, tipos React na mesma major do runtime e dependências estáveis em vez de ranges RC legados. Instalação limpa, lint, typecheck e build devem passar sem supressão de erro.
 
 ## Technical Decisions
 
 - Preservar módulos por feature em camadas: rota/layout compõe; componente chama hook; hook coordena service e cache; service/mapper encerra o transporte em `lib/api`.
-- React Query possui estado remoto; Zustand/localStorage servem apenas a estado local ou efêmero. Sessão será consumida por uma fronteira única definida em ADR conjunta com o backend; o mecanismo legado atual não deve ser ampliado antes dessa decisão.
+- React Query possui estado remoto; Zustand/localStorage servem apenas a estado local ou efêmero. A sessão usa uma fronteira única em `lib/auth`: access token curto somente em memória, refresh token opaco e rotativo em cookie `HttpOnly`, e sessão persistida/revogável no backend. Tokens deixam a persistência JavaScript.
+- Route Handlers same-origin tratam login, refresh e logout. O cliente tenta um único refresh para `401` recuperável, com mutex por aba; `403` nunca inicia refresh. Logout revoga remotamente de forma idempotente, limpa cookie, memória e cache privado.
+- O middleware é apenas pré-filtro: cookie presente não concede acesso. O backend valida `sid`, papel, membership e capabilities em cada chamada protegida; respostas de autenticação usam `Cache-Control: no-store`.
 - `lib/campaign` normaliza respostas de retomada e `lib/routing` retorna `permit | redirect | block` por catálogo seguro de rotas. A UI não sintetiza estado canônico.
 - Respostas externas são validadas e mapeadas na fronteira de service; componentes não interpretam envelopes nem usam cast bruto como contrato.
 - Erros de autenticação, autorização, conflito, validação e indisponibilidade preservam código/causa técnica na camada de domínio e recebem microcopy na feature.
 - Operações remotas não avançam em erro. Estado decisório é relido em mount/focus e após transições; idempotência atômica permanece bloqueada onde o OpenAPI oficial ainda não define o contrato.
-- Superfícies protegidas permanecem no transporte browser até a ADR de sessão. Server Components só podem buscar DTOs públicos sem credencial e sem cache privado.
+- O browser continua chamando a API protegida com Bearer em memória; o BFF parcial existe apenas para manter o refresh token fora do JavaScript. Server Components só podem buscar DTOs públicos sem credencial e sem cache privado.
 
 ## UX & Interaction Patterns
 
@@ -51,4 +55,5 @@ Permitir que uma pessoa conheça o Piloto, autentique-se, registre Consentimento
 - Story 1.2 só inicia após ADR frontend/backend e contrato oficial de sessão.
 - Stories 1.3 e 1.6 podem avançar usando contratos vigentes sem alterar autenticação ou inventar estados.
 - Story 1.4 depende da sessão válida e da política de Consentimento; Story 1.5 depende de membership ativa e de contrato backend atômico para retomar/criar um único Rascunho.
+- Story 1.7 estende a fronteira de autenticação: redefinir a senha precisa revogar todas as sessões e concluir com reentrada segura, sem enfraquecer `returnTo` nem permitir enumeração de contas.
 - O Épico 1 habilita todos os demais épicos. Gates ainda abertos não podem ser substituídos por inferência do frontend legado.

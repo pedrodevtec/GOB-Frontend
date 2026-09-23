@@ -153,7 +153,8 @@ Regras:
 2. Route Handler lê o cookie e chama `POST /api/v1/auth/refresh`.
 3. Backend consome o refresh atual, cria sucessor na mesma família e devolve novos tokens.
 4. Route Handler substitui o cookie e devolve novo access token e usuário.
-5. Falha limpa a sessão local e preserva somente `returnTo` interno validado.
+5. Somente `401` confirma sessão inválida, limpa a sessão local e preserva somente `returnTo` interno validado.
+6. Rede, `429`, `5xx` e `403 AUTH_ORIGIN_REJECTED` mantêm o conteúdo privado bloqueado, tentam novamente de forma limitada e não publicam logout.
 
 ### Concorrência de refresh
 
@@ -272,3 +273,9 @@ Não criar quarta fonte de sessão durante a migração.
 - **Motivo:** corrigir o seam bloqueante sem persistir credenciais no JavaScript nem reescrever toda a API como BFF.
 - **Impactos:** frontend, backend, banco, OpenAPI, middleware, cliente HTTP, store, logout, testes e configuração de ambientes.
 - **Próximo passo após merge:** executar `bmad-create-story` para a Story 1.2 e decompor a implementação coordenada entre os dois repositórios.
+
+## Adendo — restauração após reload (#60)
+
+Em 2026-09-22, a política do cliente foi refinada sem alterar o contrato backend: `401` é a única falha terminal do refresh. O conflito `409 REFRESH_ALREADY_ROTATED` conserva sua repetição única; rede, `429`, `5xx`, `403 AUTH_ORIGIN_REJECTED` e demais falhas não terminais preservam a sessão local, não emitem logout e mantêm superfícies protegidas bloqueadas até recuperação. Após uma repetição automática, a interface oferece tentativa explícita. Diagnóstico registra somente HTTP status e `error.code` sanitizados.
+
+A causa observada no ambiente real continua aberta até a matriz integrada registrar a resposta de `/api/auth/refresh`; este adendo não atribui a falha ao backend.

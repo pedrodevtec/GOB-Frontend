@@ -43,6 +43,7 @@ development_status:
   1-5-conhecer-o-contexto-e-iniciar-um-único-rascunho: review
   1-6-retomar-pela-rota-canônica-sem-loops: review
   1-7-recuperar-acesso-sem-expor-contas: review
+  gh-60-restaurar-sessao-apos-reload: review
   epic-1-retrospective: optional
 
   epic-2: backlog
